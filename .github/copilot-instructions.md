@@ -13,10 +13,24 @@ and deep thinking. No more feeling obligated to be online all the time.
 Spaces help you categorize conversations by project, team, client, or topic – whatever makes sense for your team's workflow.
 This keeps discussions tidy and easy to find.
 
-# Gameplan: Tech Stack
+# Gameplan: Tech Stack & Architecture
 
-- Backend: Frappe Framework
-- Frontend Vue 3 App with Vite dev server
+- **Backend**: Frappe Framework with Python
+- **Frontend**: Vue 3 + TypeScript SPA with Vite dev server
+- **Database**: MariaDB with structured doctypes
+- **Search**: SQLite FTS5 for full-text search capabilities
+- **Real-time**: WebSockets via Socket.IO for live updates
+- **UI Library**: frappe-ui (local copy in `./frappe-ui/`)
+
+## Key Architecture Patterns
+
+**Dual App Structure**: Gameplan runs as a Frappe app with a Vue SPA frontend served at `/g` route via `gameplan/www/g.py`
+
+**DocType-Driven Backend**: Core entities like `GP Discussion`, `GP Comment`, `GP Project`, `GP Team` follow Frappe's DocType pattern in `gameplan/gameplan/doctype/`
+
+**Vite Integration**: Frontend uses frappe-ui's Vite plugin for proxy setup, type generation, and build optimization - see `frontend/vite.config.js`
+
+**Routing**: Vue Router handles client-side routing under `/g/` with complex nested layouts (Team → Project → Space hierarchy)
 
 # Frontend: VueJS 3 Development Instructions
 
@@ -44,6 +58,23 @@ Instructions for building high-quality VueJS 3 applications with the Composition
 ## Vite dev server
 - Assume the Vite dev server is already running on port 8080
 - Use `http://gameplan.frappe.test:8080/g` to access the frontend during development
+
+## Critical Integration Points
+
+**Frontend-Backend Bridge**:
+- App entry point: `gameplan/www/g.py` serves the Vue SPA and handles boot data
+- Backend API endpoints exposed through `gameplan/api.py` with `@frappe.whitelist()` decorators
+- Real-time updates via Socket.IO configured in frontend `socket.js`
+
+**Local frappe-ui Development**:
+- Local frappe-ui copy in `./frappe-ui/` for development
+- Vite config automatically aliases to local version in dev mode
+- TipTap package conflicts resolved via dynamic aliasing in `vite.config.js`
+
+**Route Structure**:
+- Vue Router base path: `/g/` with nested team/project/space hierarchy
+- Legacy team/project routes redirect to unified spaces pattern
+- Complex nested layouts: Team → Project → Space with shared components
 
 ## Development Standards
 
@@ -235,24 +266,47 @@ item.customMethod.submit({ param: 'value' }) // call custom method
 - `./gameplan/gameplan/doctype/` contains individual doctype definitions
 - `./gameplan/api.py` contains some API endpoints and logic
 
-## Backend Development Guidelines
+## Critical Development Workflows
 
-- Always prefer `frappe.qb.get_query` instead of `frappe.db.get_all` or `frappe.get_all`
-- Always prefer `frappe.qb.get_query(..., ignore_permissions=False)` instead of `frappe.db.get_list` or `frappe.get_list` for queries that require permission checks
+**Local Development Setup**:
+- Backend runs via `bench start` from `frappe-bench` directory
+- Frontend dev server: `cd frontend && yarn dev` (runs on port 8080)
+- Access app at `http://gameplan.frappe.test:8080/g` during development
+- Site-specific commands: `bench --site gameplan.frappe.test <command>`
 
-## Bench commands
+**Data Query Patterns**:
+- Always prefer `frappe.qb.get_query()` over `frappe.db.get_all()` for new code
+- Use `frappe.qb.get_query(..., ignore_permissions=False)` when permission checks are needed
+- See examples in `gameplan/api.py` for proper query builder usage
 
-- Always run bench commands from the `frappe-bench` directory
-- Always run bench commands with the `--site` flag to specify the site
-- Assume `gameplan.frappe.test` local site already exists in the bench setup
-- Run any site commands with `bench --site gameplan.frappe.test <command>`
+**Debugging Workflow**:
+- Create debug files like `./gameplan/debug.py` with `def execute():` function
+- Run with `bench --site gameplan.frappe.test execute gameplan.debug.execute`
+- Use `print()` statements for console output during debugging
 
-## Server side code debugging
-- If there is a need to print debug information, create a python file inside the `gameplan` directory, e.g., `./gameplan/debug.py`
-- Create a function in that file, e.g., `def execute():`
-- Use `print()` statements in that file to log debug information
-- Run the debug file with `bench --site gameplan.frappe.test execute gameplan.debug.execute`
-- This will execute the file and print the output to the console
+**Search Integration**:
+- Full-text search powered by Redisearch via `sqlite_search` hook in `hooks.py`
+- Search implementation in `gameplan.search_sqlite.GameplanSearch`
+
+## DocType Architecture Patterns
+
+**Core Entity Structure**:
+- `GP Project` - Referred to as "Spaces" in the UI. Every discussion, task, and page belongs to a space (GP Project).
+- `GP Team` - Referred to as "Category" in the UI. Every project belongs to a team.
+- `GP Discussion` - Main discussion threads
+- `GP Comment` - Threaded comments with reactions. A discussion can have multiple comments.
+- `GP Page` - Collaborative documents
+- `GP Task` - Task management with assignees
+- `GP User Profile` - Extended user information
+
+**Permission System**:
+- Custom permission logic in `has_permission` hooks (see `hooks.py`)
+- Example: `GP Page` permissions in `gameplan.gameplan.doctype.gp_page.gp_page.has_permission`
+- Team/project membership controls access to discussions and pages
+
+**Auto-generated Types**:
+- TypeScript types generated via frappe-ui's `frappeTypes` plugin configuration
+- See `frontend/vite.config.js` for doctype list that generates frontend types
 
 ## Miscellaneous
 
