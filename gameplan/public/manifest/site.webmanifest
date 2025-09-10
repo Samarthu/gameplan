@@ -1,6 +1,7 @@
 {
   "display": "standalone",
   "short_name": "Gameplan",
+  "start_url": "/g",
   "icons": [
     {
       "src": "/assets/gameplan/manifest/manifest-icon-192.maskable.png",
