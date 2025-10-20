@@ -181,6 +181,15 @@ class GPProject(ManageMembersMixin, Archivable, Document):
 				break
 
 	@frappe.whitelist()
+	def archive(self):
+		super().archive()
+		# delete pinned projects
+		for pin in frappe.db.get_all(
+			"GP Pinned Project", filters={"project": self.name, "user": frappe.session.user}, pluck="name"
+		):
+			frappe.delete_doc("GP Pinned Project", pin.name, ignore_permissions=True)
+
+	@frappe.whitelist()
 	def mark_all_as_read(self):
 		"""Mark all discussions as read using a project-level timestamp."""
 		user = frappe.session.user

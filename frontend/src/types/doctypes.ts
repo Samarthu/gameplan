@@ -117,7 +117,7 @@ export interface GPNotification extends DocType {
   team?: string
 }
 
-// Last updated: 2025-08-19 23:59:43.143194
+// Last updated: 2025-08-31 19:13:17.867939
 export interface GPDiscussion extends DocType {
   /** Project: Link (GP Project) */
   project: string
@@ -247,7 +247,7 @@ export interface GPReaction extends ChildDocType {
   user?: string
 }
 
-// Last updated: 2025-05-22 13:12:51.415148
+// Last updated: 2025-08-31 23:29:54.697656
 export interface GPComment extends DocType {
   /** Content: Text Editor */
   content: string
@@ -327,7 +327,7 @@ export interface GPSearchFeedback extends DocType {
   query?: string
 }
 
-// Last updated: 2025-03-08 16:00:25.825860
+// Last updated: 2025-08-31 19:25:15.771791
 export interface GPDraft extends DocType {
   /** Title: Data */
   title?: string
@@ -353,4 +353,16 @@ export interface GPTagLink extends ChildDocType {
 export interface GPTag extends DocType {
   /** Label: Data */
   label?: string
+}
+
+// Last updated: 2023-01-31 15:15:16.167656
+export interface GPPinnedProject extends DocType {
+  /** Project: Link (GP Project) */
+  project: string
+  /** Team: Link (GP Team) */
+  team?: string
+  /** User: Link (User) */
+  user: string
+  /** Order: Int */
+  order?: number
 }

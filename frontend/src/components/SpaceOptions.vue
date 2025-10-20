@@ -15,7 +15,7 @@ import ChangeSpaceCategoryDialog from './ChangeSpaceCategoryDialog.vue'
 import EditSpaceDialog from './EditSpaceDialog.vue'
 import ManageMembersDialog from './ManageMembersDialog.vue'
 import { createDialog } from '@/utils/dialogs'
-import { useSpace } from '@/data/spaces'
+import { useSpace, hasJoined, joinSpace, leaveSpace } from '@/data/spaces'
 import { markSpaceAsRead } from '@/data/unreadCount'
 import { GPProject } from '@/types/doctypes'
 
@@ -26,6 +26,7 @@ import LucideArchive from '~icons/lucide/archive'
 import LucideTrash2 from '~icons/lucide/trash-2'
 import LucideLogOut from '~icons/lucide/log-out'
 import LucideCheck from '~icons/lucide/check'
+import LucideLogIn from '~icons/lucide/log-in'
 
 defineOptions({
   inheritAttrs: false,
@@ -68,6 +69,20 @@ const options = computed(() => [
           },
         ],
       })
+    },
+    condition: () => !space.value?.archived_at,
+  },
+  {
+    label: hasJoined(props.spaceId) ? 'Leave space' : 'Join space',
+    icon: hasJoined(props.spaceId) ? LucideLogOut : LucideLogIn,
+    onClick: () => {
+      if (space.value) {
+        if (hasJoined(props.spaceId)) {
+          leaveSpace(space.value)
+        } else {
+          joinSpace(space.value)
+        }
+      }
     },
     condition: () => !space.value?.archived_at,
   },

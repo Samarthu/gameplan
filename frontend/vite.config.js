@@ -36,6 +36,7 @@ export default defineConfig(async ({ mode }) => {
               'gp_search_feedback',
               'gp_draft',
               'gp_tag',
+              'gp_pinned_project',
             ],
           },
         },

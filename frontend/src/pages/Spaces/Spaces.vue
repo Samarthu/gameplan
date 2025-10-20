@@ -17,8 +17,10 @@
   <div class="mx-auto max-w-4xl px-2 sm:px-5">
     <div class="mt-6 mb-3 flex px-2.5 items-center justify-between gap-2.5">
       <TextInput
+        ref="searchInputRef"
         v-model="query"
-        placeholder="Search"
+        :debounce="150"
+        :placeholder="$platform == 'mac' ? 'Search (⌘+F)' : 'Search (Ctrl+F)'"
         class="w-full"
         v-focus="!!!$route.query.teamId"
       >
@@ -31,10 +33,19 @@
         v-model="currentTab"
       />
     </div>
-    <div class="p-3" v-if="groupedSpaces.length === 0">
+    <div class="p-3" v-if="!hasAnySpaces">
       <EmptyStateBox>
         <div class="text-ink-gray-5 text-base">No spaces</div>
       </EmptyStateBox>
+    </div>
+    <div class="mb-10" v-if="filteredPinnedSpaces.length > 0">
+      <div class="px-3 flex items-center text-base text-ink-gray-8 py-2">
+        <LucidePin class="inline h-4 w-4 mr-2" />
+        <span> Pinned </span>
+      </div>
+      <div class="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 px-3">
+        <PinnedSpaceCard v-for="d in filteredPinnedSpaces" :key="d.name" :spaceId="d.project" />
+      </div>
     </div>
     <RecycleScroller
       ref="scroller"
@@ -45,8 +56,9 @@
     >
       <template #default="{ item }">
         <SpaceCardGroup
-          :ref="(el) => setGroupRefs(el as HTMLElement, item.name)"
+          :ref="(el) => setGroupRefs(el, item.name)"
           :group="item"
+          class="scroll-mt-12"
           @new-space="
             (categoryName) => {
               categoryForNewSpace = categoryName
@@ -59,25 +71,39 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import { useRoute } from 'vue-router'
-import { Breadcrumbs, TabButtons, Button } from 'frappe-ui'
+import { Breadcrumbs, TabButtons, Button, TextInput } from 'frappe-ui'
 import { useWindowSize } from '@vueuse/core'
 import NewSpaceDialog from '@/components/NewSpaceDialog.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyStateBox from '@/components/EmptyStateBox.vue'
 import SpaceCardGroup from './SpaceCardGroup.vue'
+import PinnedSpaceCard from './PinnedSpaceCard.vue'
 import { useGroupedSpaces } from '@/data/groupedSpaces'
 import { vFocus } from '@/directives'
-import { scrollTo } from '@/utils/scrollContainer'
+import { pinnedSpaces } from '@/data/pinnedSpaces'
+import { useSpace } from '@/data/spaces'
 
 const currentTab = ref('Public')
 const categoryForNewSpace = ref('')
 const query = ref('')
 const route = useRoute()
 const scroller = ref(null)
+const searchInputRef = useTemplateRef<InstanceType<typeof TextInput>>('searchInputRef')
+
+const filteredPinnedSpaces = computed(() => {
+  if (currentTab.value !== 'Public' || !pinnedSpaces.data) return []
+
+  return pinnedSpaces.data.filter((d) => {
+    const space = useSpace(d.project).value
+    if (!space) return false
+    if (!query.value) return true
+    return space.title.toLowerCase().includes(query.value.toLowerCase())
+  })
+})
 
 const groupedSpaces = computed(() => {
   let _groupedSpaces = useGroupedSpaces({
@@ -110,8 +136,12 @@ const groupedSpaces = computed(() => {
   return out
 })
 
+const hasAnySpaces = computed(() => {
+  return filteredPinnedSpaces.value.length > 0 || groupedSpaces.value.length > 0
+})
+
 const newSpaceDialog = ref(false)
-const groupRefs = ref<Record<string, HTMLElement>>({})
+const groupRefs = ref<Record<string, InstanceType<typeof SpaceCardGroup>>>({})
 
 async function onScrollEnd() {
   if (route.query.teamId) {
@@ -123,18 +153,16 @@ async function onScrollEnd() {
 }
 
 function scrollToCategory(categoryId: string) {
-  let groupIndex = groupedSpaces.value.findIndex((group) => group.name === categoryId)
-  let heightUntilGroup = 0
-  for (let i = 0; i < groupIndex; i++) {
-    heightUntilGroup += groupedSpaces.value[i].height
+  const groupElement = groupRefs.value[categoryId]
+  if (groupElement?.$el) {
+    groupElement.$el.scrollIntoView({ block: 'start' })
   }
-  const scrollPosition = heightUntilGroup
-  const searchHeight = 64
-  scrollTo({ top: scrollPosition + searchHeight })
 }
 
-function setGroupRefs(el: HTMLElement, name: string) {
-  groupRefs.value[name] = el
+function setGroupRefs(el: any, name: string) {
+  if (el) {
+    groupRefs.value[name] = el
+  }
 }
 
 const columns = computed(() => {
@@ -143,5 +171,23 @@ const columns = computed(() => {
   if (width.value < 1024) return 2
   if (width.value < 1280) return 3
   return 4
+})
+
+function handleKeyDown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+    const inputEl = searchInputRef.value?.el
+    if (inputEl && document.activeElement !== inputEl) {
+      e.preventDefault()
+      inputEl.focus()
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
 })
 </script>

@@ -19,6 +19,7 @@ export interface Space
     | 'tasks_count'
     | 'discussions_count'
   > {
+  team_title: string
   members: Member[]
 }
 
@@ -34,6 +35,7 @@ export let spaces = useList<Space>({
     'modified',
     'tasks_count',
     'discussions_count',
+    'team.title as team_title',
     { members: ['user'] },
   ],
   initialData: [],

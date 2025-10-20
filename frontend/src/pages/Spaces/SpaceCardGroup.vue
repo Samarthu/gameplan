@@ -1,5 +1,5 @@
 <template>
-  <div class="isolate">
+  <div class="isolate" ref="el">
     <div class="px-3 flex items-center gap-2 py-2 bg-surface-white z-[1]">
       <div class="text-base text-ink-gray-8">
         {{ noCategories ? 'All spaces' : group.title || group.name }}
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useTemplateRef } from 'vue'
 import { Badge } from 'frappe-ui'
 import { GroupedSpaceItem, useGroupedSpaces, noCategories } from '@/data/groupedSpaces'
 import {
@@ -39,6 +39,12 @@ defineProps<{
 const emit = defineEmits<{
   'new-space': [categoryName: string]
 }>()
+
+const $el = useTemplateRef('el')
+
+defineExpose({
+  $el,
+})
 
 const groupedSpaces = useGroupedSpaces()
 const editCategoryDialog = ref<InstanceType<typeof EditCategoryDialog> | null>(null)
