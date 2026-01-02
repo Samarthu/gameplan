@@ -2,6 +2,7 @@
   <FileUploader
     @success="(file) => setUserImage(file.file_url)"
     :validateFile="validateFile"
+    :fileTypes="['image/*']"
     :uploadArgs="{ optimize: true }"
   >
     <template v-slot="{ file, progress, error, uploading, openFileSelector }">
