@@ -1,8 +1,9 @@
 <template>
   <router-view v-slot="{ Component, route }">
     <PageHeader v-if="!route.meta.hideHeader">
-      <div class="flex items-center space-x-1">
+      <div class="flex items-center space-x-2">
         <SpaceBreadcrumbs :spaceId="spaceId" />
+        <Badge v-if="space?.archived_at">Archived</Badge>
       </div>
       <SpaceOptions :spaceId="spaceId" placement="right" />
     </PageHeader>

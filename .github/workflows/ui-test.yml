@@ -98,7 +98,6 @@ jobs:
         run: |
           cd ~/frappe-bench/
           bench --site gameplan.test execute frappe.utils.install.complete_setup_wizard
-          bench --site gameplan.test execute frappe.tests.ui_test_helpers.create_test_user
 
 
       - name: UI Tests

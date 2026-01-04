@@ -7,7 +7,12 @@
     v-model="show"
   >
     <template #body-content>
-      <Combobox :options="teamOptions" v-model="selectedTeam" placeholder="Select a team" v-focus />
+      <Combobox
+        :options="teamOptions"
+        v-model="selectedTeam"
+        placeholder="Select a category"
+        v-focus
+      />
       <ErrorMessage class="mt-2" :message="spaces.runDocMethod.error" />
     </template>
     <template #actions>

@@ -1,5 +1,5 @@
 <template>
-  <DropdownMoreOptions v-bind="$attrs" :options="options" />
+  <DropdownMoreOptions label="Space Options" v-bind="$attrs" :options="options" />
 
   <MergeSpaceDialog v-model="showSpaceMergeDialog" :spaceId="props.spaceId" />
   <ChangeSpaceCategoryDialog v-model="showSpaceCategoryDialog" :spaceId="props.spaceId" />
