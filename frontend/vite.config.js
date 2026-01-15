@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import path from 'path'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig(async ({ mode }) => {
@@ -70,6 +70,17 @@ export default defineConfig(async ({ mode }) => {
           indexHtmlPath: '../gameplan/www/g.html',
         },
       }),
+      {
+        name: 'resolve-tiptap',
+        enforce: 'pre',
+        async resolveId(source) {
+          if (useLocalFrappeUI && source.startsWith('@tiptap')) {
+            return this.resolve(source, path.join(localFrappeUIPath, 'package.json'), {
+              skipSelf: true,
+            })
+          }
+        },
+      },
       vue(),
       vueJsx(),
       visualizer({ emitFile: true }),
@@ -90,8 +101,6 @@ export default defineConfig(async ({ mode }) => {
       alias: {
         ...localFrappeUIAliases,
         ...baseAliases,
-        // TipTap aliases to prevent duplicate instances when using local frappe-ui
-        ...getTipTapAliases(useLocalFrappeUI, localFrappeUIPath),
       },
     },
     optimizeDeps: {
@@ -99,29 +108,6 @@ export default defineConfig(async ({ mode }) => {
     },
   }
 })
-
-/**
- * Get TipTap package aliases to prevent duplicate instances
- * when using local frappe-ui alongside gameplan's node_modules
- */
-function getTipTapAliases(useLocalFrappeUI, localFrappeUIPath) {
-  if (!useLocalFrappeUI) return {}
-
-  const gameplanTiptap = path.join(__dirname, 'node_modules/@tiptap')
-  const frappeUITiptap = path.join(localFrappeUIPath, 'node_modules/@tiptap')
-
-  if (!existsSync(gameplanTiptap) || !existsSync(frappeUITiptap)) {
-    return {}
-  }
-
-  const commonPackages = readdirSync(gameplanTiptap).filter((pkg) =>
-    readdirSync(frappeUITiptap).includes(pkg),
-  )
-
-  return Object.fromEntries(
-    commonPackages.map((pkg) => [`@tiptap/${pkg}`, path.join(gameplanTiptap, pkg)]),
-  )
-}
 
 /**
  * Import frappe-ui Vite plugin from local copy or npm package
