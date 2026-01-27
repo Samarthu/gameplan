@@ -8,6 +8,7 @@ export default {
     './src/**/*.{vue,js,ts,jsx,tsx}',
     './node_modules/frappe-ui/src/components/**/*.{vue,js,ts,jsx,tsx}',
     '../node_modules/frappe-ui/src/components/**/*.{vue,js,ts,jsx,tsx}',
+    '../frappe-ui/src/components/**/*.{vue,js,ts,jsx,tsx}',
   ],
   theme: {
     container: {
