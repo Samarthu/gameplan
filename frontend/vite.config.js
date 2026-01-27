@@ -86,6 +86,7 @@ export default defineConfig(async ({ mode }) => {
       visualizer({ emitFile: true }),
     ],
     server: {
+      host: '0.0.0.0',
       allowedHosts: true,
       fs: {
         allow: [
