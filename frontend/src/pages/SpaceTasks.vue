@@ -1,6 +1,6 @@
 <template>
-  <div class="mt-5 mx-auto max-w-4xl px-2 sm:px-5">
-    <div class="mb-4 px-3 flex items-center justify-between">
+  <div class="mt-5 body-container">
+    <div class="mb-4 flex items-center justify-between">
       <SpaceTabs :spaceId="spaceId" />
       <div class="flex items-stretch space-x-2">
         <Button variant="solid" @click="openNewTaskDialog">
@@ -11,7 +11,7 @@
         </Button>
       </div>
     </div>
-    <div class="px-3">
+    <div>
       <TaskList :listOptions="{ filters }" :groupByStatus="true" ref="taskList" />
     </div>
   </div>

@@ -1,6 +1,6 @@
 <template>
-  <div class="max-w-4xl mt-5 mx-auto px-2 sm:px-5">
-    <div class="flex px-3 mb-4 items-center justify-between">
+  <div class="body-container mt-5">
+    <div class="flex mb-4 items-center justify-between">
       <SpaceTabs :spaceId="spaceId" />
       <Button variant="solid" :route="{ name: 'NewDiscussion', query: { spaceId: spaceId } }">
         <template #prefix><LucidePlus class="h-4 w-4" /></template>
@@ -8,6 +8,7 @@
       </Button>
     </div>
     <DiscussionList
+      class="-mx-3"
       :filters="() => ({ project: spaceId })"
       :cacheKey="`SpaceDiscussions-${spaceId}`"
     />

@@ -1,5 +1,5 @@
 <template>
-  <div class="pb-16">
+  <div class="pb-16 -mx-3">
     <DiscussionList :filters="{ owner: profile.doc.user }" :showPinned="false" />
   </div>
 </template>

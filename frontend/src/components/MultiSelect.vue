@@ -1,55 +1,62 @@
 <template>
-  <div class="relative inline-block text-left">
-    <div class="flex">
-      <Button
-        variant="outline"
-        :class="{ 'ring-2 ring-outline-gray-2': isOpen }"
-        @click="toggleDropdown"
-      >
-        <div
-          class="flex items-center min-h-[20px]"
-          :class="{ 'gap-2': hasSelectedImages && selectedCount > 0 }"
+  <Popover
+    popover-class="mt-2 w-64 divide-y divide-outline-gray-modals rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none"
+    :matchTargetWidth="false"
+    transition="default"
+    @open="handlePopoverOpen"
+    @close="handlePopoverClose"
+  >
+    <template #target="{ togglePopover, isOpen }">
+      <div class="flex">
+        <Button
+          variant="outline"
+          :class="{ 'ring-2 ring-outline-gray-2': isOpen }"
+          @click="togglePopover"
         >
-          <template v-if="selectedCount > 0">
-            <!-- Stacked Avatars -->
-            <div class="flex -space-x-2 isolate">
-              <div
-                v-for="(option, index) in selectedOptions.slice(0, 3)"
-                :key="`avatar-${option.value}`"
-                class="relative flex"
-                :style="{ zIndex: 10 - index }"
-              >
-                <Avatar
-                  v-if="option.image"
-                  :image="option.image"
-                  :label="option.label"
-                  class="border-2 border-white flex-shrink-0"
-                  size="sm"
-                />
+          <div
+            class="flex items-center min-h-[20px]"
+            :class="{ 'gap-2': hasSelectedImages && selectedCount > 0 }"
+          >
+            <template v-if="selectedCount > 0">
+              <!-- Stacked Avatars -->
+              <div class="flex -space-x-2 isolate">
+                <div
+                  v-for="(option, index) in selectedOptions.slice(0, 3)"
+                  :key="`avatar-${option.value}`"
+                  class="relative flex"
+                  :style="{ zIndex: 10 - index }"
+                >
+                  <Avatar
+                    v-if="option.image"
+                    :image="option.image"
+                    :label="option.label"
+                    class="border-2 border-white flex-shrink-0"
+                    size="sm"
+                  />
+                </div>
               </div>
-            </div>
-            <!-- Count Text -->
-            <span class="text-ink-gray-7">
-              {{
-                selectedCount === 1 ? selectedOptions[0].label : `${selectedCount} ${selectionText}`
-              }}
-            </span>
+              <!-- Count Text -->
+              <span class="text-ink-gray-7">
+                {{
+                  selectedCount === 1
+                    ? selectedOptions[0].label
+                    : `${selectedCount} ${selectionText}`
+                }}
+              </span>
+            </template>
+            <span v-else class="text-ink-gray-6">{{ placeholder }}</span>
+          </div>
+          <template #suffix>
+            <LucideChevronDown
+              class="ml-2 h-4 w-4 transition-transform duration-200"
+              :class="{ 'rotate-180': isOpen }"
+            />
           </template>
-          <span v-else class="text-ink-gray-6">{{ placeholder }}</span>
-        </div>
-        <template #suffix>
-          <LucideChevronDown
-            class="ml-2 h-4 w-4 transition-transform duration-200"
-            :class="{ 'rotate-180': isOpen }"
-          />
-        </template>
-      </Button>
-    </div>
+        </Button>
+      </div>
+    </template>
 
-    <div
-      v-if="isOpen"
-      class="absolute z-50 mt-2 w-64 divide-y divide-outline-gray-modals rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none left-0 origin-top-left"
-    >
+    <template #body>
       <!-- Header -->
       <div class="py-1.5 px-1.5">
         <div class="flex h-7 items-center text-sm font-medium text-ink-gray-6 justify-between">
@@ -158,16 +165,13 @@
           No options found
         </div>
       </div>
-    </div>
-
-    <!-- Overlay to close dropdown -->
-    <div v-if="isOpen" class="fixed inset-0 z-40" @click="closeDropdown"></div>
-  </div>
+    </template>
+  </Popover>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick, useTemplateRef, watch, h, type Component } from 'vue'
-import { Button, Checkbox, Avatar } from 'frappe-ui'
+import { Button, Checkbox, Avatar, Popover } from 'frappe-ui'
 
 // Type Definitions
 interface MultiSelectOption {
@@ -206,7 +210,7 @@ const emit = defineEmits<{
 }>()
 
 // Reactive State
-const isOpen = ref(false)
+const popoverOpen = ref(false)
 const filterText = ref('')
 const highlightedIndex = ref(0)
 const inputRef = useTemplateRef<HTMLInputElement>('inputRef')
@@ -285,18 +289,16 @@ const filteredOptions = computed(() => {
 const highlightedOption = computed(() => filteredOptions.value[highlightedIndex.value] || null)
 
 // Main Interaction Methods
-function toggleDropdown() {
-  isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    highlightedIndex.value = 0 // Reset to first item when opening
-    nextTick(() => {
-      inputRef.value?.focus()
-    })
-  }
+function handlePopoverOpen() {
+  popoverOpen.value = true
+  highlightedIndex.value = 0
+  nextTick(() => {
+    inputRef.value?.focus()
+  })
 }
 
-function closeDropdown() {
-  isOpen.value = false
+function handlePopoverClose() {
+  popoverOpen.value = false
 }
 
 function toggleOption(option: MultiSelectOption) {
@@ -319,7 +321,7 @@ function clearAll() {
 
 // Keyboard Navigation
 function handleInputKeydown(event: KeyboardEvent) {
-  if (!isOpen.value) return
+  if (!popoverOpen.value) return
 
   if (event.key === 'Escape') {
     event.preventDefault()

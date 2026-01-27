@@ -1,8 +1,6 @@
 <template>
   <div>
-    <header
-      class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-5 py-2.5"
-    >
+    <PageHeader>
       <SpaceBreadcrumbs
         v-if="spaceId"
         :spaceId="spaceId"
@@ -77,8 +75,8 @@
           ]"
         />
       </div>
-    </header>
-    <div class="mx-auto w-full max-w-4xl px-5">
+    </PageHeader>
+    <div class="body-container">
       <div class="py-6" v-if="page.doc">
         <span class="text-sm text-ink-gray-5 sm:hidden">
           Updated {{ dayjsLocal(page.doc.modified).format('lll') }}
@@ -116,6 +114,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Breadcrumbs, TextEditor, usePageMeta, debounce, dayjsLocal } from 'frappe-ui'
+import PageHeader from '@/components/PageHeader.vue'
 import { useDoc } from 'frappe-ui'
 import { useSpace } from '@/data/spaces'
 import { GPPage } from '@/types/doctypes'

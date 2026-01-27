@@ -1,5 +1,5 @@
 <template>
-  <div class="pb-16">
+  <div class="pb-16 -mx-3">
     <DiscussionList :filters="{ participator: profile.doc.user }" :show-pinned="false" />
   </div>
 </template>

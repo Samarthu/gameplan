@@ -19,7 +19,7 @@
         </div>
       </div>
     </div>
-    <div :style="{ paddingBottom: `${addCommentHeight + 80}px` }">
+    <div :style="{ paddingBottom: `${addCommentHeight}px` }">
       <template v-for="(item, i) in timelineItems" :key="item.doctype + item.name">
         <div
           v-if="newMessagesFrom && newMessagesFrom == item.name"
@@ -71,20 +71,22 @@
 
     <div
       v-if="!readOnlyMode && !disableNewComment"
-      class="fixed z-[2] bottom-12 left-0 sm:left-auto px-4 sm:px-0 mb-px mt-2 w-full sm:max-w-3xl bg-surface-white py-3 sm:bottom-[-1px] standalone:bottom-16"
+      class="fixed z-[2] left-0 sm:left-auto sm:px-0 mb-px mt-2 w-full sm:max-w-[900px] bg-surface-white sm:py-3 standalone:bottom-16"
+      :class="[isNewCommentOpen ? 'bottom-0' : 'bottom-12']"
       ref="addComment"
     >
-      <button
-        class="flex w-full items-center rounded-lg bg-surface-gray-2 px-2 py-2 text-left text-base text-ink-gray-5 hover:bg-surface-gray-3"
-        @click="showCommentBox = true"
-        v-show="!showCommentBox"
-      >
-        <UserAvatar class="mr-3" :user="$user().name" size="sm" />
-        Add a comment
-      </button>
+      <div v-show="!showCommentBox" class="p-3 sm:p-0">
+        <button
+          class="flex w-full items-center rounded-lg bg-surface-gray-2 px-2 py-2 text-left text-base text-ink-gray-5 hover:bg-surface-gray-3"
+          @click="showCommentBox = true"
+        >
+          <UserAvatar class="mr-3" :user="$user().name" size="sm" />
+          Add a comment
+        </button>
+      </div>
       <div
         v-show="showCommentBox"
-        class="w-full rounded-lg border bg-surface-white p-4 focus-within:border-outline-gray-3"
+        class="w-full sm:rounded-lg border-t sm:border bg-surface-white p-3 sm:p-4 focus-within:border-outline-gray-3"
         @keydown.ctrl.enter.capture.stop="submitComment"
         @keydown.meta.enter.capture.stop="submitComment"
       >
@@ -151,6 +153,7 @@ import { useSocket } from '@/socket'
 import { GPActivity, GPComment, GPPoll } from '@/types/doctypes'
 import type { Editor } from '@tiptap/vue-3'
 import { tags } from '@/data/tags'
+import { isNewCommentOpen } from '@/data/newComment'
 
 interface Props {
   doctype: string
@@ -362,6 +365,7 @@ function resetCommentState() {
     ],
   }
   highlightedItem.value = null
+  isNewCommentOpen.value = false
 }
 
 async function submitComment() {
@@ -498,6 +502,7 @@ function discardComment() {
 }
 
 watch(showCommentBox, (val) => {
+  isNewCommentOpen.value = val
   if (val) {
     nextTick(() => {
       editorObject.value?.commands.focus()
@@ -521,6 +526,7 @@ onMounted(() => {
 onUnmounted(() => {
   socket.off('new_activity')
   mutationObserver?.disconnect()
+  isNewCommentOpen.value = false
 })
 
 function setupMutationObserver() {

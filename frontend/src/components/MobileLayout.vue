@@ -1,11 +1,15 @@
 <template>
-  <div class="flex h-full flex-col">
-    <div class="h-full overflow-auto bg-surface-white" id="scrollContainer">
+  <div class="fixed inset-0 flex flex-col overflow-hidden touch-none">
+    <div
+      class="flex-1 overflow-y-auto overscroll-auto bg-surface-white [-webkit-overflow-scrolling:touch]"
+      id="scrollContainer"
+    >
       <slot />
     </div>
     <div
-      class="grid grid-cols-5 bg-surface-modal border-t border-outline-gray-2 standalone:pb-4"
+      class="grid grid-cols-5 shrink-0 bg-surface-modal border-t border-outline-gray-2 standalone:pb-4"
       :style="{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }"
+      v-if="!isNewCommentOpen"
     >
       <button
         v-for="tab in tabs"
@@ -24,7 +28,7 @@
 </template>
 <script>
 import { scrollTo } from '@/utils/scrollContainer'
-import LucideHome from '~icons/lucide/home'
+import { isNewCommentOpen as isNewCommentOpenRef } from '@/data/newComment'
 import LucideUsers2 from '~icons/lucide/users-2'
 import LucideSearch from '~icons/lucide/search'
 import LucideInbox from '~icons/lucide/inbox'
@@ -35,6 +39,9 @@ import LucideNewspaper from '~icons/lucide/newspaper'
 export default {
   name: 'MobileLayout',
   computed: {
+    isNewCommentOpen() {
+      return isNewCommentOpenRef.value
+    },
     tabs() {
       return [
         {

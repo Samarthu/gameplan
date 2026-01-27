@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full">
+  <div class="h-full touch-pan-y">
     <div class="mb-5" v-if="pinnedDiscussions.data?.length">
       <div class="px-3 flex items-center space-x-1 mb-2">
         <Pin class="h-4 w-4 text-ink-gray-4" />

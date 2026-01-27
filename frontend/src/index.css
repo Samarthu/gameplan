@@ -4,3 +4,16 @@
 body {
   -webkit-tap-highlight-color: transparent;
 }
+
+html,
+body {
+  touch-action: manipulation;
+}
+
+.body-container {
+  @apply max-w-[940px] w-full px-3 sm:px-5 mx-auto;
+}
+
+.debug {
+  border: 1px solid red;
+}

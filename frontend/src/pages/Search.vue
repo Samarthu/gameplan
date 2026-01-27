@@ -1,13 +1,11 @@
 <template>
   <div>
     <div>
-      <header class="sticky top-0 z-10 border-b bg-surface-white px-4 py-2.5 sm:px-5">
-        <div class="flex items-center justify-between">
-          <Breadcrumbs :items="[{ label: 'Search', route: { name: 'Search' } }]" />
-        </div>
-      </header>
-      <div class="mx-auto mt-6 max-w-4xl px-4 sm:px-5">
-        <div class="flex items-center space-x-2 px-2.5">
+      <PageHeader>
+        <Breadcrumbs :items="[{ label: 'Search', route: { name: 'Search' } }]" />
+      </PageHeader>
+      <div class="mt-6 body-container">
+        <div class="flex items-center space-x-2">
           <TextInput
             ref="searchInput"
             class="flex-1"
@@ -37,7 +35,7 @@
         </div>
 
         <!-- Filter Panel -->
-        <div class="mt-2 px-2.5">
+        <div class="overflow-x-auto -mx-3 px-3 py-2">
           <div class="flex gap-2 items-center">
             <!-- Authors Filter -->
             <MultiSelect
@@ -88,7 +86,7 @@
         </div>
 
         <!-- Search Summary -->
-        <div class="mt-2 px-2.5 text-sm flex items-center justify-between min-h-6">
+        <div class="mt-2 text-sm flex items-center justify-between min-h-6">
           <div>
             <template v-if="search.error">
               <ErrorMessage
@@ -155,18 +153,22 @@
           <div v-else-if="feedbackGiven" class="text-ink-gray-6">Thanks for your feedback!</div>
         </div>
 
-        <div class="mt-5">
+        <div class="mt-5 -mx-2.5">
           <template v-for="item in searchResponse?.results" :key="item.id">
             <router-link
               :to="getItemRoute(item)"
-              class="flex space-x-2 overflow-hidden rounded px-2.5 py-3 hover:bg-surface-gray-2"
+              class="flex space-x-2 overflow-hidden sm:rounded px-2.5 py-3 touch-pan-y select-none transition-colors duration-150 active:bg-surface-gray-2 sm:hover:bg-surface-gray-2"
             >
               <div>
                 <UserAvatarWithHover :user="item.author" />
               </div>
               <div class="w-full">
                 <div class="flex items-center">
-                  <div v-if="item.title" class="text-base font-medium text-ink-gray-9" v-html="item.title" />
+                  <div
+                    v-if="item.title"
+                    class="text-base font-medium text-ink-gray-9"
+                    v-html="item.title"
+                  />
                   <div class="text-base font-medium text-ink-gray-9" v-else>
                     {{ $user(item.author).full_name }}
                   </div>
@@ -195,6 +197,7 @@
 import { ref, onMounted, onUnmounted, computed, useTemplateRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Breadcrumbs, TextInput, debounce, usePageMeta, Tooltip, dayjs } from 'frappe-ui'
+import PageHeader from '@/components/PageHeader.vue'
 import { useCall, useNewDoc } from 'frappe-ui'
 import { GPSearchFeedback } from '@/types/doctypes'
 import { useSessionUser } from '@/data/users'

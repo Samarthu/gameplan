@@ -1,7 +1,7 @@
 <template>
   <div v-if="pages.data?.length === 0">
     <div class="col-span-full">
-      <EmptyStateBox class="max-w-4xl mx-auto">
+      <EmptyStateBox class="body-container">
         <LucideCoffee class="h-7 w-7 text-ink-gray-4" />
         No pages
       </EmptyStateBox>

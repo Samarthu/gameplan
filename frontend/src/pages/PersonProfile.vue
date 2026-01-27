@@ -1,6 +1,6 @@
 <template>
   <div v-if="profile">
-    <header class="sticky top-0 z-10 flex border-b bg-surface-white px-4 py-2.5 sm:px-5">
+    <PageHeader>
       <Breadcrumbs
         :items="[
           { label: 'People', route: { name: 'People' } },
@@ -11,7 +11,7 @@
         ]"
       />
       <div class="h-7"></div>
-    </header>
+    </PageHeader>
     <div>
       <CoverImage
         :imageUrl="profile.cover_image"
@@ -27,7 +27,7 @@
         "
       />
     </div>
-    <div class="mx-auto -mt-4 max-w-4xl translate-x-0 px-5">
+    <div class="-mt-4 body-container">
       <div class="flex items-center">
         <div class="-mx-1 inline-flex translate-y-0">
           <ImagePreview v-model:show="imagePreview.show" :imageUrl="imagePreview.imageUrl" />
@@ -127,6 +127,7 @@
 </template>
 <script>
 import { Breadcrumbs, Dialog, FileUploader, FormControl, TabButtons } from 'frappe-ui'
+import PageHeader from '@/components/PageHeader.vue'
 import CoverImage from '@/components/CoverImage.vue'
 import ImagePreview from '../components/ImagePreview.vue'
 import ColorPicker from '@/components/ColorPicker.vue'
@@ -148,6 +149,7 @@ export default {
     FormControl,
     TabButtons,
     Breadcrumbs,
+    PageHeader,
   },
   data() {
     return {

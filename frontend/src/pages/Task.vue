@@ -1,8 +1,6 @@
 <template>
   <div>
-    <header
-      class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-5 py-2.5"
-    >
+    <PageHeader>
       <SpaceBreadcrumbs
         v-if="space"
         :spaceId="space.name"
@@ -31,7 +29,7 @@
           },
         ]"
       />
-    </header>
+    </PageHeader>
     <div>
       <TaskDetail :taskId="taskId" />
     </div>
@@ -40,6 +38,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { Breadcrumbs, usePageMeta } from 'frappe-ui'
+import PageHeader from '@/components/PageHeader.vue'
 import SpaceBreadcrumbs from '@/components/SpaceBreadcrumbs.vue'
 import TaskDetail from '@/components/TaskDetail.vue'
 import { useTask } from '@/data/tasks'

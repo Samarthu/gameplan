@@ -2,14 +2,12 @@
   <div class="flex h-full flex-col">
     <div class="flex flex-1">
       <div class="w-full">
-        <header class="sticky top-0 z-10 border-b bg-surface-white px-4 py-2.5 sm:px-5">
+        <PageHeader>
+          <Breadcrumbs :items="[{ label: 'People', route: { name: 'People' } }]" />
+          <div class="h-7"></div>
+        </PageHeader>
+        <div class="mx-auto w-full body-container pt-6">
           <div class="flex items-center justify-between">
-            <Breadcrumbs :items="[{ label: 'People', route: { name: 'People' } }]" />
-            <div class="h-7"></div>
-          </div>
-        </header>
-        <div class="mx-auto w-full max-w-4xl pt-6">
-          <div class="flex items-center justify-between px-3 sm:px-5">
             <h2 class="text-xl font-semibold text-ink-gray-7">{{ people.length }} members</h2>
             <div class="flex items-center gap-2">
               <TextInput
@@ -24,7 +22,7 @@
                 </template>
               </TextInput>
               <Select
-                class="w-44 pl-7 pr-7"
+                class="!w-fit"
                 :options="[
                   { label: 'Name', value: 'full_name asc' },
                   { label: 'Last updated', value: 'modified desc' },
@@ -43,7 +41,7 @@
               </Button>
             </div>
           </div>
-          <div class="sm:hidden px-3 mt-4">
+          <div class="sm:hidden mt-4">
             <TextInput
               class="w-full"
               type="text"
@@ -56,7 +54,7 @@
               </template>
             </TextInput>
           </div>
-          <div class="mt-4 pb-16 sm:px-2">
+          <div class="mt-4 pb-16 -mx-3">
             <template v-for="user in people" :key="user.name">
               <router-link
                 :to="{
@@ -65,7 +63,7 @@
                     personId: user.name,
                   },
                 }"
-                class="flex sm:rounded px-3 py-2 sm:h-15 hover:bg-surface-gray-2"
+                class="flex sm:rounded px-3 py-2 sm:h-15 sm:hover:bg-surface-gray-2 duration-150 active:bg-surface-gray-2 transition-colors"
                 exact-active-class="!bg-surface-gray-2"
               >
                 <div class="flex w-full sm:w-3/5 items-center">
@@ -137,13 +135,14 @@
 </template>
 <script>
 import { Breadcrumbs, Badge, Input, Select, TextInput } from 'frappe-ui'
+import PageHeader from '@/components/PageHeader.vue'
 import { showSettingsDialog } from '@/components/Settings'
 import UserAvatarWithHover from '@/components/UserAvatarWithHover.vue'
 
 export default {
   name: 'People',
   props: ['person'],
-  components: { Badge, Input, TextInput, Select, Breadcrumbs },
+  components: { Badge, Input, TextInput, Select, Breadcrumbs, PageHeader },
   data() {
     return {
       search: '',

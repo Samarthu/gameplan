@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-full flex-1" v-if="task.doc">
     <div class="w-full flex-1">
-      <div class="relative p-6">
+      <div class="relative p-3 sm:p-6">
         <div class="absolute right-0 top-0 p-6" v-show="task.setValue.loading">
           <LoadingText v-if="!task.setValue.error" text="Saving..." />
           <ErrorMessage :message="task.setValue.error" />

@@ -8,7 +8,7 @@
         slug: discussion.slug,
       },
     }"
-    class="group relative block h-15 rounded-[10px] transition hover:bg-surface-gray-2"
+    class="group relative block h-15 sm:rounded-[10px] select-none transition-colors duration-150 active:bg-surface-gray-2 sm:hover:bg-surface-gray-2"
   >
     <div class="flex h-full items-center space-x-4 overflow-hidden px-3 py-2">
       <div class="flex items-center space-x-3">

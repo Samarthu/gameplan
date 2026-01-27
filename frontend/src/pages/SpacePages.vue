@@ -1,6 +1,6 @@
 <template>
-  <div class="mt-5 mx-auto max-w-4xl px-2 sm:px-5">
-    <div class="flex px-3 mb-4 items-center justify-between">
+  <div class="mt-5 body-container">
+    <div class="flex mb-4 items-center justify-between">
       <SpaceTabs :spaceId="spaceId" />
       <div class="flex items-center space-x-2">
         <Dropdown
@@ -42,7 +42,7 @@
       </div>
     </div>
     <PageGrid
-      class="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-4 px-3"
+      class="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-4"
       :listOptions="{ filters: { project: spaceId }, orderBy: () => orderBy }"
     />
   </div>

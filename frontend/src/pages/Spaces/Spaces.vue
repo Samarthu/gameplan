@@ -14,8 +14,8 @@
     </Button>
   </PageHeader>
   <NewSpaceDialog v-model="newSpaceDialog" :category="categoryForNewSpace" />
-  <div class="mx-auto max-w-4xl px-2 sm:px-5">
-    <div class="mt-6 mb-3 flex px-2.5 items-center justify-between gap-2.5">
+  <div class="body-container">
+    <div class="mt-6 mb-3 flex items-center justify-between gap-2.5">
       <TextInput
         ref="searchInputRef"
         v-model="query"
@@ -39,11 +39,11 @@
       </EmptyStateBox>
     </div>
     <div class="mb-10" v-if="filteredPinnedSpaces.length > 0">
-      <div class="px-3 flex items-center text-base text-ink-gray-8 py-2">
+      <div class="flex items-center text-base text-ink-gray-8 py-2">
         <LucidePin class="inline h-4 w-4 mr-2" />
         <span> Pinned </span>
       </div>
-      <div class="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 px-3">
+      <div class="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         <PinnedSpaceCard v-for="d in filteredPinnedSpaces" :key="d.name" :spaceId="d.project" />
       </div>
     </div>

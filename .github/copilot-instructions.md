@@ -1,6 +1,6 @@
 ---
 description: 'Frappe Framework and VueJS 3 development standards and best practices'
-applyTo: 'frontend/**/*.vue, frontend/**/*.ts, frontend/**/*.js, gameplan/**/*.py'
+applyTo: 'frontend/**/*.{vue,ts,js}, gameplan/**/*.py'
 ---
 
 # Project Name: Gameplan

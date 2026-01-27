@@ -1,17 +1,15 @@
 <template>
-  <header
-    class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 py-2.5 sm:px-5"
-  >
+  <PageHeader>
     <Breadcrumbs class="h-7" :items="[{ label: 'Discussions', route: { name: 'Discussions' } }]" />
     <Button variant="solid" :route="{ name: 'NewDiscussion' }">
       <template #prefix><LucidePlus class="h-4 w-4" /></template>
       Add new
     </Button>
-  </header>
-  <div class="mx-auto max-w-4xl pt-5 sm:px-5 pb-40">
-    <LastPostReminder class="px-3 mb-3" />
+  </PageHeader>
+  <div class="body-container pt-5 pb-40">
+    <LastPostReminder class="mb-3" />
 
-    <div class="overflow-x-auto flex gap-2 px-3 py-1 mb-3 items-center">
+    <div class="overflow-x-auto flex gap-2 py-1 mb-3 items-center -mx-3 px-3">
       <TabButtons :buttons="feedOptions" v-model="currentFeedType" />
       <div class="ml-auto flex space-x-2" v-if="currentFeedType !== 'drafts'">
         <Button
@@ -20,11 +18,12 @@
         >
           Loading...
         </Button>
-        <Select class="pr-7 shrink-0 min-w-28" :options="orderOptions" v-model="orderBy" />
+        <Select class="shrink-0 !w-fit" :options="orderOptions" v-model="orderBy" />
       </div>
     </div>
     <KeepAlive>
       <DiscussionList
+        class="-mx-3"
         ref="discussionListRef"
         routeName="ProjectDiscussion"
         :filters="filters"
@@ -41,6 +40,7 @@ import { computed, ref, useTemplateRef } from 'vue'
 import { Breadcrumbs, Select, TabButtons, usePageMeta } from 'frappe-ui'
 import type { OrderBy } from 'frappe-ui'
 import DiscussionList from '@/components/DiscussionList.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import LastPostReminder from '@/components/LastPostReminder.vue'
 import { useRouter } from 'vue-router'
 

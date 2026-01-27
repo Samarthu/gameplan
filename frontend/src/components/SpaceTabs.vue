@@ -1,5 +1,5 @@
 <template>
-  <Select class="min-w-32" v-if="screen.width < 640" :options="spaceTabs" v-model="currentTab" />
+  <Select class="!w-fit" v-if="screen.width < 640" :options="spaceTabs" v-model="currentTab" />
   <TabButtons v-else :buttons="spaceTabs" v-model="currentTab" />
 </template>
 <script setup lang="ts">

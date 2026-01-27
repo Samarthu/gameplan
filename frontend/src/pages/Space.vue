@@ -8,7 +8,7 @@
       <SpaceOptions :spaceId="spaceId" placement="right" />
     </PageHeader>
     <component class="flex-1" v-if="space" :is="Component" :space="space" />
-    <div class="p-5 max-w-4xl mx-auto" v-if="spaceList.isFinished && !space">
+    <div class="body-container pt-5" v-if="spaceList.isFinished && !space">
       <EmptyStateBox>
         <div class="text-ink-gray-6">Page not found</div>
       </EmptyStateBox>

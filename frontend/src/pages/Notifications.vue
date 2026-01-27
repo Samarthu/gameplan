@@ -1,23 +1,21 @@
 <template>
-  <header class="sticky top-0 z-10 border-b bg-surface-white px-4 py-2.5 sm:px-5">
-    <div class="flex items-center justify-between">
-      <Breadcrumbs :items="[{ label: 'Inbox', route: { name: 'Notifications' } }]" />
-      <div class="flex h-7 items-center space-x-2">
-        <Button
-          @click="$resources.markAllAsRead.submit"
-          :loading="$resources.markAllAsRead.loading"
-          v-if="activeTab === 'Unread' && $resources.unreadNotifications.data?.length > 0"
-        >
-          Mark all as read
-        </Button>
-        <TabButtons
-          :buttons="[{ label: 'Unread', active: true }, { label: 'Read' }]"
-          v-model="activeTab"
-        />
-      </div>
+  <PageHeader>
+    <Breadcrumbs :items="[{ label: 'Inbox', route: { name: 'Notifications' } }]" />
+    <div class="flex h-7 items-center space-x-2">
+      <Button
+        @click="$resources.markAllAsRead.submit"
+        :loading="$resources.markAllAsRead.loading"
+        v-if="activeTab === 'Unread' && $resources.unreadNotifications.data?.length > 0"
+      >
+        Mark all as read
+      </Button>
+      <TabButtons
+        :buttons="[{ label: 'Unread', active: true }, { label: 'Read' }]"
+        v-model="activeTab"
+      />
     </div>
-  </header>
-  <div class="mx-auto w-full max-w-4xl px-5 pt-6">
+  </PageHeader>
+  <div class="body-container pt-6">
     <div class="divide-y">
       <div class="flex items-center justify-between py-2" v-for="d in notifications" :key="d.name">
         <div class="flex items-start space-x-2">
@@ -75,6 +73,7 @@
 </template>
 <script>
 import { TabButtons, Tooltip, Breadcrumbs, dayjsLocal } from 'frappe-ui'
+import PageHeader from '@/components/PageHeader.vue'
 import Link from '@/components/Link.vue'
 
 export default {
@@ -89,7 +88,7 @@ export default {
       title: 'Notifications',
     }
   },
-  components: { TabButtons, Tooltip, Link, Breadcrumbs },
+  components: { TabButtons, Tooltip, Link, Breadcrumbs, PageHeader },
   setup() {
     return {
       dayjsLocal,

@@ -1,8 +1,6 @@
 <template>
   <div>
-    <header
-      class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-3 sm:px-5 py-2.5"
-    >
+    <PageHeader>
       <Breadcrumbs class="h-7" :items="[{ label: 'My Tasks', route: { name: 'MyTasks' } }]" />
       <Button variant="solid" @click="openNewTaskDialog">
         <template #prefix>
@@ -10,9 +8,9 @@
         </template>
         Add new
       </Button>
-    </header>
+    </PageHeader>
 
-    <div class="mx-auto w-full max-w-4xl px-3 sm:px-5">
+    <div class="body-container">
       <div class="flex pt-3 sm:pt-5">
         <TabButtons
           :buttons="[
@@ -38,6 +36,7 @@ import { ref, useTemplateRef } from 'vue'
 import { usePageMeta, Breadcrumbs, TabButtons } from 'frappe-ui'
 import { useUser } from '@/data/users'
 import TaskList from '@/components/TaskList.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { showNewTaskDialog } from '@/components/NewTaskDialog'
 
 let taskList = useTemplateRef<typeof TaskList>('taskList')

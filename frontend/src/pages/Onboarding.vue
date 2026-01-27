@@ -42,7 +42,7 @@
         </div>
       </div>
     </div>
-    <div class="max-w-4xl mx-auto px-4 pt-14">
+    <div class="body-container pt-14">
       <div class="max-w-xl mx-auto">
         <div class="text-2xl font-semibold text-ink-gray-8">Welcome to Gameplan</div>
 
