@@ -1,23 +1,57 @@
 <template>
   <PageHeader>
     <Breadcrumbs class="h-7" :items="[{ label: 'Drafts', route: { name: 'Drafts' } }]" />
-    <Button variant="solid" :route="{ name: 'NewDiscussion' }">
-      <template #prefix><LucidePlus class="h-4 w-4" /></template>
-      Add new
-    </Button>
+    <div class="flex items-center gap-2">
+      <template v-if="!isBulkDeleteMode">
+        <DropdownMoreOptions
+          placement="right"
+          :options="[
+            {
+              label: 'Delete drafts',
+              icon: 'trash-2',
+              onClick: () => (isBulkDeleteMode = true),
+            },
+          ]"
+        />
+        <Button variant="solid" :route="{ name: 'NewDiscussion' }">
+          <template #prefix><LucidePlus class="h-4 w-4" /></template>
+          Add new
+        </Button>
+      </template>
+      <template v-else>
+        <Button variant="ghost" @click="cancelBulkDelete">Cancel</Button>
+        <Button v-if="selectedDrafts.length > 0" theme="red" @click="showDeleteConfirm = true">
+          <template #prefix><LucideTrash2 class="mr-1 h-4 w-4" /></template>
+          Delete {{ selectedDrafts.length }} draft{{ selectedDrafts.length > 1 ? 's' : '' }}
+        </Button>
+      </template>
+    </div>
   </PageHeader>
-  <div class="mx-auto max-w-4xl pt-5 sm:px-5 pb-40">
+  <div class="body-container pt-5 pb-40">
     <div>
       <EmptyStateBox v-if="drafts.data?.length === 0" class="mx-3">
         <LucideCoffee class="h-7 w-7 text-ink-gray-4" />
         No drafts
       </EmptyStateBox>
-      <div v-else>
+      <div class="-mx-3" v-else>
         <template v-for="(draft, index) in drafts.data" :key="draft.name">
-          <router-link
-            class="flex items-center py-2 px-3 group relative h-15 rounded-[10px] transition hover:bg-surface-gray-2"
-            :to="{ name: 'NewDiscussion', query: { draft: draft.name } }"
+          <component
+            :is="isBulkDeleteMode ? 'div' : 'router-link'"
+            class="flex items-center py-2 px-3 group relative h-15 rounded-[10px] transition hover:bg-surface-gray-2 cursor-pointer"
+            :to="
+              !isBulkDeleteMode
+                ? { name: 'NewDiscussion', query: { draft: draft.name } }
+                : undefined
+            "
+            @click="isBulkDeleteMode ? toggleSelection(draft.name) : undefined"
           >
+            <div
+              v-if="isBulkDeleteMode"
+              class="mr-3 flex items-center"
+              @click.stop="toggleSelection(draft.name)"
+            >
+              <Checkbox :modelValue="selectedDrafts.includes(draft.name)" />
+            </div>
             <UserAvatarWithHover :user="draft.owner" size="2xl" />
             <div class="ml-4 flex-1 min-w-0">
               <div class="flex items-center min-w-0">
@@ -52,7 +86,7 @@
                 </div>
               </Tooltip>
             </div>
-          </router-link>
+          </component>
           <div
             class="mx-3 h-px border-t border-outline-gray-modals transition-opacity group-hover:opacity-0"
             v-if="index < (drafts.data?.length || 0) - 1"
@@ -61,18 +95,111 @@
       </div>
     </div>
   </div>
+
+  <Dialog
+    :options="{
+      title: 'Delete drafts',
+      message: 'Are you sure you want to delete selected drafts? This action cannot be undone.',
+      actions: [
+        {
+          label: 'Delete',
+          variant: 'solid',
+          theme: 'red',
+          onClick: deleteDrafts,
+        },
+      ],
+    }"
+    v-model="showDeleteConfirm"
+  />
 </template>
 <script setup lang="ts">
-import { Tooltip, dayjsLocal, Breadcrumbs, Button } from 'frappe-ui'
+import {
+  Tooltip,
+  dayjsLocal,
+  Breadcrumbs,
+  Button,
+  Checkbox,
+  Dialog,
+  useCall,
+  toast,
+} from 'frappe-ui'
 import { GPDraft } from '@/types/doctypes'
 import { useList } from 'frappe-ui'
 import UserAvatarWithHover from '@/components/UserAvatarWithHover.vue'
 import { useSpace } from '@/data/spaces'
 import { relativeTimestamp } from '@/utils'
 import PageHeader from '@/components/PageHeader.vue'
+import { ref } from 'vue'
+import DropdownMoreOptions from '@/components/DropdownMoreOptions.vue'
 
 interface Draft extends GPDraft {
   project_title: string
+}
+
+interface DeleteDraftsResponse {
+  deleted: string[]
+  failed: { name: string; error: string }[]
+  total: number
+  success_count: number
+  failure_count: number
+}
+
+const isBulkDeleteMode = ref(false)
+const selectedDrafts = ref<string[]>([])
+const showDeleteConfirm = ref(false)
+
+function toggleSelection(name: string) {
+  if (selectedDrafts.value.includes(name)) {
+    selectedDrafts.value = selectedDrafts.value.filter((n) => n !== name)
+  } else {
+    selectedDrafts.value.push(name)
+  }
+}
+
+function cancelBulkDelete() {
+  isBulkDeleteMode.value = false
+  selectedDrafts.value = []
+}
+
+let deleteDraftsCall = useCall<DeleteDraftsResponse, { names: string[] }>({
+  url: '/api/v2/document/GP Draft/bulk_delete',
+  method: 'POST',
+  immediate: false,
+})
+
+function deleteDrafts() {
+  deleteDraftsCall
+    .submit({ names: selectedDrafts.value })
+    .then(() => {
+      let response = deleteDraftsCall.data
+      let deletedCount = response?.success_count || 0
+      let failedCount = response?.failure_count || 0
+
+      if (deletedCount > 0) {
+        toast.success(deletedCount === 1 ? 'Draft deleted' : `${deletedCount} drafts deleted`)
+      }
+
+      if (failedCount > 0) {
+        selectedDrafts.value = response?.failed.map((f) => f.name) || []
+        toast.error(
+          failedCount === 1
+            ? '1 draft could not be deleted'
+            : `${failedCount} drafts could not be deleted`,
+        )
+        drafts.reload()
+        showDeleteConfirm.value = false
+        return
+      }
+
+      drafts.reload()
+      selectedDrafts.value = []
+      showDeleteConfirm.value = false
+      isBulkDeleteMode.value = false
+    })
+    .catch(() => {
+      toast.error('Failed to delete drafts')
+      showDeleteConfirm.value = false
+    })
 }
 
 let drafts = useList<Draft>({
@@ -91,6 +218,7 @@ let drafts = useList<Draft>({
     'owner',
   ],
   orderBy: 'creation desc',
+  cacheKey: 'drafts',
 })
 
 function contentPreview(content?: string) {
