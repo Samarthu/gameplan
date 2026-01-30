@@ -1,16 +1,29 @@
 <template>
-  <router-link
-    :to="{
-      name: 'Discussion',
-      params: {
-        spaceId: discussion.project,
-        postId: discussion.name,
-        slug: discussion.slug,
-      },
-    }"
+  <component
+    :is="selectable ? 'div' : 'router-link'"
+    :to="
+      selectable
+        ? undefined
+        : {
+            name: 'Discussion',
+            params: {
+              spaceId: discussion.project,
+              postId: discussion.name,
+              slug: discussion.slug,
+            },
+          }
+    "
     class="group relative block h-15 sm:rounded-[10px] select-none transition-colors duration-150 active:bg-surface-gray-2 sm:hover:bg-surface-gray-2"
+    @click="selectable ? emit('toggle-selection', discussion.name) : undefined"
   >
     <div class="flex h-full items-center space-x-4 overflow-hidden px-3 py-2">
+      <div
+        v-if="selectable"
+        class="flex items-center"
+        @click.stop="emit('toggle-selection', discussion.name)"
+      >
+        <Checkbox :modelValue="selected" />
+      </div>
       <div class="flex items-center space-x-3">
         <div class="relative flex">
           <UserAvatarWithHover :user="discussion.owner" size="2xl" />
@@ -97,14 +110,14 @@
       </div>
     </div>
     <!-- Separator -->
-    <div
-      class="mx-3 h-px border-t border-outline-gray-modals transition-opacity group-hover:opacity-0"
-      v-if="index < total - 1"
-    ></div>
-  </router-link>
+      <div
+        class="mx-3 h-px border-t border-outline-gray-modals transition-opacity group-hover:opacity-0"
+        v-if="index < total - 1"
+      ></div>
+  </component>
 </template>
 <script setup lang="ts">
-import { Tooltip, Badge, dayjsLocal } from 'frappe-ui'
+import { Tooltip, Badge, dayjsLocal, Checkbox } from 'frappe-ui'
 import UserAvatarWithHover from './UserAvatarWithHover.vue'
 import { useSpace } from '@/data/spaces'
 import { Discussion } from '@/data/discussions'
@@ -120,6 +133,12 @@ defineProps<{
   index: number
   total: number
   showSpaceName: boolean
+  selectable?: boolean
+  selected?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'toggle-selection', name: string): void
 }>()
 
 function isSpacePrivate(spaceId: string) {
