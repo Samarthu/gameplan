@@ -13,8 +13,3 @@
     <path d="M10 3H14" stroke="currentColor" stroke-linecap="round" />
   </svg>
 </template>
-<script>
-export default {
-  name: 'ReactionFaceIcon',
-}
-</script>

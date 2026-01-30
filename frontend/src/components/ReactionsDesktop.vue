@@ -1,6 +1,6 @@
 <template>
   <div class="flex select-none items-stretch space-x-1.5">
-    <Popover class="h-full">
+    <Popover placement="bottom-start">
       <template #target="{ togglePopover, isOpen }">
         <button
           aria-label="Add a reaction"

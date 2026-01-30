@@ -6,6 +6,41 @@ import frappe
 
 
 class HasReactions:
+	@frappe.whitelist()
+	def react(self, operations=None):
+		operations = frappe.parse_json(operations) or []
+		if not isinstance(operations, list):
+			frappe.throw("Invalid reactions payload")
+
+		if not operations:
+			return self.get("reactions")
+
+		user = frappe.session.user
+		reactions = list(self.get("reactions") or [])
+
+		for operation in operations:
+			emoji = operation.get("emoji")
+			action = operation.get("operation")
+			if not emoji or action not in {"add", "remove"}:
+				continue
+
+			if action == "remove":
+				reactions = [
+					reaction
+					for reaction in reactions
+					if not (reaction.user == user and reaction.emoji == emoji)
+				]
+				continue
+
+			if any(reaction.user == user and reaction.emoji == emoji for reaction in reactions):
+				continue
+			reactions.append(frappe._dict({"emoji": emoji, "user": user}))
+
+		self.set("reactions", reactions)
+		self.de_duplicate_reactions()
+		self.save()
+		return self.get("reactions")
+
 	def notify_reactions(self):
 		previous = self.get_doc_before_save()
 		if previous and len(previous.get("reactions")) == len(self.get("reactions")):
