@@ -30,6 +30,7 @@ export let session = reactive({
   }),
   logout: useCall<LogoutResponse>({
     url: '/api/v2/method/logout',
+    method: 'POST',
     immediate: false,
     onSuccess() {
       sessionUser.value = getSessionUserFromCookie()
