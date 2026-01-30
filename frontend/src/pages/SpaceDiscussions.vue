@@ -59,11 +59,12 @@
           class="w-full"
           variant="solid"
           :loading="bulkMoveDiscussions.loading"
+          :disabled="!selectedSpace"
           @click="moveDiscussions"
         >
           {{
             selectedSpace
-              ? `Move to ${useSpace(selectedSpace).value?.title}`
+              ? `Move to ${selectedSpaceTitle}`
               : 'Move'
           }}
         </Button>
@@ -72,7 +73,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, useTemplateRef } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { Combobox, Dialog, ErrorMessage, useCall, toast } from 'frappe-ui'
 import DiscussionList from '@/components/DiscussionList.vue'
 import SpaceTabs from '@/components/SpaceTabs.vue'
@@ -81,9 +82,7 @@ import { useGroupedSpaceOptions } from '@/data/groupedSpaces'
 import { useSpace, spaces } from '@/data/spaces'
 
 interface BulkUpdateResponse {
-  updated: string[]
   failed: { name: string; error: string }[]
-  total: number
   success_count: number
   failure_count: number
 }
@@ -97,6 +96,9 @@ const selectedDiscussions = ref<string[]>([])
 const showMoveDialog = ref(false)
 const selectedSpace = ref<string | null>(null)
 const discussionListRef = useTemplateRef('discussionListRef')
+const selectedSpaceTitle = computed(() => {
+  return selectedSpace.value ? useSpace(selectedSpace.value).value?.title : ''
+})
 
 const spaceOptions = useGroupedSpaceOptions({
   filterFn: (space) => !space.archived_at && space.name !== props.spaceId,
@@ -126,6 +128,10 @@ function resetMoveDialog() {
 }
 
 function moveDiscussions() {
+  if (selectedDiscussions.value.length === 0) {
+    toast.error('Select discussions to move')
+    return
+  }
   if (!selectedSpace.value) {
     toast.error('Select a space to move discussions')
     return
@@ -156,19 +162,23 @@ function moveDiscussions() {
             ? '1 discussion could not be moved'
             : `${failureCount} discussions could not be moved`,
         )
+        resetMoveDialog()
         showMoveDialog.value = false
         return
       }
 
       spaces.reload()
-      discussionListRef.value?.discussions?.reload()
-      discussionListRef.value?.pinnedDiscussions?.reload()
+      if (discussionListRef.value) {
+        discussionListRef.value.discussions?.reload()
+        discussionListRef.value.pinnedDiscussions?.reload()
+      }
+      resetMoveDialog()
       selectedDiscussions.value = []
       showMoveDialog.value = false
       isBulkMoveMode.value = false
     })
     .catch(() => {
-      toast.error('Failed to move discussions')
+      toast.error(bulkMoveDiscussions.error || 'Failed to move discussions')
     })
 }
 </script>

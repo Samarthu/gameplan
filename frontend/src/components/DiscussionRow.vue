@@ -1,26 +1,20 @@
 <template>
   <component
     :is="selectable ? 'div' : 'router-link'"
-    :to="
-      selectable
-        ? undefined
-        : {
-            name: 'Discussion',
-            params: {
-              spaceId: discussion.project,
-              postId: discussion.name,
-              slug: discussion.slug,
-            },
-          }
-    "
+    v-bind="linkProps"
     class="group relative block h-15 sm:rounded-[10px] select-none transition-colors duration-150 active:bg-surface-gray-2 sm:hover:bg-surface-gray-2"
-    @click="selectable ? emit('toggle-selection', discussion.name) : undefined"
+    @click="handleSelection"
   >
     <div class="flex h-full items-center space-x-4 overflow-hidden px-3 py-2">
       <div
         v-if="selectable"
         class="flex items-center"
-        @click.stop="emit('toggle-selection', discussion.name)"
+        role="checkbox"
+        :aria-checked="selected"
+        tabindex="0"
+        @click.stop="handleSelection"
+        @keydown.enter.prevent="handleSelection"
+        @keydown.space.prevent="handleSelection"
       >
         <Checkbox :modelValue="selected" />
       </div>
@@ -110,13 +104,14 @@
       </div>
     </div>
     <!-- Separator -->
-      <div
-        class="mx-3 h-px border-t border-outline-gray-modals transition-opacity group-hover:opacity-0"
-        v-if="index < total - 1"
-      ></div>
+    <div
+      class="mx-3 h-px border-t border-outline-gray-modals transition-opacity group-hover:opacity-0"
+      v-if="index < total - 1"
+    ></div>
   </component>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Tooltip, Badge, dayjsLocal, Checkbox } from 'frappe-ui'
 import UserAvatarWithHover from './UserAvatarWithHover.vue'
 import { useSpace } from '@/data/spaces'
@@ -128,7 +123,7 @@ import LucideBarChart2 from '~icons/lucide/bar-chart-2'
 import LucideLock from '~icons/lucide/lock'
 import LucideAlignLeft from '~icons/lucide/align-left'
 
-defineProps<{
+const props = defineProps<{
   discussion: Discussion
   index: number
   total: number
@@ -140,6 +135,27 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'toggle-selection', name: string): void
 }>()
+
+const linkProps = computed(() => {
+  if (props.selectable) {
+    return {}
+  }
+  return {
+    to: {
+      name: 'Discussion',
+      params: {
+        spaceId: props.discussion.project,
+        postId: props.discussion.name,
+        slug: props.discussion.slug,
+      },
+    },
+  }
+})
+
+function handleSelection() {
+  if (!props.selectable) return
+  emit('toggle-selection', props.discussion.name)
+}
 
 function isSpacePrivate(spaceId: string) {
   return useSpace(spaceId).value?.is_private
