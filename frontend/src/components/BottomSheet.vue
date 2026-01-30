@@ -18,7 +18,7 @@
             :exit="{ y: '100%', opacity: 0 }"
             :transition="{ type: 'spring', stiffness: 300, damping: 30 }"
           >
-            <div ref="sheetRef">
+            <div>
               <div ref="handleRef" class="flex touch-none justify-center pb-2 pt-3">
                 <div class="h-1.5 w-10 rounded-full bg-surface-gray-3" />
               </div>
@@ -57,7 +57,6 @@ const show = computed({
   },
 })
 
-const sheetRef = ref<HTMLElement | null>(null)
 const handleRef = ref<HTMLElement | null>(null)
 const dragY = ref(0)
 const scrollLock = useScrollLock(document.body)
@@ -72,13 +71,13 @@ watch(
   },
 )
 
-const { distanceY, isSwiping } = usePointerSwipe(handleRef, {
+const { distanceY, direction } = usePointerSwipe(handleRef, {
   pointerTypes: ['touch'],
   onSwipe() {
-    dragY.value = Math.max(0, Math.abs(distanceY.value))
+    dragY.value = direction.value === 'down' ? -distanceY.value : 0
   },
   onSwipeEnd() {
-    const shouldClose = distanceY.value > 120
+    const shouldClose = direction.value === 'down' && Math.abs(distanceY.value) > 130
     if (shouldClose) {
       show.value = false
     }
