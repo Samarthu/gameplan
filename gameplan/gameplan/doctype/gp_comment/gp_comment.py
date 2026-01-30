@@ -8,7 +8,7 @@ from gameplan.gameplan.doctype.gp_unread_record.gp_unread_record import GPUnread
 from gameplan.mixins.mentions import HasMentions
 from gameplan.mixins.reactions import HasReactions
 from gameplan.mixins.tags import HasTags
-from gameplan.utils import remove_empty_trailing_paragraphs
+from gameplan.utils import get_document_revisions, remove_empty_trailing_paragraphs
 
 
 class GPComment(HasMentions, HasReactions, HasTags, Document):
@@ -70,3 +70,7 @@ class GPComment(HasMentions, HasReactions, HasTags, Document):
 	def on_update(self):
 		self.notify_mentions()
 		self.notify_reactions()
+
+	@frappe.whitelist()
+	def get_revisions(self, fieldname="content"):
+		return get_document_revisions(self.doctype, self.name, fieldname)

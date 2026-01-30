@@ -11,7 +11,7 @@ from gameplan.mixins.activity import HasActivity
 from gameplan.mixins.mentions import HasMentions
 from gameplan.mixins.reactions import HasReactions
 from gameplan.mixins.tags import HasTags
-from gameplan.utils import remove_empty_trailing_paragraphs, url_safe_slug
+from gameplan.utils import get_document_revisions, remove_empty_trailing_paragraphs, url_safe_slug
 
 
 class GPDiscussion(HasActivity, HasMentions, HasReactions, HasTags, Document):
@@ -122,6 +122,10 @@ class GPDiscussion(HasActivity, HasMentions, HasReactions, HasTags, Document):
 
 		# also mark notifications as read
 		GPNotification.clear_notifications(discussion=self.name)
+
+	@frappe.whitelist()
+	def get_revisions(self, fieldname="content"):
+		return get_document_revisions(self.doctype, self.name, fieldname)
 
 	@frappe.whitelist()
 	def move_to_project(self, project):
