@@ -258,11 +258,6 @@ def on_doctype_update():
 	frappe.db.add_index("GP Discussion", ["project", "last_post_at"])
 
 
-class MoveDiscussionInput(frappe._dict):
-	name: str
-	project: str
-
-
 def move_discussion(discussion, project):
 	if not project or project == discussion.project:
 		return
@@ -281,7 +276,7 @@ def move_discussion(discussion, project):
 
 
 @frappe.whitelist(methods=["POST"])
-def move_discussions(discussions: list[MoveDiscussionInput]):
+def move_discussions(discussions: list[dict]):
 	if not discussions:
 		return {"moved": [], "failed": [], "total": 0, "success_count": 0, "failure_count": 0}
 
@@ -290,12 +285,18 @@ def move_discussions(discussions: list[MoveDiscussionInput]):
 
 	for item in discussions:
 		if not isinstance(item, dict):
-			failed.append({"name": None, "error": "Invalid discussion entry"})
+			failed.append(
+				{
+					"name": None,
+					"error": "Discussion entry must be a dictionary with name and project fields",
+				}
+			)
 			continue
 		name = item.get("name")
 		project = item.get("project")
 		if not name or not project:
-			failed.append({"name": name, "error": "Invalid discussion entry"})
+			missing = "name" if not name else "project"
+			failed.append({"name": name, "error": f"Missing required field: {missing}"})
 			continue
 		try:
 			doc = frappe.get_doc("GP Discussion", name)
