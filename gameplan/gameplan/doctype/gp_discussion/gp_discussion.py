@@ -301,7 +301,7 @@ def move_discussions(discussions: list[dict]):
 		try:
 			doc = frappe.get_doc("GP Discussion", name)
 			if not doc.has_permission("write"):
-				raise frappe.PermissionError(f"Missing write permission for discussion {name}")
+				raise frappe.PermissionError(f"You do not have write permission for discussion {name}")
 			move_discussion(doc, project)
 			moved.append(name)
 		except Exception as exc:
