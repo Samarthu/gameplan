@@ -82,7 +82,6 @@ import { useGroupedSpaceOptions } from '@/data/groupedSpaces'
 import { useSpace, spaces } from '@/data/spaces'
 
 interface BulkUpdateResponse {
-  // Names of discussions successfully moved.
   moved: string[]
   failed: { name: string; error: string }[]
   total: number

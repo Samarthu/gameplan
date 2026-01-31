@@ -258,6 +258,11 @@ def on_doctype_update():
 	frappe.db.add_index("GP Discussion", ["project", "last_post_at"])
 
 
+class MoveDiscussionInput(frappe._dict):
+	name: str
+	project: str
+
+
 def move_discussion(discussion, project):
 	if not project or project == discussion.project:
 		return
@@ -276,7 +281,7 @@ def move_discussion(discussion, project):
 
 
 @frappe.whitelist(methods=["POST"])
-def move_discussions(discussions: list[dict]):
+def move_discussions(discussions: list[MoveDiscussionInput]):
 	if not discussions:
 		return {"moved": [], "failed": [], "total": 0, "success_count": 0, "failure_count": 0}
 
@@ -295,7 +300,7 @@ def move_discussions(discussions: list[dict]):
 		try:
 			doc = frappe.get_doc("GP Discussion", name)
 			if not doc.has_permission("write"):
-				raise frappe.PermissionError
+				raise frappe.PermissionError(f"Missing write permission for discussion {name}")
 			move_discussion(doc, project)
 			moved.append(name)
 		except Exception as exc:
