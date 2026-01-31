@@ -82,7 +82,9 @@ import { useGroupedSpaceOptions } from '@/data/groupedSpaces'
 import { useSpace, spaces } from '@/data/spaces'
 
 interface BulkUpdateResponse {
+  moved: string[]
   failed: { name: string; error: string }[]
+  total: number
   success_count: number
   failure_count: number
 }
@@ -105,7 +107,7 @@ const spaceOptions = useGroupedSpaceOptions({
 })
 
 const bulkMoveDiscussions = useCall<BulkUpdateResponse, { name: string; project: string }[]>({
-  url: '/api/v2/document/GP Discussion/bulk_update',
+  url: '/api/v2/method/GP Discussion/move_discussions',
   method: 'POST',
   immediate: false,
 })

@@ -8,6 +8,7 @@
       <LucideEdit3 class="h-4 w-4" v-else-if="activity.action === 'Discussion Title Changed'" />
       <LucideArrowUpLeft class="h-4 w-4" v-else-if="activity.action === 'Discussion Pinned'" />
       <LucideArrowDownLeft class="h-4 w-4" v-else-if="activity.action === 'Discussion Unpinned'" />
+      <LucideLogOut class="h-4 w-4" v-else-if="activity.action === 'Discussion Moved'" />
       <LucideEdit3 class="h-4 w-4" v-else-if="activity.action === 'Task Value Changed'" />
     </div>
     <p>
@@ -33,6 +34,16 @@
       </span>
       <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Title Changed'">
         changed the title from "{{ activity.data.old_title }}" to "{{ activity.data.new_title }}"
+      </span>
+      <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Moved'">
+        moved this discussion from
+        <span class="text-ink-gray-7">
+          {{ spaceTitle(activity.data.old_project) }}
+        </span>
+        to
+        <span class="text-ink-gray-7">
+          {{ spaceTitle(activity.data.new_project) }}
+        </span>
       </span>
       <span class="text-ink-gray-5" v-if="activity.action == 'Task Value Changed'">
         <template v-if="activity.data.field === 'assigned_to'">
@@ -77,6 +88,7 @@
 import { dayjsLocal, Tooltip } from 'frappe-ui'
 import UserProfileLink from './UserProfileLink.vue'
 import { spaceTitle } from '@/utils/formatters'
+import LucideLogOut from '~icons/lucide/log-out'
 
 interface Activity {
   action: string
@@ -85,6 +97,8 @@ interface Activity {
   data: {
     old_title?: string
     new_title?: string
+    old_project?: string
+    new_project?: string
     field?: string
     field_label?: string
     old_value?: string
