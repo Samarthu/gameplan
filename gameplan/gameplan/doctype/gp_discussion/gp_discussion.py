@@ -276,8 +276,7 @@ def move_discussion(discussion, project):
 
 
 @frappe.whitelist(methods=["POST"])
-def move_discussions(discussions=None):
-	discussions = frappe.parse_json(discussions) if discussions else None
+def move_discussions(discussions: list[dict]):
 	if not discussions:
 		return {"moved": [], "failed": [], "total": 0, "success_count": 0, "failure_count": 0}
 
@@ -285,8 +284,11 @@ def move_discussions(discussions=None):
 	failed = []
 
 	for item in discussions:
-		name = item.get("name") if isinstance(item, dict) else None
-		project = item.get("project") if isinstance(item, dict) else None
+		if not isinstance(item, dict):
+			failed.append({"name": None, "error": "Invalid discussion entry"})
+			continue
+		name = item.get("name")
+		project = item.get("project")
 		if not name or not project:
 			failed.append({"name": name, "error": "Invalid discussion entry"})
 			continue
