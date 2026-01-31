@@ -106,7 +106,10 @@ const spaceOptions = useGroupedSpaceOptions({
   filterFn: (space) => !space.archived_at && space.name !== props.spaceId,
 })
 
-const bulkMoveDiscussions = useCall<BulkUpdateResponse, { name: string; project: string }[]>({
+const bulkMoveDiscussions = useCall<
+  BulkUpdateResponse,
+  { discussions: { name: string; project: string }[] }
+>({
   url: '/api/v2/method/GP Discussion/move_discussions',
   method: 'POST',
   immediate: false,
@@ -140,12 +143,12 @@ function moveDiscussions() {
   }
 
   bulkMoveDiscussions
-    .submit(
-      selectedDiscussions.value.map((name) => ({
+    .submit({
+      discussions: selectedDiscussions.value.map((name) => ({
         name,
         project: selectedSpace.value as string,
       })),
-    )
+    })
     .then(() => {
       const response = bulkMoveDiscussions.data
       const successCount = response?.success_count || 0
