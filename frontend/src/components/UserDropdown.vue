@@ -19,11 +19,12 @@
   </Dropdown>
 </template>
 <script setup>
-import { h, computed, ref } from 'vue'
+import { h, computed, ref, markRaw } from 'vue'
 import { Dropdown } from 'frappe-ui'
 import { showSettingsDialog } from '@/components/Settings'
 import GameplanLogo from './GameplanLogo.vue'
 import AboutDialog from './AboutDialog.vue'
+import AppSelector from './AppSelector.vue'
 import { useUser } from '@/data/users'
 import { session } from '@/data/session'
 import { clear as clearIndexDb } from 'idb-keyval'
@@ -33,6 +34,7 @@ import LucideCreditCard from '~icons/lucide/credit-card'
 import LucideMoon from '~icons/lucide/moon'
 import LucideListRestart from '~icons/lucide/list-restart'
 import LucideInfo from '~icons/lucide/info'
+import LucideLayoutGrid from '~icons/lucide/layout-grid'
 
 const user = useUser()
 const showAboutDialog = ref(false)
@@ -46,6 +48,15 @@ const dropdownItems = computed(() => [
       name: 'PersonProfile',
       params: { personId: user.user_profile },
     },
+  },
+  {
+    icon: LucideLayoutGrid,
+    label: 'Apps',
+    submenu: [
+      {
+        component: markRaw(AppSelector),
+      },
+    ],
   },
   {
     icon: 'settings',
