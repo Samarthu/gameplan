@@ -37,5 +37,5 @@ frappe = ">=16.0.0-dev,<=17.0.0-dev"
 
 [tool.bench.assets]
 build_dir = "./frontend"
-out_dir = "../gameplan/public/frontend"
-index_html_path = "../gameplan/www/g.html"
+out_dir = "./gameplan/public/frontend"
+index_html_path = "./gameplan/www/g.html"
