@@ -63,10 +63,10 @@ def publish_scheduled_drafts():
 
 	scheduled_drafts = frappe.db.get_all(
 		"GP Draft",
-		filters={
-			"scheduled_at": ["<=", now()],
-			"scheduled_at": ["is", "set"],
-		},
+		filters=[
+			["scheduled_at", "<=", now()],
+			["scheduled_at", "is", "set"],
+		],
 		fields=["name", "owner"],
 	)
 
