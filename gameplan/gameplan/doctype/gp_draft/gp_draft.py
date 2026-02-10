@@ -5,6 +5,7 @@ import re
 
 import frappe
 from frappe.model.document import Document
+from frappe.utils import now
 
 
 class GPDraft(Document):
@@ -59,8 +60,6 @@ def remove_query_params_from_images(content):
 
 def publish_scheduled_drafts():
 	"""Publish drafts that are scheduled to be published"""
-	from frappe.utils import now
-
 	scheduled_drafts = frappe.db.get_all(
 		"GP Draft",
 		filters=[
