@@ -30,21 +30,24 @@ describe('Project', () => {
       .its('response.body.data')
       .then((project) => {
         cy.url().should('include', `/g/space/${project.name}`)
+
+        // move to category
+        cy.visit('/g/spaces')
+        cy.selectDropdownOption(`${project.title} Space Options`, 'Change Category')
+        cy.selectCombobox('Select a category', 'DevOps')
+        cy.button('Move to DevOps').click()
+        cy.scope('body').find('a:contains("Project 1")').click()
+        cy.get('header a:contains("DevOps")').should('exist')
+
+        // archive
+        cy.visit('/g/spaces')
+        cy.selectDropdownOption(`${project.title} Space Options`, 'Archive')
+        cy.scope('dialog').button('Archive').click()
+        cy.contains('div', 'Archived').should('exist')
+        cy.visit('/g/spaces')
+        cy.contains('a', 'Project 1').should('not.exist')
+        cy.get('button:contains("Archived")').click()
+        cy.contains('a', 'Project 1').should('exist')
       })
-
-    // move to category
-    cy.selectDropdownOption('Space Options', 'Change Category')
-    cy.selectCombobox('Select a category', 'DevOps')
-    cy.button('Move to DevOps').click()
-    cy.get('header a:contains("DevOps")').should('exist')
-
-    // archive
-    cy.selectDropdownOption('Space Options', 'Archive')
-    cy.button('Archive').click()
-    cy.contains('div', 'Archived').should('exist')
-    cy.visit('/g/spaces')
-    cy.contains('a', 'Project 1').should('not.exist')
-    cy.get('button:contains("Archived")').click()
-    cy.contains('a', 'Project 1').should('exist')
   })
 })
