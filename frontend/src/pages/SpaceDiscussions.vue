@@ -1,34 +1,38 @@
 <template>
   <div class="body-container mt-5">
-    <div class="flex mb-4 items-center justify-between">
+    <SpaceHeaderActions>
+      <template v-if="!isBulkMoveMode">
+        <DropdownMoreOptions
+          placement="right"
+          :options="[
+            {
+              label: 'Move discussions',
+              icon: 'log-out',
+              onClick: () => (isBulkMoveMode = true),
+            },
+          ]"
+        />
+        <Button variant="solid" :route="{ name: 'NewDiscussion', query: { spaceId: spaceId } }">
+          <template #prefix><LucidePlus class="h-4 w-4" /></template>
+          Add new
+        </Button>
+      </template>
+      <template v-else>
+        <Button variant="ghost" @click="cancelBulkMove">Cancel</Button>
+        <Button
+          v-if="selectedDiscussions.length > 0"
+          variant="solid"
+          @click="showMoveDialog = true"
+        >
+          <template #prefix><LucideLogOut class="mr-1 h-4 w-4" /></template>
+          Move {{ selectedDiscussions.length }} discussion{{
+            selectedDiscussions.length > 1 ? 's' : ''
+          }}
+        </Button>
+      </template>
+    </SpaceHeaderActions>
+    <div class="mb-4 flex items-center">
       <SpaceTabs :spaceId="spaceId" />
-      <div class="flex items-center gap-2">
-        <template v-if="!isBulkMoveMode">
-          <DropdownMoreOptions
-            placement="right"
-            :options="[
-              {
-                label: 'Move discussions',
-                icon: 'log-out',
-                onClick: () => (isBulkMoveMode = true),
-              },
-            ]"
-          />
-          <Button variant="solid" :route="{ name: 'NewDiscussion', query: { spaceId: spaceId } }">
-            <template #prefix><LucidePlus class="h-4 w-4" /></template>
-            Add new
-          </Button>
-        </template>
-        <template v-else>
-          <Button variant="ghost" @click="cancelBulkMove">Cancel</Button>
-          <Button v-if="selectedDiscussions.length > 0" variant="solid" @click="showMoveDialog = true">
-            <template #prefix><LucideLogOut class="mr-1 h-4 w-4" /></template>
-            Move {{ selectedDiscussions.length }} discussion{{
-              selectedDiscussions.length > 1 ? 's' : ''
-            }}
-          </Button>
-        </template>
-      </div>
     </div>
     <DiscussionList
       class="-mx-3"
@@ -47,11 +51,7 @@
       v-model="showMoveDialog"
     >
       <template #body-content>
-        <Combobox
-          :options="spaceOptions"
-          v-model="selectedSpace"
-          placeholder="Select a space"
-        />
+        <Combobox :options="spaceOptions" v-model="selectedSpace" placeholder="Select a space" />
         <ErrorMessage class="mt-2" :message="bulkMoveDiscussions.error" />
       </template>
       <template #actions>
@@ -62,11 +62,7 @@
           :disabled="!selectedSpace"
           @click="moveDiscussions"
         >
-          {{
-            selectedSpace
-              ? `Move to ${selectedSpaceTitle}`
-              : 'Move'
-          }}
+          {{ selectedSpace ? `Move to ${selectedSpaceTitle}` : 'Move' }}
         </Button>
       </template>
     </Dialog>
@@ -76,6 +72,7 @@
 import { computed, ref, useTemplateRef } from 'vue'
 import { Combobox, Dialog, ErrorMessage, useCall, toast } from 'frappe-ui'
 import DiscussionList from '@/components/DiscussionList.vue'
+import SpaceHeaderActions from '@/components/SpaceHeaderActions.vue'
 import SpaceTabs from '@/components/SpaceTabs.vue'
 import DropdownMoreOptions from '@/components/DropdownMoreOptions.vue'
 import { useGroupedSpaceOptions } from '@/data/groupedSpaces'
@@ -155,9 +152,7 @@ function moveDiscussions() {
       const failureCount = response?.failure_count || 0
 
       if (successCount > 0) {
-        toast.success(
-          successCount === 1 ? 'Discussion moved' : `${successCount} discussions moved`,
-        )
+        toast.success(successCount === 1 ? 'Discussion moved' : `${successCount} discussions moved`)
       }
 
       if (failureCount > 0) {

@@ -1,11 +1,13 @@
 <template>
   <router-view v-slot="{ Component, route }">
     <PageHeader v-if="!route.meta.hideHeader">
-      <div class="flex items-center space-x-2">
-        <SpaceBreadcrumbs :spaceId="spaceId" />
-        <Badge v-if="space?.archived_at">Archived</Badge>
+      <div class="flex w-full items-center justify-between gap-3">
+        <div class="flex items-center space-x-2">
+          <SpaceBreadcrumbs :spaceId="spaceId" />
+          <Badge v-if="space?.archived_at">Archived</Badge>
+        </div>
+        <SpaceHeaderActionsTarget />
       </div>
-      <SpaceOptions :spaceId="spaceId" placement="right" />
     </PageHeader>
     <component class="flex-1" v-if="space" :is="Component" :space="space" />
     <div class="body-container pt-5" v-if="spaceList.isFinished && !space">
@@ -18,7 +20,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useDoctype } from 'frappe-ui'
-import SpaceOptions from '@/components/SpaceOptions.vue'
+import SpaceHeaderActionsTarget from '@/components/SpaceHeaderActionsTarget.vue'
 import { useSpace, spaces as spaceList } from '@/data/spaces'
 import { GPProject } from '@/types/doctypes'
 import EmptyStateBox from '@/components/EmptyStateBox.vue'

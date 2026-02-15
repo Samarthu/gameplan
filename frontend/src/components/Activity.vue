@@ -1,14 +1,14 @@
 <template>
-  <div class="relative flex items-center text-p-base">
+  <div class="relative flex items-center text-p-base text-ink-gray-5">
     <div
       class="mr-3 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-gray-2 text-ink-gray-8"
     >
       <LucideLock class="h-4 w-4" v-if="activity.action === 'Discussion Closed'" />
       <LucideUnlock class="h-4 w-4" v-else-if="activity.action === 'Discussion Reopened'" />
       <LucideEdit3 class="h-4 w-4" v-else-if="activity.action === 'Discussion Title Changed'" />
-      <LucideArrowUpLeft class="h-4 w-4" v-else-if="activity.action === 'Discussion Pinned'" />
-      <LucideArrowDownLeft class="h-4 w-4" v-else-if="activity.action === 'Discussion Unpinned'" />
-      <LucideLogOut class="h-4 w-4" v-else-if="activity.action === 'Discussion Moved'" />
+      <LucidePin class="h-4 w-4" v-else-if="activity.action === 'Discussion Pinned'" />
+      <LucidePinOff class="h-4 w-4" v-else-if="activity.action === 'Discussion Unpinned'" />
+      <LucideCornerUpRight class="h-4 w-4" v-else-if="activity.action === 'Discussion Moved'" />
       <LucideEdit3 class="h-4 w-4" v-else-if="activity.action === 'Task Value Changed'" />
     </div>
     <p>
@@ -20,30 +20,30 @@
           {{ user.full_name }}
         </UserProfileLink>
       </UserInfo>
-      <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Closed'">
-        closed this discussion
+      <span v-if="activity.action == 'Discussion Closed'"> closed this discussion</span>
+      <span v-if="activity.action == 'Discussion Reopened'"> reopened this discussion</span>
+      <span v-if="activity.action == 'Discussion Pinned'"> pinned this discussion</span>
+      <span v-if="activity.action == 'Discussion Unpinned'"> unpinned this discussion</span>
+      <span v-if="activity.action == 'Discussion Title Changed'">
+        changed the title from
+        <span class="text-ink-gray-8">{{ activity.data.old_title }}</span> to
+        <span class="text-ink-gray-8">{{ activity.data.new_title }}</span>
       </span>
-      <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Reopened'">
-        reopened this discussion
-      </span>
-      <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Pinned'">
-        pinned this discussion
-      </span>
-      <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Unpinned'">
-        unpinned this discussion
-      </span>
-      <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Title Changed'">
-        changed the title from "{{ activity.data.old_title }}" to "{{ activity.data.new_title }}"
-      </span>
-      <span class="text-ink-gray-8" v-if="activity.action == 'Discussion Moved'">
+      <span v-if="activity.action == 'Discussion Moved'">
         moved this discussion from
-        <span class="text-ink-gray-7">
+        <router-link
+          :to="{ name: 'Space', params: { spaceId: activity.data.old_project } }"
+          class="text-ink-gray-8 hover:text-ink-gray-5"
+        >
           {{ spaceTitle(activity.data.old_project) }}
-        </span>
+        </router-link>
         to
-        <span class="text-ink-gray-7">
+        <router-link
+          :to="{ name: 'Space', params: { spaceId: activity.data.new_project } }"
+          class="text-ink-gray-8 hover:text-ink-gray-5"
+        >
           {{ spaceTitle(activity.data.new_project) }}
-        </span>
+        </router-link>
       </span>
       <span class="text-ink-gray-5" v-if="activity.action == 'Task Value Changed'">
         <template v-if="activity.data.field === 'assigned_to'">
@@ -61,13 +61,19 @@
         <template v-else-if="activity.data.field === 'project'">
           changed project
           <span v-if="activity.data.old_value">from&nbsp;</span>
-          <span class="text-ink-gray-7">
+          <router-link
+            :to="{ name: 'Space', params: { spaceId: activity.data.old_value } }"
+            class="text-ink-gray-8 hover:text-ink-gray-5"
+          >
             {{ spaceTitle(activity.data.old_value) }}
-          </span>
+          </router-link>
           to
-          <span class="text-ink-gray-7">
+          <router-link
+            :to="{ name: 'Space', params: { spaceId: activity.data.new_value } }"
+            class="text-ink-gray-8 hover:text-ink-gray-5"
+          >
             {{ spaceTitle(activity.data.new_value) }}
-          </span>
+          </router-link>
         </template>
         <template v-else>
           changed {{ activity.data.field_label }}
@@ -75,8 +81,7 @@
           <span class="text-ink-gray-7">{{ activity.data.old_value }}</span> to
           <span class="text-ink-gray-7">{{ activity.data.new_value }}</span>
         </template> </span
-      >&nbsp;
-      <Tooltip :text="dayjsLocal(activity.creation).format('D MMM YYYY [at] h:mm A')">
+      >&nbsp;<Tooltip :text="dayjsLocal(activity.creation).format('D MMM YYYY [at] h:mm A')">
         <time class="text-ink-gray-5" :datetime="activity.creation">
           {{ dayjsLocal(activity.creation).fromNow() }}
         </time>
@@ -88,7 +93,6 @@
 import { dayjsLocal, Tooltip } from 'frappe-ui'
 import UserProfileLink from './UserProfileLink.vue'
 import { spaceTitle } from '@/utils/formatters'
-import LucideLogOut from '~icons/lucide/log-out'
 
 interface Activity {
   action: string

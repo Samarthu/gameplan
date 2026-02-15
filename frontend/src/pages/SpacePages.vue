@@ -1,45 +1,45 @@
 <template>
   <div class="mt-5 body-container">
-    <div class="flex mb-4 items-center justify-between">
+    <SpaceHeaderActions>
+      <Button variant="solid" @click="createNewPage">
+        <template #prefix><LucidePlus class="w-4" /></template>
+        <span class="whitespace-nowrap"> Add new </span>
+      </Button>
+    </SpaceHeaderActions>
+    <div class="mb-4 flex items-center justify-between">
       <SpaceTabs :spaceId="spaceId" />
-      <div class="flex items-center space-x-2">
-        <Dropdown
-          :options="[
-            {
-              label: 'Alphabetical',
-              onClick: () => (orderBy = 'title asc'),
-            },
-            {
-              label: 'Last updated',
-              onClick: () => (orderBy = 'modified desc'),
-            },
-            {
-              label: 'Created',
-              onClick: () => (orderBy = 'creation desc'),
-            },
-          ]"
-          placement="right"
-        >
-          <template #default>
-            <Button>
-              <template #prefix>
-                <ArrowDownUp class="mr-1.5 h-4 w-4 leading-none" :stroke-width="1.5" />
-              </template>
-              {{
-                orderBy === 'title asc'
-                  ? 'Alphabetical'
-                  : orderBy === 'modified desc'
-                    ? 'Last updated'
-                    : 'Created'
-              }}
-            </Button>
-          </template>
-        </Dropdown>
-        <Button variant="solid" @click="createNewPage">
-          <template #prefix><LucidePlus class="w-4" /></template>
-          <span class="whitespace-nowrap"> Add new </span>
-        </Button>
-      </div>
+      <Dropdown
+        :options="[
+          {
+            label: 'Alphabetical',
+            onClick: () => (orderBy = 'title asc'),
+          },
+          {
+            label: 'Last updated',
+            onClick: () => (orderBy = 'modified desc'),
+          },
+          {
+            label: 'Created',
+            onClick: () => (orderBy = 'creation desc'),
+          },
+        ]"
+        placement="right"
+      >
+        <template #default>
+          <Button>
+            <template #prefix>
+              <ArrowDownUp class="mr-1.5 h-4 w-4 leading-none" :stroke-width="1.5" />
+            </template>
+            {{
+              orderBy === 'title asc'
+                ? 'Alphabetical'
+                : orderBy === 'modified desc'
+                  ? 'Last updated'
+                  : 'Created'
+            }}
+          </Button>
+        </template>
+      </Dropdown>
     </div>
     <PageGrid
       class="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-4"
@@ -52,6 +52,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Dropdown, useNewDoc, UseListOptions } from 'frappe-ui'
 import SpaceTabs from '@/components/SpaceTabs.vue'
+import SpaceHeaderActions from '@/components/SpaceHeaderActions.vue'
 import PageGrid from './PageGrid.vue'
 import ArrowDownUp from '~icons/lucide/arrow-up-down'
 import { GPPage } from '@/types/doctypes'
