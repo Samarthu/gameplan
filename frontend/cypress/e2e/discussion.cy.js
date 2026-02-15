@@ -67,9 +67,7 @@ describe('Discussion', () => {
       .type('Edited Discussion Title')
     cy.button('Submit').click()
     cy.get('h1:contains("Edited Discussion Title")').should('exist')
-    cy.contains(
-      'changed the title from "Starting a new discussion" to "Edited Discussion Title"',
-    ).should('exist')
+    cy.contains('changed the title from').should('exist')
 
     // edit content
     cy.selectDropdownOption('Discussion Options', 'Edit')

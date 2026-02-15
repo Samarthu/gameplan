@@ -24,6 +24,7 @@ class GPDiscussion(HasActivity, HasMentions, HasReactions, HasTags, Document):
 		"Discussion Title Changed",
 		"Discussion Pinned",
 		"Discussion Unpinned",
+		"Discussion Moved",
 	]
 	mentions_field = "content"
 	tags_field = "content"
@@ -129,16 +130,7 @@ class GPDiscussion(HasActivity, HasMentions, HasReactions, HasTags, Document):
 
 	@frappe.whitelist()
 	def move_to_project(self, project):
-		if not project or project == self.project:
-			return
-
-		old_project = self.project
-		self.project = project
-		self.team = frappe.db.get_value("GP Project", project, "team")
-		self.save()
-		# update the discussion counts
-		self.update_discussions_count()
-		frappe.get_doc("GP Project", old_project).update_discussions_count()
+		return move_discussion(self, project)
 
 	@frappe.whitelist()
 	def close_discussion(self):
@@ -264,3 +256,61 @@ class GPDiscussion(HasActivity, HasMentions, HasReactions, HasTags, Document):
 
 def on_doctype_update():
 	frappe.db.add_index("GP Discussion", ["project", "last_post_at"])
+
+
+def move_discussion(discussion, project):
+	if not project or project == discussion.project:
+		return
+
+	old_project = discussion.project
+	discussion.project = project
+	discussion.team = frappe.db.get_value("GP Project", project, "team")
+	discussion.save()
+	# update the discussion counts
+	discussion.update_discussions_count()
+	frappe.get_doc("GP Project", old_project).update_discussions_count()
+	discussion.log_activity(
+		"Discussion Moved", data={"old_project": old_project, "new_project": project}
+	)
+	return discussion
+
+
+@frappe.whitelist(methods=["POST"])
+def move_discussions(discussions: list[dict]):
+	if not discussions:
+		return {"moved": [], "failed": [], "total": 0, "success_count": 0, "failure_count": 0}
+
+	moved = []
+	failed = []
+
+	for item in discussions:
+		if not isinstance(item, dict):
+			failed.append(
+				{
+					"name": None,
+					"error": "Discussion entry must be a dictionary with name and project fields",
+				}
+			)
+			continue
+		name = item.get("name")
+		project = item.get("project")
+		if not name or not project:
+			missing = "name" if not name else "project"
+			failed.append({"name": name, "error": f"Missing required field: {missing}"})
+			continue
+		try:
+			doc = frappe.get_doc("GP Discussion", name)
+			if not doc.has_permission("write"):
+				raise frappe.PermissionError(f"You do not have write permission for discussion {name}")
+			move_discussion(doc, project)
+			moved.append(name)
+		except Exception as exc:
+			failed.append({"name": name, "error": str(exc)})
+
+	return {
+		"moved": moved,
+		"failed": failed,
+		"total": len(discussions),
+		"success_count": len(moved),
+		"failure_count": len(failed),
+	}

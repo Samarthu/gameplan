@@ -12,6 +12,9 @@
         :index="Number(index)"
         :total="pinnedDiscussions.data.length"
         :showSpaceName="!filters || !filters.project"
+        :selectable="selectable"
+        :selected="selectedDiscussions.includes(discussion.name)"
+        @toggle-selection="toggleSelection"
       />
     </div>
 
@@ -22,6 +25,9 @@
       :index="Number(i)"
       :total="discussions.data?.length || 0"
       :showSpaceName="!filters || !filters.project"
+      :selectable="selectable"
+      :selected="selectedDiscussions.includes(discussion.name)"
+      @toggle-selection="toggleSelection"
     />
     <div class="px-2 sm:px-0">
       <EmptyStateBox class="mx-3" v-if="!discussions.loading && discussions.data?.length === 0">
@@ -52,11 +58,19 @@ interface Props {
   orderBy?: UseDiscussionOptions['orderBy']
   cacheKey?: string
   showPinned?: boolean
+  selectable?: boolean
+  selectedDiscussions?: string[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showPinned: true,
+  selectable: false,
+  selectedDiscussions: () => [],
 })
+
+const emit = defineEmits<{
+  (e: 'toggle-selection', name: string): void
+}>()
 
 const discussions = useDiscussions({
   filters: props.filters,
@@ -93,5 +107,9 @@ const pinnedDiscussions = useDiscussions({
 
 const filters = computed(() => toValue(props.filters))
 
-defineExpose({ discussions })
+function toggleSelection(name: string) {
+  emit('toggle-selection', name)
+}
+
+defineExpose({ discussions, pinnedDiscussions })
 </script>

@@ -1,15 +1,15 @@
 <template>
   <div class="mt-5 body-container">
-    <div class="mb-4 flex items-center justify-between">
+    <SpaceHeaderActions>
+      <Button variant="solid" @click="openNewTaskDialog">
+        <template #prefix>
+          <LucidePlus class="h-4 w-4" />
+        </template>
+        Add new
+      </Button>
+    </SpaceHeaderActions>
+    <div class="mb-4 flex items-center">
       <SpaceTabs :spaceId="spaceId" />
-      <div class="flex items-stretch space-x-2">
-        <Button variant="solid" @click="openNewTaskDialog">
-          <template #prefix>
-            <LucidePlus class="h-4 w-4" />
-          </template>
-          Add new
-        </Button>
-      </div>
     </div>
     <div>
       <TaskList :listOptions="{ filters }" :groupByStatus="true" ref="taskList" />
@@ -21,6 +21,7 @@
 import { useTemplateRef } from 'vue'
 import { useUser } from '@/data/users'
 import SpaceTabs from '@/components/SpaceTabs.vue'
+import SpaceHeaderActions from '@/components/SpaceHeaderActions.vue'
 import TaskList from '@/components/TaskList.vue'
 import { showNewTaskDialog } from '@/components/NewTaskDialog'
 
