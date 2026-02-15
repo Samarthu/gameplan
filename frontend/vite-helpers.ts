@@ -1,6 +1,5 @@
 import path from 'path'
 import { existsSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import type { Plugin, PluginOption } from 'vite'
 
 interface LocalFrappeUIDevConfigParams {
@@ -24,8 +23,11 @@ interface ImportFrappeUIPluginParams {
 }
 
 type FrappeUIPluginFactory = (...args: any[]) => PluginOption
+type FrappeUIPluginModule = { default: FrappeUIPluginFactory }
 
-const require = createRequire(import.meta.url)
+async function loadFrappeUIPluginModule(modulePath: string): Promise<FrappeUIPluginModule> {
+  return (await import(modulePath)) as FrappeUIPluginModule
+}
 
 export function getLocalFrappeUIDevConfig({
   mode,
@@ -71,18 +73,21 @@ export function createResolveTiptapPlugin({
   }
 }
 
-export function importFrappeUIPlugin({
+export async function importFrappeUIPlugin({
   useLocalFrappeUI,
-}: ImportFrappeUIPluginParams): FrappeUIPluginFactory {
-  const modulePath = useLocalFrappeUI ? '../frappe-ui/vite/index.js' : 'frappe-ui/vite'
+}: ImportFrappeUIPluginParams): Promise<FrappeUIPluginFactory> {
+  const npmModulePath = 'frappe-ui/vite'
+  const modulePath = useLocalFrappeUI ? '../frappe-ui/vite/index.js' : npmModulePath
 
   try {
-    return require(modulePath).default as FrappeUIPluginFactory
+    const module = await loadFrappeUIPluginModule(modulePath)
+    return module.default as FrappeUIPluginFactory
   } catch (error) {
     if (useLocalFrappeUI) {
       console.warn('⚠️  Failed to import local frappe-ui plugin, falling back to npm package')
       console.warn('   Error:', error instanceof Error ? error.message : String(error))
-      return require('frappe-ui/vite').default as FrappeUIPluginFactory
+      const fallbackModule = await loadFrappeUIPluginModule(npmModulePath)
+      return fallbackModule.default as FrappeUIPluginFactory
     }
     throw error
   }

@@ -1,4 +1,4 @@
-import { defineConfig, type PluginOption } from 'vite'
+import { defineConfig, type PluginOption, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import path from 'path'
@@ -9,13 +9,13 @@ import {
   importFrappeUIPlugin,
 } from './vite-helpers'
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const { useLocalFrappeUI, localFrappeUIPath, localFrappeUIAliases } = getLocalFrappeUIDevConfig({
     mode,
     rootDir: __dirname,
   })
 
-  const frappeui = importFrappeUIPlugin({ useLocalFrappeUI })
+  const frappeui = await importFrappeUIPlugin({ useLocalFrappeUI })
 
   const baseAliases = {
     '@': path.resolve(__dirname, 'src'),
