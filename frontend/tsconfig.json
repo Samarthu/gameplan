@@ -5,6 +5,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["./src/**/*", "vite/client"],
+  "include": ["./src/**/*", "vite/client", "./vite.config.ts", "./vite-helpers.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
