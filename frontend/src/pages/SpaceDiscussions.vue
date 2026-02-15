@@ -79,13 +79,14 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
-import { Combobox, Dialog, ErrorMessage, useCall, toast, focusDirective as vFocus } from 'frappe-ui'
+import { Combobox, Dialog, ErrorMessage, useCall, toast } from 'frappe-ui'
 import DiscussionList from '@/components/DiscussionList.vue'
 import SpaceHeaderActions from '@/components/SpaceHeaderActions.vue'
 import SpaceTabs from '@/components/SpaceTabs.vue'
 import DropdownMoreOptions from '@/components/DropdownMoreOptions.vue'
 import { useGroupedSpaceOptions } from '@/data/groupedSpaces'
 import { useSpace, spaces } from '@/data/spaces'
+import { vFocus } from '@/directives'
 
 interface BulkUpdateResponse {
   moved: string[]
