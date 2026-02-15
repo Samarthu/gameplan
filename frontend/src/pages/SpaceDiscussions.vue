@@ -20,14 +20,17 @@
       <template v-else>
         <Button variant="ghost" @click="cancelBulkMove">Cancel</Button>
         <Button
-          v-if="selectedDiscussions.length > 0"
           variant="solid"
           @click="showMoveDialog = true"
+          :disabled="selectedDiscussions.length === 0"
         >
           <template #prefix><LucideLogOut class="mr-1 h-4 w-4" /></template>
-          Move {{ selectedDiscussions.length }} discussion{{
-            selectedDiscussions.length > 1 ? 's' : ''
-          }}
+          <template v-if="selectedDiscussions.length === 0">Move discussions</template>
+          <template v-else>
+            Move {{ selectedDiscussions.length }} discussion{{
+              selectedDiscussions.length > 1 ? 's' : ''
+            }}
+          </template>
         </Button>
       </template>
     </SpaceHeaderActions>
@@ -51,7 +54,13 @@
       v-model="showMoveDialog"
     >
       <template #body-content>
-        <Combobox :options="spaceOptions" v-model="selectedSpace" placeholder="Select a space" />
+        <Combobox
+          :options="spaceOptions"
+          v-model="selectedSpace"
+          placeholder="Select a space"
+          open-on-focus
+          v-focus
+        />
         <ErrorMessage class="mt-2" :message="bulkMoveDiscussions.error" />
       </template>
       <template #actions>
@@ -70,7 +79,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
-import { Combobox, Dialog, ErrorMessage, useCall, toast } from 'frappe-ui'
+import { Combobox, Dialog, ErrorMessage, useCall, toast, focusDirective as vFocus } from 'frappe-ui'
 import DiscussionList from '@/components/DiscussionList.vue'
 import SpaceHeaderActions from '@/components/SpaceHeaderActions.vue'
 import SpaceTabs from '@/components/SpaceTabs.vue'
