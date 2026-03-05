@@ -209,6 +209,7 @@ const newPoll = ref({
 })
 const newMessagesFrom = ref(props.newCommentsFrom)
 const highlightedItem = ref<{ doctype: string; name: string } | null>(null)
+const timelineItemElements = ref<Record<string, HTMLElement>>({})
 const addCommentHeight = ref(0)
 const newCommentEditor = useTemplateRef('newCommentEditor')
 const addComment = ref(null)
@@ -343,10 +344,11 @@ function openCommentBox() {
 }
 
 function getCommentContentElement(id) {
-  const comment = timelineItems.value?.find((c) => c.name === id)
-  if (comment?.$el) {
-    return comment.$el
-  }
+  return timelineItemElements.value[getTimelineItemKey('GP Comment', id)]
+}
+
+function getTimelineItemKey(doctype: string, name: string) {
+  return `${doctype}:${name}`
 }
 
 function highlightComment(id: string) {
@@ -407,11 +409,13 @@ async function scrollToEnd() {
 }
 
 async function scrollToLastComment() {
-  const lastComment = comments.data?.[comments.data.length - 1]
+  const lastComment = comments.data?.at(-1)
   if (!lastComment) return
   await nextTick()
-  if (lastComment.$el) {
-    await scrollToElement(lastComment.$el)
+  const lastCommentElement =
+    timelineItemElements.value[getTimelineItemKey('GP Comment', lastComment.name)]
+  if (lastCommentElement) {
+    await scrollToElement(lastCommentElement)
   } else {
     await scrollToEnd()
   }
@@ -432,8 +436,9 @@ function scrollToCommentById(id: string) {
 async function scrollToItem(item: any) {
   if (!item) return
   await nextTick()
-  if (item.$el) {
-    scrollToElement(item.$el)
+  const itemElement = timelineItemElements.value[getTimelineItemKey(item.doctype, item.name)]
+  if (itemElement) {
+    scrollToElement(itemElement)
     highlightedItem.value = {
       doctype: item.doctype,
       name: item.name,
@@ -490,7 +495,7 @@ function discardPoll() {
 
 function setItemRef($component: any, item: any) {
   if ($component?.$el) {
-    item.$el = $component.$el
+    timelineItemElements.value[getTimelineItemKey(item.doctype, item.name)] = $component.$el
   }
 }
 
