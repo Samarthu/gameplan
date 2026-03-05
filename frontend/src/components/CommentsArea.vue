@@ -420,21 +420,35 @@ function shouldScrollToLatestDiscussionReply() {
 }
 
 async function scrollToLatestReply() {
-  const lastComment = comments.data?.at(-1) || null
-  const lastPoll = polls.data?.at(-1) || null
-  const latestReply =
-    !lastComment || (lastPoll && new Date(lastPoll.creation) > new Date(lastComment.creation))
-      ? lastPoll
-      : lastComment
-  if (!latestReply) return
+  const latestReplyAnchor = getLatestReplyAnchor(comments.data?.at(-1), polls.data?.at(-1))
+  if (!latestReplyAnchor) return
   await nextTick()
   const latestReplyElement =
-    timelineItemElements.value[getTimelineItemKey(latestReply.doctype, latestReply.name)]
+    timelineItemElements.value[
+      getTimelineItemKey(latestReplyAnchor.doctype, latestReplyAnchor.name)
+    ]
   if (latestReplyElement) {
     await scrollToElement(latestReplyElement)
   } else {
     await scrollToEnd()
   }
+}
+
+function getLatestReplyAnchor(
+  lastComment?: GPComment,
+  lastPoll?: GPPoll,
+): { doctype: 'GP Comment' | 'GP Poll'; name: string } | undefined {
+  if (lastComment && lastPoll) {
+    const lastCommentTime = new Date(lastComment.creation).valueOf()
+    const lastPollTime = new Date(lastPoll.creation).valueOf()
+    if (lastPollTime > lastCommentTime) {
+      return { doctype: 'GP Poll', name: lastPoll.name }
+    }
+    return { doctype: 'GP Comment', name: lastComment.name }
+  }
+  if (lastPoll) return { doctype: 'GP Poll', name: lastPoll.name }
+  if (lastComment) return { doctype: 'GP Comment', name: lastComment.name }
+  return undefined
 }
 
 function _scrollToEnd() {
