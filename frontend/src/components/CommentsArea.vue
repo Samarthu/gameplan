@@ -245,7 +245,11 @@ const comments = useList<GPComment>({
       const comment = comments.data?.find((c) => c.name === route.query.comment)
       scrollToItem(comment)
     } else if (!route.query.fromSearch && comments.data?.length > 0) {
-      scrollToEnd()
+      if (props.doctype === 'GP Discussion') {
+        scrollToLastComment()
+      } else {
+        scrollToEnd()
+      }
     }
   },
 })
@@ -399,6 +403,17 @@ async function scrollToEnd() {
   const scrollContainer = getScrollContainer()
   if (scrollContainer.scrollTop < scrollContainer.scrollHeight) {
     _scrollToEnd()
+  }
+}
+
+async function scrollToLastComment() {
+  const lastComment = comments.data?.[comments.data.length - 1]
+  if (!lastComment) return
+  await nextTick()
+  if (lastComment.$el) {
+    await scrollToElement(lastComment.$el)
+  } else {
+    await scrollToEnd()
   }
 }
 
