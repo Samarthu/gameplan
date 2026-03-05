@@ -246,8 +246,8 @@ const comments = useList<GPComment>({
       const comment = comments.data?.find((c) => c.name === route.query.comment)
       scrollToItem(comment)
     } else if (!route.query.fromSearch && comments.data?.length > 0) {
-      if (props.doctype === 'GP Discussion') {
-        scrollToLastComment()
+      if (shouldScrollToLatestDiscussionReply()) {
+        scrollToLatestReply()
       } else {
         scrollToEnd()
       }
@@ -299,6 +299,8 @@ const polls = useList<GPPoll>({
     if (route.query.poll) {
       const poll = polls.data?.find((p) => p.name === route.query.poll)
       scrollToItem(poll)
+    } else if (shouldScrollToLatestDiscussionReply() && polls.data?.length > 0) {
+      scrollToLatestReply()
     }
   },
 })
@@ -408,14 +410,28 @@ async function scrollToEnd() {
   }
 }
 
-async function scrollToLastComment() {
-  const lastComment = comments.data?.at(-1)
-  if (!lastComment) return
+function shouldScrollToLatestDiscussionReply() {
+  return (
+    props.doctype === 'GP Discussion' &&
+    !route.query.comment &&
+    !route.query.poll &&
+    !route.query.fromSearch
+  )
+}
+
+async function scrollToLatestReply() {
+  const lastComment = comments.data?.at(-1) || null
+  const lastPoll = polls.data?.at(-1) || null
+  const latestReply =
+    !lastComment || (lastPoll && new Date(lastPoll.creation) > new Date(lastComment.creation))
+      ? lastPoll
+      : lastComment
+  if (!latestReply) return
   await nextTick()
-  const lastCommentElement =
-    timelineItemElements.value[getTimelineItemKey('GP Comment', lastComment.name)]
-  if (lastCommentElement) {
-    await scrollToElement(lastCommentElement)
+  const latestReplyElement =
+    timelineItemElements.value[getTimelineItemKey(latestReply.doctype, latestReply.name)]
+  if (latestReplyElement) {
+    await scrollToElement(latestReplyElement)
   } else {
     await scrollToEnd()
   }
