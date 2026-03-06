@@ -6,6 +6,25 @@ WORKSPACE="/workspace"
 # These credentials are intentionally simple – this is a local dev environment only.
 MARIADB_ROOT_PASSWORD="${MARIADB_ROOT_PASSWORD:-123}"
 
+# ---------------------------------------------------------------------------
+# CI mode: only verify that required tooling is present inside the container.
+# The full bench + site setup only makes sense in an interactive Codespace.
+# ---------------------------------------------------------------------------
+if [ "${CI:-false}" = "true" ]; then
+	echo "CI mode detected – skipping full bench setup."
+	echo "Installing pnpm..."
+	npm install -g pnpm
+	echo ""
+	echo "Tool versions:"
+	bench --version
+	python --version
+	node --version
+	pnpm --version
+	echo ""
+	echo "Container environment verified successfully."
+	exit 0
+fi
+
 # Skip if bench has already been initialised (e.g. after a container restart)
 if [ -d "$BENCH_DIR/apps/frappe" ]; then
 	echo "Bench already initialised, skipping setup."
