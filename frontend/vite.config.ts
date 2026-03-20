@@ -28,9 +28,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     },
     plugins: [
       frappeui({
-        frappeProxy: true,
-        lucideIcons: true,
-        jinjaBootData: true,
+        frontendRoute: '/g',
         frappeTypes: {
           input: {
             gameplan: [
@@ -53,9 +51,6 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
               'gp_pinned_project',
             ],
           },
-        },
-        buildConfig: {
-          indexHtmlPath: '../gameplan/www/g.html',
         },
       }),
       createResolveTiptapPlugin({ useLocalFrappeUI, localFrappeUIPath }),
