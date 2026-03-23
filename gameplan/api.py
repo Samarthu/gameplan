@@ -434,3 +434,21 @@ def search(query, start=0):
 		"total": result.total,
 		"duration": result.duration,
 	}
+
+def can_access_gameplan():
+	"""Check if the app should be shown in /apps"""
+	from frappe.utils.modules import get_modules_from_all_apps_for_user
+
+	if frappe.session.user == "Administrator":
+		return True
+
+	allowed_modules = [x["module_name"] for x in get_modules_from_all_apps_for_user()]
+	if "Gameplan" not in allowed_modules:
+		return False
+
+	roles = set(frappe.get_roles())
+	allowed_roles = set(["System Manager", "Gameplan Admin", "Gameplan Member", "Gameplan Guest"])
+	if roles.intersection(allowed_roles):
+		return True
+
+	return False
