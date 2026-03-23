@@ -12,14 +12,11 @@ MARIADB_ROOT_PASSWORD="${MARIADB_ROOT_PASSWORD:-123}"
 # ---------------------------------------------------------------------------
 if [ "${CI:-false}" = "true" ]; then
 	echo "CI mode detected – skipping full bench setup."
-	echo "Installing pnpm..."
-	npm install -g pnpm
 	echo ""
 	echo "Tool versions:"
 	bench --version
 	python --version
 	node --version
-	pnpm --version
 	echo ""
 	echo "Container environment verified successfully."
 	exit 0
@@ -29,14 +26,6 @@ fi
 if [ -d "$BENCH_DIR/apps/frappe" ]; then
 	echo "Bench already initialised, skipping setup."
 	exit 0
-fi
-
-# ---------------------------------------------------------------------------
-# Install pnpm (the frappe/bench image ships with npm but not pnpm)
-# ---------------------------------------------------------------------------
-if ! command -v pnpm &>/dev/null; then
-	echo "Installing pnpm..."
-	npm install -g pnpm
 fi
 
 # ---------------------------------------------------------------------------
@@ -99,14 +88,14 @@ bench use gameplan.localhost
 echo "Setting up frontend..."
 cd "$WORKSPACE"
 git submodule update --init
-pnpm install
+cd frontend && yarn install && cd ..
 
 echo ""
 echo "============================================================"
 echo " Gameplan dev environment is ready!"
 echo ""
 echo " Start the backend:  cd ~/frappe-bench && bench start"
-echo " Start the frontend: cd /workspace    && pnpm dev"
+echo " Start the frontend: cd /workspace/frontend && yarn dev"
 echo ""
 echo " Backend  → http://localhost:8000"
 echo " Frontend → http://localhost:8080/g"

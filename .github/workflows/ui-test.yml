@@ -50,10 +50,6 @@ jobs:
           node-version: 24
           check-latest: true
 
-      - uses: pnpm/action-setup@v2
-        with:
-          version: latest
-
       - name: Add to Hosts
         run: |
           echo "127.0.0.1 gameplan.test" | sudo tee -a /etc/hosts
@@ -66,19 +62,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
 
       - name: Cache cypress binary
         uses: actions/cache@v3
