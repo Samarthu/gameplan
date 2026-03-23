@@ -3,14 +3,10 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import path from 'path'
 import { visualizer } from 'rollup-plugin-visualizer'
-import {
-  createResolveTiptapPlugin,
-  getLocalFrappeUIDevConfig,
-  importFrappeUIPlugin,
-} from './vite-helpers'
+import { getLocalFrappeUIDevConfig, importFrappeUIPlugin } from './vite-helpers'
 
 export default defineConfig(async ({ mode }): Promise<UserConfig> => {
-  const { useLocalFrappeUI, localFrappeUIPath, localFrappeUIAliases } = getLocalFrappeUIDevConfig({
+  const { useLocalFrappeUI, localFrappeUIAliases } = getLocalFrappeUIDevConfig({
     mode,
     rootDir: __dirname,
   })
@@ -28,9 +24,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     },
     plugins: [
       frappeui({
-        frappeProxy: true,
-        lucideIcons: true,
-        jinjaBootData: true,
+        frontendRoute: '/g',
         frappeTypes: {
           input: {
             gameplan: [
@@ -54,11 +48,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
             ],
           },
         },
-        buildConfig: {
-          indexHtmlPath: '../gameplan/www/g.html',
-        },
       }),
-      createResolveTiptapPlugin({ useLocalFrappeUI, localFrappeUIPath }),
       vue(),
       vueJsx(),
       visualizer({ emitFile: true }) as PluginOption,

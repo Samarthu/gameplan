@@ -1,6 +1,6 @@
 import path from 'path'
 import { existsSync } from 'node:fs'
-import type { Plugin, PluginOption } from 'vite'
+import type { PluginOption } from 'vite'
 
 interface LocalFrappeUIDevConfigParams {
   mode: string
@@ -11,11 +11,6 @@ interface LocalFrappeUIDevConfig {
   useLocalFrappeUI: boolean
   localFrappeUIPath: string
   localFrappeUIAliases: Record<string, string>
-}
-
-interface ResolveTiptapPluginParams {
-  useLocalFrappeUI: boolean
-  localFrappeUIPath: string
 }
 
 interface ImportFrappeUIPluginParams {
@@ -53,23 +48,6 @@ export function getLocalFrappeUIDevConfig({
     useLocalFrappeUI,
     localFrappeUIPath,
     localFrappeUIAliases,
-  }
-}
-
-export function createResolveTiptapPlugin({
-  useLocalFrappeUI,
-  localFrappeUIPath,
-}: ResolveTiptapPluginParams): Plugin {
-  return {
-    name: 'resolve-tiptap',
-    enforce: 'pre',
-    async resolveId(source) {
-      if (useLocalFrappeUI && source.startsWith('@tiptap')) {
-        return this.resolve(source, path.join(localFrappeUIPath, 'package.json'), {
-          skipSelf: true,
-        })
-      }
-    },
   }
 }
 

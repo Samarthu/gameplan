@@ -14,7 +14,7 @@ if (!defaultRoute || defaultRoute?.includes('{{')) {
 const preferredHomePage = usePreferredHomePage()
 
 let router = createRouter({
-  history: createWebHistory('/g/'),
+  history: createWebHistory(__FRONTEND_ROUTE__ + '/'),
   routes: [
     {
       path: '/',

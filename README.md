@@ -82,7 +82,7 @@ This app depends on the `develop` branch of [frappe](https://github.com/frappe/f
 
 #### Prerequisites
 - Frappe-bench set up locally ([installation guide](https://frappeframework.com/docs/v14/user/en/installation))
-- Node.js and pnpm
+- Node.js and yarn
 - The local frappe-ui copy is included in `./frappe-ui/` for development
 
 #### Step 1: Set up the Backend
@@ -123,7 +123,7 @@ This app depends on the `develop` branch of [frappe](https://github.com/frappe/f
 
 3. Install frontend dependencies:
     ```sh
-    pnpm install
+    yarn install
     ```
 
 4. **Optional: For local frappe-ui development**, install frappe-ui dependencies (use `yarn` in frappe-ui):
@@ -135,7 +135,7 @@ This app depends on the `develop` branch of [frappe](https://github.com/frappe/f
 
 5. Start the Vite development server:
     ```sh
-    pnpm dev
+    yarn dev
     ```
 
 6. Access the application at `http://gameplan.test:8080/g`
@@ -169,7 +169,7 @@ const localFrappeUIAliases = useLocalFrappeUI ? {
 
 **When to Install frappe-ui Dependencies**:
 - Only needed if you're modifying frappe-ui components or contributing to frappe-ui development
-- Use `yarn install` in the `frappe-ui` directory (not `pnpm`)
+- Use `yarn install` in the `frappe-ui` directory
 - For normal Gameplan development, the npm package version will be used automatically
 - If you see a warning about frappe-ui dependencies not being installed, run `cd frappe-ui && yarn install` only if you need local development
 
