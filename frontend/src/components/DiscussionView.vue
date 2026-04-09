@@ -282,6 +282,7 @@ import { useScrollPosition } from '@/utils/scrollContainer'
 import { isMobile } from '@/composables/isMobile'
 import { useRichQuoteHandler } from '@/components/RichQuoteExtension/useRichQuoteHandler'
 import { refreshUnreadCountForProjects } from '@/data/unreadCount'
+import { isSessionUser } from '@/data/session'
 
 import LucideArrowUp from '~icons/lucide/arrow-up'
 
@@ -548,6 +549,7 @@ const actions = computed(() => [
   {
     label: 'Delete',
     icon: 'trash',
+    condition: () => !!discussion.doc?.owner && isSessionUser(discussion.doc.owner),
     onClick: () => {
       createDialog({
         title: 'Delete',
