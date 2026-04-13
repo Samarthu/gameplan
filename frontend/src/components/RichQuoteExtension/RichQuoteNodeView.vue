@@ -1,6 +1,6 @@
 <template>
   <NodeViewWrapper
-    class="relative mt-2 first:mt-0 border-l-[6px] hover:border-outline-gray-2 transition-colors overflow-hidden"
+    class="relative my-4 first:mt-0 last:mb-0 border-l-2 border-outline-gray-3 hover:border-outline-gray-4 transition-colors overflow-hidden text-ink-gray-6"
     :data-rich-quote-id="node.attrs.quoteId"
   >
     <button
