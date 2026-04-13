@@ -25,7 +25,7 @@
           >
             <div class="overflow-hidden text-ellipsis whitespace-nowrap">
               <div
-                class="prose prose-sm pointer-events-none w-[200%] origin-top-left scale-[.55] prose-p:my-1 md:w-[250%] md:scale-[.39]"
+                class="prose prose-v3 pointer-events-none w-[200%] origin-top-left scale-[.55] md:w-[250%] md:scale-[.39]"
                 v-html="d.content"
               />
             </div>
