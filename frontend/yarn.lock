@@ -1999,10 +1999,9 @@ framer-motion@^12.25.0:
     motion-utils "^12.36.0"
     tslib "^2.4.0"
 
-frappe-ui@^0.1.269:
-  version "0.1.269"
-  resolved "https://registry.yarnpkg.com/frappe-ui/-/frappe-ui-0.1.269.tgz#d694cd23fe6eadbd7bb898bb3f46e0414c27f829"
-  integrity sha512-1D4AW8cPoC7OIRqEzYnF169/r+v0EfVBvfCi/ovmk76FBPKY+qIVOzL+Vx/9TcYvJubc1tSU19F/jX177e3axA==
+frappe-ui@frappe/frappe-ui#better-prose-styles:
+  version "0.1.272"
+  resolved "https://codeload.github.com/frappe/frappe-ui/tar.gz/2fde537e9e0a6179c0bcd8b3db07f95b9b9fa629"
   dependencies:
     "@floating-ui/dom" "^1.7.4"
     "@floating-ui/vue" "^1.1.6"

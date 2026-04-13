@@ -93,7 +93,7 @@
           />
         </div>
         <TextEditor
-          editor-class="rounded-b-lg max-w-[unset] prose-sm pb-[50vh] md:px-[70px]"
+          editor-class="rounded-b-lg max-w-[unset] prose-v3 pb-[50vh] md:px-[70px]"
           :content="content"
           @change="
             (value) => {

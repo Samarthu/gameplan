@@ -8,7 +8,7 @@
   >
     <TextEditor
       ref="readme"
-      editor-class="prose-sm"
+      editor-class="prose-v3"
       :content="resource.doc[fieldname]"
       :placeholder="placeholder"
       @change="(val) => (resource.doc[fieldname] = val)"

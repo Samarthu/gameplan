@@ -66,7 +66,7 @@
       <TextEditor
         ref="textEditor"
         class="mt-1"
-        editor-class="rounded-b-lg max-w-[unset] prose-sm h-[calc(100vh-340px)] sm:h-[calc(100vh-250px)] overflow-auto"
+        editor-class="rounded-b-lg max-w-[unset] prose-v3 h-[calc(100vh-340px)] sm:h-[calc(100vh-250px)] overflow-auto"
         :content="content"
         @change="onNewPostChange"
         placeholder="Write something..."
