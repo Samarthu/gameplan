@@ -2001,7 +2001,7 @@ framer-motion@^12.25.0:
 
 frappe-ui@frappe/frappe-ui#better-prose-styles:
   version "0.1.272"
-  resolved "https://codeload.github.com/frappe/frappe-ui/tar.gz/2fde537e9e0a6179c0bcd8b3db07f95b9b9fa629"
+  resolved "https://codeload.github.com/frappe/frappe-ui/tar.gz/3df944308c8ea1dbd48263065dfe99da21fb12de"
   dependencies:
     "@floating-ui/dom" "^1.7.4"
     "@floating-ui/vue" "^1.1.6"
