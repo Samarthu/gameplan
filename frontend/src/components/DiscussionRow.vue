@@ -118,10 +118,11 @@
         </div>
       </div>
       <!-- Separator -->
-      <div
-        class="mx-3 h-px border-t border-outline-gray-modals transition-opacity group-hover:opacity-0"
-        v-if="index < total - 1"
-      ></div>
+      <div class="pl-1" v-if="index < total - 1">
+        <div
+          class="ml-16 mr-3 h-px border-t border-outline-gray-modals transition-opacity group-hover:opacity-0"
+        />
+      </div>
     </a>
   </RouterLink>
 </template>
