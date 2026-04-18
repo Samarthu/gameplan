@@ -6,11 +6,10 @@
   cv01  — alternate '1' with serif foot: distinct from l and I
   cv03  — alternate '6' with more open loop
   cv04  — alternate '9' with straight tail
-  cv09  — serifed lowercase 'l': disambiguates l / i / 1
   cv11  — single-story lowercase 'a': cleaner, more contemporary feel
 */
 html {
-  font-feature-settings: 'calt' 1, 'cv01' 1, 'cv03' 1, 'cv04' 1, 'cv09' 1, 'cv11' 1;
+  font-feature-settings: 'calt' 1, 'cv01' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1;
 }
 
 /* ProseMirror disables ligatures by default; restore so the font-feature-settings
