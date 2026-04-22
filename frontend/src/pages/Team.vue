@@ -40,6 +40,11 @@
                 onClick: () => (showCoverImage = true),
               },
               {
+                label: team.doc.is_private ? 'Make public' : 'Make private',
+                icon: team.doc.is_private ? 'globe' : 'lock',
+                onClick: () => toggleVisibility(),
+              },
+              {
                 label: 'Archive',
                 icon: 'trash-2',
                 onClick: () => archiveTeam(),
@@ -75,6 +80,7 @@
 import { Breadcrumbs, Dropdown, Badge, Tooltip } from 'frappe-ui'
 import IconPicker from '@/components/IconPicker.vue'
 import Tabs from '@/components/Tabs.vue'
+import { teams } from '@/data/teams'
 
 export default {
   name: 'Team',
@@ -111,6 +117,32 @@ export default {
                   close()
                 },
               })
+            },
+          },
+        ],
+      })
+    },
+    toggleVisibility() {
+      const makingPrivate = !this.team.doc.is_private
+      this.$dialog({
+        title: makingPrivate ? 'Make team private' : 'Make team public',
+        message: makingPrivate
+          ? 'Only team members will be able to see this team and its projects. Continue?'
+          : 'Everyone in the workspace will be able to see this team. Continue?',
+        actions: [
+          {
+            label: makingPrivate ? 'Make private' : 'Make public',
+            variant: 'solid',
+            onClick: (close) => {
+              return this.team.setValue.submit(
+                { is_private: makingPrivate ? 1 : 0 },
+                {
+                  onSuccess: () => {
+                    if (teams.reload) teams.reload()
+                    close()
+                  },
+                },
+              )
             },
           },
         ],
