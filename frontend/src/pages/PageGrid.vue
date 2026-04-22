@@ -1,12 +1,12 @@
 <template>
   <div class="grid grid-cols-1 gap-5 md:grid-cols-3 lg:grid-cols-4">
-    <div class="text-base text-ink-gray-5" v-if="!$resources.pages.data?.length">No pages</div>
+    <div class="text-base text-ink-gray-5" v-if="!$resources.pages.data?.length">No documents</div>
     <div class="relative" v-for="d in $resources.pages.data" :key="d.name">
       <div class="absolute right-0 top-0 p-3">
         <Dropdown
           :button="{
             icon: 'more-horizontal',
-            label: 'Page Options',
+            label: 'Document Options',
             variant: 'ghost',
           }"
           :options="[
@@ -15,8 +15,8 @@
               icon: 'trash',
               onClick: () => {
                 $dialog({
-                  title: 'Delete Page',
-                  message: 'Are you sure you want to delete this page?',
+                  title: 'Delete Document',
+                  message: 'Are you sure you want to delete this document?',
                   actions: [
                     {
                       label: 'Delete',

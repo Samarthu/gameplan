@@ -120,7 +120,7 @@ export default {
       if (!this.page.doc) return []
       if (!this.page.doc.project) {
         return [
-          { label: 'My Pages', route: { name: 'MyPages' } },
+          { label: 'My Documents', route: { name: 'MyPages' } },
           {
             label: this.pageTitle,
             route: {
@@ -151,7 +151,7 @@ export default {
           },
         },
         {
-          label: 'Pages',
+          label: 'Documents',
           route: {
             name: 'ProjectPages',
             params: {

@@ -90,7 +90,7 @@ export default {
           } else if (doctype === 'GP Task') {
             group = 'Tasks'
           } else if (doctype === 'GP Page') {
-            group = 'Pages'
+            group = 'Documents'
           }
           if (!group) {
             continue
