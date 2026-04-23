@@ -1,12 +1,12 @@
 <template>
   <div class="py-6">
     <div class="flex items-center justify-between">
-      <div class="text-xl font-semibold">Pages</div>
+      <div class="text-xl font-semibold">Documents</div>
       <div class="flex items-center space-x-2">
         <Dropdown
           :options="[
             {
-              label: 'Page Title',
+              label: 'Document Title',
               onClick: () => (orderBy = 'title asc'),
             },
             {

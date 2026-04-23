@@ -33,7 +33,7 @@
         </div>
         <div class="sm:rounded sm:border sm:px-4 sm:py-3">
           <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-ink-gray-8">Pages</h2>
+            <h2 class="text-xl font-semibold text-ink-gray-8">Documents</h2>
             <Button :route="{ name: 'ProjectPages' }">View all</Button>
           </div>
           <PageList

@@ -35,7 +35,7 @@
     class="flex flex-col items-center rounded-lg border-2 border-dashed py-8 text-base text-ink-gray-5"
     v-else
   >
-    No pages
+    No documents
   </div>
 </template>
 <script setup>

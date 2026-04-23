@@ -200,7 +200,7 @@ export default {
           isActive: /MyTasks|Task/g.test(this.$route.name),
         },
         {
-          name: 'My Pages',
+          name: 'My Documents',
           icon: LucideFiles,
           route: {
             name: 'MyPages',

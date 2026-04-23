@@ -2,7 +2,7 @@
   <header
     class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-5 py-2.5"
   >
-    <Breadcrumbs class="h-7" :items="[{ label: 'My Pages', route: { name: 'MyPages' } }]" />
+    <Breadcrumbs class="h-7" :items="[{ label: 'My Documents', route: { name: 'MyPages' } }]" />
     <div class="flex items-center space-x-2">
       <Select
         :options="[
@@ -12,7 +12,7 @@
             disabled: true,
           },
           {
-            label: 'Page Title',
+            label: 'Document Title',
             value: 'title asc',
           },
           {
@@ -81,7 +81,7 @@ export default {
   },
   pageMeta() {
     return {
-      title: 'My Pages',
+      title: 'My Documents',
     }
   },
 }

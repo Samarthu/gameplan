@@ -450,7 +450,7 @@ export default {
 
       if (['ProjectPages', 'ProjectPage'].includes(this.$route.name)) {
         items.push({
-          label: 'Pages',
+          label: 'Documents',
           route: {
             name: 'ProjectPages',
             params: {

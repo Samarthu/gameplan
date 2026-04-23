@@ -124,7 +124,7 @@ export default {
                 return item
               })
             }
-            if (group.title === 'Pages') {
+            if (group.title === 'Documents') {
               group.component = 'Item'
               group.items = group.items.map((item) => {
                 item.route = {
