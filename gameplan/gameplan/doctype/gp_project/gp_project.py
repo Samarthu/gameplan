@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 import frappe
 import requests
 from bs4 import BeautifulSoup
+from frappe import _
 from frappe.model.document import Document
 from pypika.terms import ExistsCriterion
 
@@ -89,6 +90,10 @@ class GPProject(ManageMembersMixin, Archivable, Document):
 				"status": "Accepted",
 			},
 		)
+
+	def validate(self):
+		if self.goals and len(self.goals) > 3:
+			frappe.throw(_("A project can have at most 3 goals."))
 
 	def before_save(self):
 		if frappe.db.get_value("GP Team", self.team, "is_private"):
