@@ -2,6 +2,7 @@
   <div class="pt-6">
     <div class="space-y-5 pb-40">
       <ProjectOverviewReadme :project="project" />
+      <ProjectOverviewGoals :project="project" />
       <div class="sm:rounded sm:border sm:px-4 sm:py-3">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-xl font-semibold text-ink-gray-8">Discussions</h2>
@@ -51,12 +52,14 @@
 </template>
 <script>
 import ProjectOverviewReadme from './ProjectOverviewReadme.vue'
+import ProjectOverviewGoals from './ProjectOverviewGoals.vue'
 
 export default {
   name: 'ProjectOverview',
   props: ['project'],
   components: {
     ProjectOverviewReadme,
+    ProjectOverviewGoals,
   },
 }
 </script>

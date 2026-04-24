@@ -17,6 +17,7 @@
   "description",
   "readme",
   "members",
+  "goals",
   "section_break_14",
   "tasks_count",
   "discussions_count",
@@ -59,6 +60,12 @@
    "fieldtype": "Table",
    "label": "Members",
    "options": "GP Member"
+  },
+  {
+   "fieldname": "goals",
+   "fieldtype": "Table",
+   "label": "Goals",
+   "options": "GP Project Goal"
   },
   {
    "fieldname": "column_break_2",
