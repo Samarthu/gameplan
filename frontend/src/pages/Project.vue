@@ -111,6 +111,10 @@
                     .submit({
                       title: project.doc.title,
                       is_private: project.doc.is_private,
+                      goal_limit: Math.min(
+                        Math.max(Number(project.doc.goal_limit || 1), 1),
+                        Number(project.doc.max_goal_limit || 3),
+                      ),
                     })
                     .then(close)
                 },
@@ -135,6 +139,13 @@
                 { label: 'Visible to team members (Private)', value: 1 },
               ]"
               v-model="project.doc.is_private"
+            />
+            <FormControl
+              class="mt-2"
+              label="Goal limit"
+              type="select"
+              :options="goalLimitOptions"
+              v-model="project.doc.goal_limit"
             />
             <ErrorMessage class="mt-2" :message="project.setValue.error" />
           </template>
@@ -351,6 +362,14 @@ export default {
           value: d.name.toString(),
           icon: d.icon,
         }))
+    },
+    goalLimitOptions() {
+      const max = Number(this.project?.doc?.max_goal_limit || 3)
+      const safeMax = Number.isFinite(max) && max > 0 ? Math.floor(max) : 3
+      return Array.from({ length: safeMax }, (_, i) => {
+        const value = i + 1
+        return { label: String(value), value }
+      })
     },
     task() {
       let task = null

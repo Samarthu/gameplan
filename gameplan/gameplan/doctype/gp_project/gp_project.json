@@ -17,6 +17,7 @@
   "description",
   "readme",
   "members",
+  "goal_limit",
   "goals",
   "section_break_14",
   "tasks_count",
@@ -66,6 +67,12 @@
    "fieldtype": "Table",
    "label": "Goals",
    "options": "GP Project Goal"
+  },
+  {
+   "default": "3",
+   "fieldname": "goal_limit",
+   "fieldtype": "Int",
+   "label": "Goal Limit"
   },
   {
    "fieldname": "column_break_2",

@@ -16,6 +16,22 @@ from gameplan.gemoji import get_random_gemoji
 from gameplan.mixins.archivable import Archivable
 from gameplan.mixins.manage_members import ManageMembersMixin
 
+DEFAULT_PROJECT_GOAL_LIMIT = 3
+
+
+def get_max_project_goals() -> int:
+	if frappe.db.exists("DocType", "GP Settings"):
+		max_goals = frappe.db.get_single_value("GP Settings", "max_goals_per_project")
+		# Backward compatibility if an environment already synced the previous field name.
+		if max_goals is None:
+			max_goals = frappe.db.get_single_value("GP Settings", "default_goal_limit")
+		n = frappe.utils.cint(max_goals or DEFAULT_PROJECT_GOAL_LIMIT)
+	else:
+		n = DEFAULT_PROJECT_GOAL_LIMIT
+	if n < 1:
+		return 1
+	return n
+
 
 class GPProject(ManageMembersMixin, Archivable, Document):
 	on_delete_cascade = [
@@ -52,6 +68,9 @@ class GPProject(ManageMembersMixin, Archivable, Document):
 
 	def as_dict(self, *args, **kwargs) -> dict:
 		d = super().as_dict(*args, **kwargs)
+		max_goals = get_max_project_goals()
+		d.max_goal_limit = max_goals
+		d.goal_limit = self.goal_limit or min(DEFAULT_PROJECT_GOAL_LIMIT, max_goals)
 		# summary
 		total_tasks = frappe.db.count("GP Task", {"project": self.name})
 		completed_tasks = frappe.db.count("GP Task", {"project": self.name, "is_completed": 1})
@@ -72,6 +91,9 @@ class GPProject(ManageMembersMixin, Archivable, Document):
 		return d
 
 	def before_insert(self):
+		if not self.goal_limit:
+			self.goal_limit = min(DEFAULT_PROJECT_GOAL_LIMIT, get_max_project_goals())
+
 		if not self.icon:
 			self.icon = get_random_gemoji().emoji
 
@@ -92,8 +114,17 @@ class GPProject(ManageMembersMixin, Archivable, Document):
 		)
 
 	def validate(self):
-		if self.goals and len(self.goals) > 3:
-			frappe.throw(_("A project can have at most 3 goals."))
+		max_goals = get_max_project_goals()
+		default_goal_limit = min(DEFAULT_PROJECT_GOAL_LIMIT, max_goals)
+		goal_limit = frappe.utils.cint(self.goal_limit or default_goal_limit)
+		if goal_limit < 1 or goal_limit > max_goals:
+			frappe.throw(
+				_("Goal limit must be between 1 and {0}.").format(max_goals)
+			)
+		self.goal_limit = goal_limit
+
+		if self.goals and len(self.goals) > goal_limit:
+			frappe.throw(_("A project can have at most {0} goals.").format(goal_limit))
 
 	def before_save(self):
 		if frappe.db.get_value("GP Team", self.team, "is_private"):

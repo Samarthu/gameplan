@@ -23,7 +23,7 @@
 
     <div v-if="!editing">
       <div v-if="goals.length === 0" class="text-base text-ink-gray-5">
-        No goals yet — click Edit to add up to 3 goals.
+        No goals yet — click Edit to add up to {{ goalLimit }} goals.
       </div>
       <ul v-else class="space-y-2">
         <li
@@ -73,8 +73,8 @@
       <Button
         variant="ghost"
         @click="addRow"
-        :disabled="local.length >= 3"
-        :title="local.length >= 3 ? 'Maximum 3 goals' : ''"
+        :disabled="local.length >= goalLimit"
+        :title="local.length >= goalLimit ? `Maximum ${goalLimit} goals` : ''"
       >
         <template #prefix><LucidePlus class="w-4" /></template>
         Add goal
@@ -107,6 +107,15 @@ export default {
     goals() {
       return this.project.doc.goals || []
     },
+    goalLimit() {
+      const max = Number(this.project.doc.max_goal_limit || 3)
+      const safeMax = Number.isFinite(max) && max > 0 ? Math.floor(max) : 3
+      const n = Number(this.project.doc.goal_limit || safeMax)
+      if (!Number.isFinite(n)) return safeMax
+      if (n < 1) return 1
+      if (n > safeMax) return safeMax
+      return n
+    },
     editable() {
       return !this.project.doc.archived_at
     },
@@ -125,7 +134,7 @@ export default {
       this.editing = true
     },
     addRow() {
-      if (this.local.length >= 3) return
+      if (this.local.length >= this.goalLimit) return
       this.local.push({ title: '', status: 'On Track' })
     },
     removeRow(i) {
@@ -135,6 +144,9 @@ export default {
       const payload = this.local
         .filter((g) => (g.title || '').trim())
         .map((g) => ({ title: g.title.trim(), status: g.status || 'On Track' }))
+      if (payload.length > this.goalLimit) {
+        return
+      }
       try {
         await this.project.setValue.submit({ goals: payload })
         this.editing = false
