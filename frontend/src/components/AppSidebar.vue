@@ -96,20 +96,20 @@
               </div>
             </div>
           </Link>
-          <div class="mb-2 mt-0.5 space-y-0.5 pl-7" v-show="team.open">
+          <div class="mb-2 mt-0.5 space-y-1 pl-7" v-show="team.open">
             <Link
               :key="project.name"
               v-for="project in teamProjects(team.name)"
               :link="project"
               :ref="($comp) => setProjectRef($comp, project)"
-              class="flex h-7 items-center rounded-md px-2 text-ink-gray-8 transition"
+              class="flex min-h-7 items-start rounded-md px-2 py-1 text-ink-gray-8 transition"
               active="bg-surface-selected shadow-sm"
               inactive="hover:bg-surface-gray-2"
             >
               <template v-slot="{ link: project }">
-                <span class="inline-flex items-center space-x-2">
-                  <span class="text-sm">{{ project.title }}</span>
-                  <LucideLock v-if="project.is_private" class="h-3 w-3" />
+                <span class="inline-flex w-full items-start gap-2">
+                  <span class="text-sm leading-5 whitespace-normal break-words">{{ project.title }}</span>
+                  <LucideLock v-if="project.is_private" class="mt-1 h-3 w-3 shrink-0" />
                 </span>
               </template>
             </Link>
