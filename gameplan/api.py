@@ -84,6 +84,26 @@ def remove_user(user: str):
 	return user
 
 
+def _emails_that_already_have_gameplan_role(email_list):
+	"""Users who already have any Gameplan role — skip inviting them as Admin/Member."""
+	if not email_list:
+		return []
+	user = frappe.qb.DocType("User")
+	has_role = frappe.qb.DocType("Has Role")
+	q = (
+		frappe.qb.from_(user)
+		.inner_join(has_role)
+		.on((has_role.parent == user.name) & (has_role.parenttype == "User"))
+		.where(user.email.isin(list(email_list)))
+		.where(
+			has_role.role.isin(["Gameplan Guest", "Gameplan Member", "Gameplan Admin"])
+		)
+		.select(user.email)
+		.distinct()
+	)
+	return q.run(pluck=True)
+
+
 @frappe.whitelist()
 @validate_type
 def invite_by_email(emails: str, role: str, projects: list = None):
@@ -93,20 +113,16 @@ def invite_by_email(emails: str, role: str, projects: list = None):
 	email_list = split_emails(email_string)
 	if not email_list:
 		return
-	existing_members = frappe.db.get_all("User", filters={"email": ["in", email_list]}, pluck="email")
-	existing_invites = frappe.db.get_all(
+	pending_invites = frappe.db.get_all(
 		"GP Invitation",
-		filters={
-			"email": ["in", email_list],
-			"role": ["in", ["Gameplan Admin", "Gameplan Member"]],
-		},
+		filters={"email": ["in", email_list], "status": "Pending"},
 		pluck="email",
 	)
-
 	if role == "Gameplan Guest":
-		to_invite = list(set(email_list) - set(existing_invites))
+		to_invite = list(set(email_list) - set(pending_invites))
 	else:
-		to_invite = list(set(email_list) - set(existing_members) - set(existing_invites))
+		already_gameplan = _emails_that_already_have_gameplan_role(email_list)
+		to_invite = list(set(email_list) - set(pending_invites) - set(already_gameplan))
 
 	if projects:
 		projects = frappe.as_json(projects, indent=None)

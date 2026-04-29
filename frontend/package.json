@@ -2,6 +2,7 @@
   "name": "gameplan-ui",
   "version": "0.0.0",
   "scripts": {
+    "postinstall": "patch-package",
     "dev": "vite",
     "build": "vite build --base=/assets/gameplan/frontend/ && yarn copy-html-entry",
     "copy-html-entry": "cp ../gameplan/public/frontend/index.html ../gameplan/www/g.html",
@@ -30,6 +31,7 @@
     "autoprefixer": "^10.4.2",
     "cypress": "10.11.0",
     "lucide-static": "^0.257.0",
+    "patch-package": "^8.0.1",
     "postcss": "^8.4.5",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.8",

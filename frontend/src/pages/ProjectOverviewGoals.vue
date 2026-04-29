@@ -31,16 +31,7 @@
           :key="goal.name || i"
           class="flex items-center gap-3"
         >
-          <span
-            class="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium"
-            :class="statusPillClass(goal.status)"
-          >
-            {{ goal.status || 'On Track' }}
-          </span>
-          <span
-            class="text-base text-ink-gray-8"
-            :class="{ 'text-ink-gray-5 line-through': goal.status === 'Done' }"
-          >
+          <span class="text-base text-ink-gray-8">
             {{ goal.title }}
           </span>
         </li>
@@ -58,11 +49,6 @@
           v-model="goal.title"
           placeholder="Goal title"
           autocomplete="off"
-        />
-        <FormControl
-          type="select"
-          :options="statusOptions"
-          v-model="goal.status"
         />
         <Tooltip text="Remove">
           <Button variant="ghost" @click="removeRow(i)">
@@ -100,7 +86,6 @@ export default {
     return {
       editing: false,
       local: [],
-      statusOptions: ['On Track', 'At Risk', 'Done'],
     }
   },
   computed: {
@@ -121,11 +106,6 @@ export default {
     },
   },
   methods: {
-    statusPillClass(status) {
-      if (status === 'At Risk') return 'bg-yellow-100 text-yellow-700'
-      if (status === 'Done') return 'bg-gray-100 text-gray-600'
-      return 'bg-green-100 text-green-700'
-    },
     startEditing() {
       this.local = this.goals.map((g) => ({
         title: g.title || '',

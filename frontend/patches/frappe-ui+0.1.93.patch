@@ -1,0 +1,15 @@
+diff --git a/node_modules/frappe-ui/src/components/TextEditor/TextEditor.vue b/node_modules/frappe-ui/src/components/TextEditor/TextEditor.vue
+index a86d150..275f314 100644
+--- a/node_modules/frappe-ui/src/components/TextEditor/TextEditor.vue
++++ b/node_modules/frappe-ui/src/components/TextEditor/TextEditor.vue
+@@ -152,7 +152,9 @@ export default {
+         Image,
+         Video,
+         Link.configure({
+-          openOnClick: false,
++          openOnClick: true,
++          autolink: true,
++          linkOnPaste: true,
+         }),
+         Placeholder.configure({
+           showOnlyWhenEditable: false,

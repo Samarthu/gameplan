@@ -2,7 +2,9 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
+from frappe.utils import get_fullname
 
 from gameplan.extends.client import check_permissions
 from gameplan.gameplan.doctype.gp_notification.gp_notification import GPNotification
@@ -23,8 +25,10 @@ class GPTask(HasMentions, HasActivity, Document):
 
 	def after_insert(self):
 		self.update_tasks_count(1)
+		self.notify_assignment()
 
 	def on_update(self):
+		self.notify_assignment()
 		self.update_project_progress()
 		self.notify_mentions()
 		self.log_value_updates()
@@ -54,6 +58,25 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.update_tasks_count(-1)
 		search = GameplanSearch()
 		search.remove_doc(self)
+
+	def notify_assignment(self):
+		assignee = self.assigned_to
+		if not assignee:
+			return
+		prev = self.get_doc_before_save()
+		if prev is not None and prev.get("assigned_to") == assignee:
+			return
+		if assignee == frappe.session.user:
+			return
+
+		from_user = frappe.session.user if frappe.session.user not in ("Guest", None) else self.owner
+		assigner_name = get_fullname(from_user) if from_user else _("Someone")
+		if prev is not None and prev.get("assigned_to"):
+			message = _("{0} reassigned this task to you: {1}").format(assigner_name, self.title)
+		else:
+			message = _("{0} assigned you a task: {1}").format(assigner_name, self.title)
+
+		GPNotification.notify_task_user(self, assignee, message, "Task Assigned", from_user)
 
 	def update_tasks_count(self, delta=1):
 		if not self.project:

@@ -12,6 +12,21 @@ class GPNotification(Document):
 		gameplan.refetch_resource("Unread Notifications Count", user=self.to_user)
 
 	@staticmethod
+	def notify_task_user(task_doc, to_user, message, notif_type, from_user=None):
+		frappe.get_doc(
+			{
+				"doctype": "GP Notification",
+				"type": notif_type,
+				"from_user": from_user,
+				"to_user": to_user,
+				"task": task_doc.name,
+				"project": getattr(task_doc, "project", None),
+				"team": getattr(task_doc, "team", None),
+				"message": message,
+			}
+		).insert(ignore_permissions=True)
+
+	@staticmethod
 	def clear_notifications(discussion=None, comment=None, task=None, user=None):
 		if not user:
 			user = frappe.session.user

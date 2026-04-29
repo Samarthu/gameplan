@@ -14,6 +14,37 @@
         <span class="hidden text-sm text-ink-gray-5 sm:block" v-if="page.doc">
           Last updated {{ $dayjs(page.doc.modified).format('LLL') }}
         </span>
+        <div
+          v-if="page.doc"
+          class="flex overflow-hidden rounded-lg border border-outline-gray-modals text-sm"
+          role="group"
+          aria-label="Page display mode"
+        >
+          <button
+            type="button"
+            class="px-3 py-1.5 transition-colors"
+            :class="
+              !pageEditMode
+                ? 'bg-surface-gray-3 font-medium text-ink-gray-9'
+                : 'text-ink-gray-6 hover:bg-surface-gray-2 hover:text-ink-gray-9'
+            "
+            @click="setPageEditMode(false)"
+          >
+            View
+          </button>
+          <button
+            type="button"
+            class="border-l border-outline-gray-modals px-3 py-1.5 transition-colors"
+            :class="
+              pageEditMode
+                ? 'bg-surface-gray-3 font-medium text-ink-gray-9'
+                : 'text-ink-gray-6 hover:bg-surface-gray-2 hover:text-ink-gray-9'
+            "
+            @click="setPageEditMode(true)"
+          >
+            Edit
+          </button>
+        </div>
         <button
           v-if="page.doc"
           type="button"
@@ -55,8 +86,15 @@
           Last updated {{ $dayjs(page.doc.modified).format('LLL') }}
         </span>
         <div class="mb-3 md:px-[70px]">
+          <h1
+            v-if="!pageEditMode"
+            class="break-words pt-4 text-3xl font-semibold leading-tight text-ink-gray-9"
+          >
+            {{ page.doc.title }}
+          </h1>
           <input
-            class="w-full border-0 p-0 pt-4 text-3xl font-semibold focus:outline-none focus:ring-0 bg-surface-white text-ink-gray-9"
+            v-else
+            class="w-full border-0 bg-surface-white p-0 pt-4 text-3xl font-semibold text-ink-gray-9 focus:outline-none focus:ring-0"
             type="text"
             :value="page.doc.title"
             @input="page.doc.title = $event.target.value"
@@ -69,9 +107,10 @@
           :content="normalizedContent"
           @change="page.doc.content = $event"
           placeholder="Start writing here..."
-          :bubbleMenu="true"
-          :fixedMenu="fixedMenuButtons"
-          :floatingMenu="floatingMenuButtons"
+          :bubbleMenu="pageEditMode"
+          :fixedMenu="pageEditMode ? fixedMenuButtons : false"
+          :floatingMenu="pageEditMode ? floatingMenuButtons : false"
+          :editable="pageEditMode"
           :extensions="editorExtensions"
           ref="content"
         />
@@ -140,6 +179,7 @@ export default {
     return {
       showAttachments: false,
       attachmentCount: 0,
+      pageEditMode: false,
     }
   },
   resources: {
@@ -151,7 +191,9 @@ export default {
         onSuccess() {
           this.updateUrlSlug()
           this.$nextTick(() => {
-            this.$refs.titleInput?.focus()
+            if (this.pageEditMode) {
+              this.$refs.titleInput?.focus()
+            }
           })
         },
       }
@@ -169,6 +211,16 @@ export default {
         e.preventDefault()
         this.save()
       }
+    },
+    setPageEditMode(on) {
+      if (this.pageEditMode === on) return
+      this.pageEditMode = on
+      this.$nextTick(() => {
+        if (on) {
+          this.$refs.titleInput?.focus()
+          this.$refs.content?.editor?.commands.focus()
+        }
+      })
     },
     save() {
       this.page.save.submit(null, {
