@@ -17,10 +17,7 @@
       <div :class="{ hidden: !(isOpen[group.title] ?? true) }">
         <div v-for="(d, index) in group.tasks" :key="d.name">
           <router-link
-            :to="{
-              name: d.project ? 'ProjectTaskDetail' : 'Task',
-              params: { teamId: d.team, projectId: d.project, taskId: d.name },
-            }"
+            :to="taskRoute(d)"
             class="flex h-15 w-full items-center rounded p-2.5 transition hover:bg-surface-gray-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
             :class="{
               'pointer-events-none': tasks.delete.loading && tasks.delete.params.name === d.name,
@@ -181,6 +178,18 @@ export default {
     },
   },
   methods: {
+    taskRoute(task) {
+      if (this.$route.name === 'TeamTasks') {
+        return {
+          name: 'Task',
+          params: { taskId: task.name },
+        }
+      }
+      return {
+        name: task.project ? 'ProjectTaskDetail' : 'Task',
+        params: { teamId: task.team, projectId: task.project, taskId: task.name },
+      }
+    },
     statusOptions({ onClick }) {
       return ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled'].map((status) => {
         return {

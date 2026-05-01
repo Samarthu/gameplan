@@ -5,7 +5,9 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import get_fullname
+from pypika.enums import Order
 
+import gameplan
 from gameplan.extends.client import check_permissions
 from gameplan.gameplan.doctype.gp_notification.gp_notification import GPNotification
 from gameplan.mixins.activity import HasActivity
@@ -14,7 +16,7 @@ from gameplan.search import GameplanSearch
 
 
 class GPTask(HasMentions, HasActivity, Document):
-	on_delete_cascade = ["GP Comment", "GP Activity"]
+	on_delete_cascade = ["GP Comment", "GP Activity", "GP Task Team Link"]
 	on_delete_set_null = ["GP Notification"]
 	activities = ["Task Value Changed"]
 	mentions_field = "description"
@@ -92,6 +94,58 @@ class GPTask(HasMentions, HasActivity, Document):
 	def track_visit(self):
 		GPNotification.clear_notifications(task=self.name)
 
+	@frappe.whitelist()
+	def get_linked_teams(self):
+		linked_teams = frappe.db.get_all(
+			"GP Task Team Link",
+			filters={"task": self.name},
+			fields=["name", "team", "team.title as team_title", "source_project", "note"],
+			order_by="`tabGP Task Team Link`.`creation` asc",
+		)
+		return [team for team in linked_teams if can_access_team(team.team)]
+
+	@frappe.whitelist()
+	def link_team(self, team, source_project=None, note=None):
+		if not team:
+			frappe.throw(_("Team is required"))
+		if not frappe.db.exists("GP Team", team):
+			frappe.throw(_("Invalid team"))
+		if not can_access_team(team):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
+		if self.team == team:
+			return self.get_linked_teams()
+
+		existing = frappe.db.exists("GP Task Team Link", {"task": self.name, "team": team})
+		if existing:
+			return self.get_linked_teams()
+
+		frappe.get_doc(
+			{
+				"doctype": "GP Task Team Link",
+				"task": self.name,
+				"team": team,
+				"source_project": source_project or self.project,
+				"note": note,
+			}
+		).insert(ignore_permissions=True)
+		gameplan.refetch_resource("Tasks")
+		gameplan.refetch_resource("Linked Projects")
+		return self.get_linked_teams()
+
+	@frappe.whitelist()
+	def unlink_team(self, team):
+		if not team:
+			frappe.throw(_("Team is required"))
+		if not can_access_team(team):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+		existing = frappe.db.exists("GP Task Team Link", {"task": self.name, "team": team})
+		if existing:
+			frappe.delete_doc("GP Task Team Link", existing, ignore_permissions=True)
+			gameplan.refetch_resource("Tasks")
+			gameplan.refetch_resource("Linked Projects")
+		return self.get_linked_teams()
+
 
 @frappe.whitelist()
 def get_list(
@@ -106,7 +160,13 @@ def get_list(
 ):
 	doctype = "GP Task"
 	check_permissions(doctype, parent)
+	filters = filters or {}
 	assigned_or_owner = filters.pop("assigned_or_owner", None)
+	linked_team = filters.pop("linked_team", None)
+	linked_project = filters.pop("linked_project", None)
+	task_order_by = order_by
+	if linked_team:
+		order_by = None
 	query = frappe.qb.get_query(
 		table=doctype,
 		fields=fields,
@@ -116,7 +176,129 @@ def get_list(
 		limit=limit,
 		group_by=group_by,
 	)
+	if linked_team:
+		if not can_access_team(linked_team):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
+		Task = frappe.qb.DocType(doctype)
+		Link = frappe.qb.DocType("GP Task Team Link")
+		linked_tasks = frappe.qb.from_(Link).select(Link.task).where(Link.team == linked_team)
+		if linked_project:
+			linked_tasks = linked_tasks.where(Link.source_project == linked_project)
+			query = query.where(Task.name.isin(linked_tasks))
+		else:
+			query = query.where((Task.team == linked_team) | (Task.name.isin(linked_tasks)))
+		if task_order_by:
+			query = apply_task_order_by(query, Task, task_order_by)
 	if assigned_or_owner:
 		Task = frappe.qb.DocType(doctype)
 		query = query.where((Task.assigned_to == assigned_or_owner) | (Task.owner == assigned_or_owner))
 	return query.run(as_dict=True, debug=debug)
+
+
+@frappe.whitelist()
+def get_duplicate_candidates(title=None, assigned_to=None, team=None, project=None, limit=5):
+	if not title:
+		return []
+
+	filters = {
+		"is_completed": 0,
+		"status": ["not in", ["Done", "Canceled"]],
+		"title": ["like", f"%{title.strip()[:80]}%"],
+	}
+	if assigned_to:
+		filters["assigned_to"] = assigned_to
+
+	candidates = frappe.db.get_all(
+		"GP Task",
+		filters=filters,
+		fields=[
+			"name",
+			"title",
+			"assigned_to",
+			"status",
+			"team",
+			"team.title as team_title",
+			"project",
+			"project.title as project_title",
+			"modified",
+		],
+		limit=frappe.utils.cint(limit) or 5,
+		order_by="modified desc",
+	)
+	team = team or frappe.db.get_value("GP Project", project, "team") if project else team
+	return [
+		task
+		for task in candidates
+		if task.team != team and can_access_team(task.team)
+	]
+
+
+@frappe.whitelist()
+def link_task_to_team(task, team, source_project=None, note=None):
+	if not task:
+		frappe.throw(_("Task is required"))
+	doc = frappe.get_doc("GP Task", task)
+	return doc.link_team(team=team, source_project=source_project, note=note)
+
+
+@frappe.whitelist()
+def get_linked_projects(team=None):
+	if team and not can_access_team(team):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	conditions = [
+		"link.source_project is not null",
+		"project.team != link.team",
+	]
+	if team:
+		conditions.append("link.team = %(team)s")
+
+	projects = frappe.db.sql(
+		"""
+		select
+			project.name,
+			project.title,
+			project.team,
+			link.team as linked_team,
+			project.is_private,
+			project.archived_at,
+			count(distinct link.task) as tasks_count,
+			0 as discussions_count,
+			1 as is_linked_project
+		from `tabGP Task Team Link` link
+		inner join `tabGP Project` project
+			on project.name = link.source_project
+		where {conditions}
+		group by project.name, link.team
+		order by project.title asc
+		""".format(conditions=" and ".join(conditions)),
+		{"team": team},
+		as_dict=True,
+	)
+	return [project for project in projects if can_access_team(project.linked_team)]
+
+
+def can_access_team(team):
+	if not team:
+		return True
+	if frappe.session.user == "Administrator":
+		return True
+	if not frappe.db.get_value("GP Team", team, "is_private"):
+		return True
+	if frappe.db.exists("GP Member", {"parenttype": "GP Team", "parent": team, "user": frappe.session.user}):
+		return True
+	if gameplan.is_guest() and frappe.db.exists(
+		"GP Guest Access", {"team": team, "user": frappe.session.user}
+	):
+		return True
+	return False
+
+
+def apply_task_order_by(query, Task, order_by):
+	parts = order_by.split()
+	if not parts:
+		return query
+	field = parts[0]
+	direction = parts[1].lower() if len(parts) > 1 else "asc"
+	order = Order.desc if direction == "desc" else Order.asc
+	return query.orderby(Task[field], order=order)

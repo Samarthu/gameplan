@@ -13,6 +13,7 @@
         <h2 class="text-2xl font-semibold text-ink-gray-9">Projects</h2>
         <div class="flex items-stretch space-x-2">
           <TabButtons :buttons="[{ label: 'Active' }, { label: 'Archived' }]" v-model="activeTab" />
+          <Button :route="{ name: 'TeamTasks' }"> Tasks </Button>
           <Button v-if="teamProjects.length" @click="createNewProjectDialog = true" variant="solid">
             <template #prefix>
               <LucidePlus class="h-4 w-4" />
@@ -29,16 +30,19 @@
             <div>
               <h3 class="overflow-hidden text-lg font-medium text-ink-gray-9">
                 <router-link
-                  :to="{
-                    name: 'Project',
-                    params: { projectId: project.name },
-                  }"
+                  :to="projectRoute(project)"
                   class="inline-flex w-full overflow-hidden text-ellipsis whitespace-nowrap focus:outline-none"
                 >
                   <span class="absolute inset-0" aria-hidden="true" />
                   <span class="inline-flex items-center">
                     {{ project.title }}
                     <LucideLock v-if="project.is_private" class="ml-1 h-3 w-3" />
+                    <span
+                      v-if="project.is_linked_project"
+                      class="ml-1 rounded bg-surface-gray-2 px-1.5 py-0.5 text-xs font-normal text-ink-gray-6"
+                    >
+                      Linked
+                    </span>
                   </span>
                 </router-link>
               </h3>
@@ -137,6 +141,24 @@ export default {
       activeTab: 'Active',
     }
   },
+  resources: {
+    linkedProjects() {
+      return {
+        url: 'gameplan.gameplan.doctype.gp_task.gp_task.get_linked_projects',
+        params: {
+          team: this.team.name,
+        },
+        auto: true,
+      }
+    },
+  },
+  watch: {
+    'team.name'() {
+      this.$resources.linkedProjects.fetch({
+        team: this.team.name,
+      })
+    },
+  },
   computed: {
     projects() {
       return projects
@@ -145,7 +167,10 @@ export default {
       return this.activeTab === 'Active' ? this.activeProjects : this.archivedProjects
     },
     activeProjects() {
-      return this.teamProjects.filter((project) => !project.archived_at)
+      return [
+        ...this.teamProjects.filter((project) => !project.archived_at),
+        ...this.linkedProjectCards,
+      ]
     },
     archivedProjects() {
       return getTeamArchivedProjects(this.team.name)
@@ -153,8 +178,29 @@ export default {
     teamProjects() {
       return getTeamProjects(this.team.name)
     },
+    linkedProjectCards() {
+      return (this.$resources.linkedProjects.data || []).map((project) => ({
+        ...project,
+        name: String(project.name),
+        tasks_count: Number(project.tasks_count || 0),
+        discussions_count: 0,
+      }))
+    },
   },
   methods: {
+    projectRoute(project) {
+      if (project.is_linked_project) {
+        return {
+          name: 'TeamTasks',
+          params: { teamId: this.team.name },
+          query: { linked_project: project.name },
+        }
+      }
+      return {
+        name: 'Project',
+        params: { teamId: this.team.name, projectId: project.name },
+      }
+    },
     createProject() {
       projects.insert.submit(
         {

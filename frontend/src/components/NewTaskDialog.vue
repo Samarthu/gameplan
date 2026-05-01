@@ -40,6 +40,33 @@
             v-model="newTask.assigned_to"
           />
         </div>
+        <div v-if="newTask.team || newTask.project" class="space-y-2">
+          <Button @click="findSimilarTasks" :loading="duplicateCandidates.loading">
+            Find similar tasks
+          </Button>
+          <div v-if="duplicateCandidates.data?.length" class="space-y-1">
+            <div
+              v-for="task in duplicateCandidates.data"
+              :key="task.name"
+              class="flex items-center justify-between gap-3 rounded border px-3 py-2"
+            >
+              <div class="min-w-0">
+                <div class="truncate text-base font-medium text-ink-gray-9">{{ task.title }}</div>
+                <div class="truncate text-sm text-ink-gray-5">
+                  {{ task.team_title || task.team }}
+                  <template v-if="task.project_title"> / {{ task.project_title }}</template>
+                </div>
+              </div>
+              <Button
+                variant="solid"
+                @click="linkExistingTask(task)"
+                :loading="linkTaskToTeam.loading"
+              >
+                Link
+              </Button>
+            </div>
+          </div>
+        </div>
         <ErrorMessage class="mt-2" :message="createTask.error" />
       </div>
     </template>
@@ -65,12 +92,19 @@ const createTask = createResource({
     }
   },
 })
+const duplicateCandidates = createResource({
+  url: 'gameplan.gameplan.doctype.gp_task.gp_task.get_duplicate_candidates',
+})
+const linkTaskToTeam = createResource({
+  url: 'gameplan.gameplan.doctype.gp_task.gp_task.link_task_to_team',
+})
 const initialData = {
   title: '',
   description: '',
   status: 'Backlog',
   assigned_to: null,
   project: null,
+  team: null,
 }
 
 const newTask = ref(initialData)
@@ -102,7 +136,7 @@ function show({ defaults, onSuccess } = {}) {
 function onCreateClick(close) {
   let newTaskDoc = {
     ...newTask.value,
-    assigned_to: newTask.value.assigned_to?.value,
+    assigned_to: newTask.value.assigned_to?.value || newTask.value.assigned_to,
   }
   createTask
     .submit(newTaskDoc, {
@@ -113,7 +147,36 @@ function onCreateClick(close) {
       },
       onSuccess: _onSuccess,
     })
-    .then(close())
+    .then(close)
+}
+
+function assigneeValue() {
+  return newTask.value.assigned_to?.value || newTask.value.assigned_to
+}
+
+function findSimilarTasks() {
+  duplicateCandidates.submit({
+    title: newTask.value.title,
+    assigned_to: assigneeValue(),
+    team: newTask.value.team,
+    project: newTask.value.project,
+  })
+}
+
+function linkExistingTask(task) {
+  linkTaskToTeam.submit(
+    {
+      task: task.name,
+      team: newTask.value.team,
+      source_project: newTask.value.project,
+    },
+    {
+      onSuccess: () => {
+        if (_onSuccess) _onSuccess(task)
+        showDialog.value = false
+      },
+    },
+  )
 }
 
 let disableOutsideClickToClose = computed(() => {
