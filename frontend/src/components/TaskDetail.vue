@@ -145,6 +145,33 @@
             @update:modelValue="changeProject"
           />
         </div>
+        <div>Linked Teams</div>
+        <div class="space-y-2">
+          <div v-if="linkedTeams.length" class="space-y-1">
+            <div
+              v-for="team in linkedTeams"
+              :key="team.name"
+              class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
+            >
+              <span class="truncate text-base text-ink-gray-8">{{
+                team.team_title || team.team
+              }}</span>
+              <Button
+                variant="ghost"
+                @click="unlinkTeam(team.team)"
+                :loading="$resources.task.unlinkTeam.loading"
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+          <Autocomplete
+            placeholder="Link a team"
+            :options="linkableTeamOptions"
+            v-model="linkedTeam"
+            @update:modelValue="linkTeam"
+          />
+        </div>
         <div>Status</div>
         <div>
           <Dropdown :options="statusOptions">
@@ -197,6 +224,9 @@ export default {
         name: this.taskId,
         whitelistedMethods: {
           trackVisit: 'track_visit',
+          getLinkedTeams: 'get_linked_teams',
+          linkTeam: 'link_team',
+          unlinkTeam: 'unlink_team',
         },
         setValue: {
           onError(e) {
@@ -216,9 +246,15 @@ export default {
           ) {
             this.$resources.task.trackVisit.submit()
           }
+          this.$resources.task.getLinkedTeams.submit()
         },
       }
     },
+  },
+  data() {
+    return {
+      linkedTeam: null,
+    }
   },
   methods: {
     changeAssignee(option) {
@@ -232,6 +268,31 @@ export default {
         {
           onSuccess() {
             this.updateRoute()
+          },
+        },
+      )
+    },
+    linkTeam(option) {
+      if (!option?.value) return
+      this.$resources.task.linkTeam.submit(
+        {
+          team: option.value,
+          source_project: this.$resources.task.doc.project || null,
+        },
+        {
+          onSuccess: () => {
+            this.linkedTeam = null
+            this.$resources.task.getLinkedTeams.submit()
+          },
+        },
+      )
+    },
+    unlinkTeam(team) {
+      this.$resources.task.unlinkTeam.submit(
+        { team },
+        {
+          onSuccess: () => {
+            this.$resources.task.getLinkedTeams.submit()
           },
         },
       )
@@ -283,6 +344,19 @@ export default {
           value: project.name.toString(),
         })),
       }))
+    },
+    linkedTeams() {
+      return this.$resources.task.getLinkedTeams.data || []
+    },
+    linkableTeamOptions() {
+      const currentTeam = this.$resources.task.doc?.team
+      const linkedTeams = this.linkedTeams.map((team) => team.team)
+      return activeTeams.value
+        .filter((team) => team.name !== currentTeam && !linkedTeams.includes(team.name))
+        .map((team) => ({
+          label: team.title,
+          value: team.name,
+        }))
     },
   },
   components: {

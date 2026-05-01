@@ -129,6 +129,11 @@ const routes = [
             path: 'discussions',
             component: () => import('@/pages/TeamDiscussions.vue'),
           },
+          {
+            name: 'TeamTasks',
+            path: 'tasks',
+            component: () => import('@/pages/TeamTasks.vue'),
+          },
         ],
       },
       {

@@ -13,6 +13,7 @@
         <h2 class="text-2xl font-semibold text-ink-gray-9">Projects</h2>
         <div class="flex items-stretch space-x-2">
           <TabButtons :buttons="[{ label: 'Active' }, { label: 'Archived' }]" v-model="activeTab" />
+          <Button :route="{ name: 'TeamTasks' }"> Tasks </Button>
           <Button v-if="teamProjects.length" @click="createNewProjectDialog = true" variant="solid">
             <template #prefix>
               <LucidePlus class="h-4 w-4" />

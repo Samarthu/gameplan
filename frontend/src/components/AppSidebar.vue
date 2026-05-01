@@ -108,7 +108,9 @@
             >
               <template v-slot="{ link: project }">
                 <span class="inline-flex w-full items-start gap-2">
-                  <span class="text-sm leading-5 whitespace-normal break-words">{{ project.title }}</span>
+                  <span class="text-sm leading-5 whitespace-normal break-words">{{
+                    project.title
+                  }}</span>
                   <LucideLock v-if="project.is_private" class="mt-1 h-3 w-3 shrink-0" />
                 </span>
               </template>
@@ -230,7 +232,7 @@ export default {
       return activeTeams.value.map((team) => {
         team.class = function ($route, link) {
           if (
-            ['TeamLayout', 'Team', 'TeamOverview'].includes($route.name) &&
+            ['TeamLayout', 'Team', 'TeamOverview', 'TeamTasks'].includes($route.name) &&
             $route.params.teamId === link.route.params.teamId
           ) {
             return 'bg-surface-selected shadow-sm text-ink-gray-8'
