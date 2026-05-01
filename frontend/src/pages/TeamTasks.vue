@@ -16,6 +16,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { getCachedListResource } from 'frappe-ui'
+import { useRoute } from 'vue-router'
 import TaskList from '@/components/TaskList.vue'
 import NewTaskDialog from '@/components/NewTaskDialog.vue'
 import { getUser } from '@/data/users'
@@ -27,12 +28,17 @@ const props = defineProps({
   },
 })
 
+const route = useRoute()
 let newTaskDialog = ref(null)
-let listOptions = computed(() => ({
-  filters: {
+let listOptions = computed(() => {
+  let filters = {
     linked_team: props.team.name,
-  },
-}))
+  }
+  if (route.query.linked_project) {
+    filters.linked_project = route.query.linked_project
+  }
+  return { filters }
+})
 
 function showNewTaskDialog() {
   newTaskDialog.value.show({

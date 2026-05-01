@@ -99,7 +99,7 @@
           <div class="mb-2 mt-0.5 space-y-1 pl-7" v-show="team.open">
             <Link
               :key="project.name"
-              v-for="project in teamProjects(team.name)"
+              v-for="project in sidebarProjects(team.name)"
               :link="project"
               :ref="($comp) => setProjectRef($comp, project)"
               class="flex min-h-7 items-start rounded-md px-2 py-1 text-ink-gray-8 transition"
@@ -112,12 +112,18 @@
                     project.title
                   }}</span>
                   <LucideLock v-if="project.is_private" class="mt-1 h-3 w-3 shrink-0" />
+                  <span
+                    v-if="project.is_linked_project"
+                    class="mt-0.5 shrink-0 rounded bg-surface-gray-2 px-1 py-0.5 text-xs text-ink-gray-5"
+                  >
+                    Linked
+                  </span>
                 </span>
               </template>
             </Link>
             <div
               class="flex h-7 items-center px-2 text-sm text-ink-gray-5"
-              v-if="teamProjects(team.name).length === 0"
+              v-if="sidebarProjects(team.name).length === 0"
             >
               No projects
             </div>
@@ -178,6 +184,15 @@ export default {
       showAddTeamDialog: false,
       teams,
     }
+  },
+  resources: {
+    linkedProjects() {
+      return {
+        url: 'gameplan.gameplan.doctype.gp_task.gp_task.get_linked_projects',
+        cache: 'Linked Projects',
+        auto: true,
+      }
+    },
   },
   mounted() {
     let sidebarWidth = parseInt(localStorage.getItem('sidebarWidth') || 256)
@@ -244,6 +259,9 @@ export default {
     },
   },
   methods: {
+    sidebarProjects(teamName) {
+      return [...this.teamProjects(teamName), ...this.linkedProjects(teamName)]
+    },
     teamProjects(teamName) {
       return getTeamProjects(teamName)
         .filter((project) => !project.archived_at)
@@ -259,6 +277,24 @@ export default {
           }
           return project
         })
+    },
+    linkedProjects(teamName) {
+      return (this.$resources.linkedProjects.data || [])
+        .filter((project) => project.linked_team === teamName && !project.archived_at)
+        .map((project) => ({
+          ...project,
+          name: `linked-${teamName}-${project.name}`,
+          title: project.title,
+          route: {
+            name: 'TeamTasks',
+            params: { teamId: teamName },
+            query: { linked_project: project.name },
+          },
+          isActive:
+            this.$route.name === 'TeamTasks' &&
+            this.$route.params.teamId === teamName &&
+            this.$route.query.linked_project == project.name,
+        }))
     },
     setProjectRef($comp, project) {
       this.$projectRefs = this.$projectRefs || {}
