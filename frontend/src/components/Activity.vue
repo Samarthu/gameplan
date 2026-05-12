@@ -72,6 +72,7 @@
         <template v-else-if="activity.data.field === 'description'">
           updated the description
         </template>
+        <template v-else-if="activity.data.field === 'project'">
           changed project
           <span v-if="activity.data.old_value">from&nbsp;</span>
           <span class="text-ink-gray-8">
@@ -87,8 +88,9 @@
           <span v-if="activity.data.old_value">from&nbsp;</span>
           <span class="text-ink-gray-8">{{ activity.data.old_value }}</span> to
           <span class="text-ink-gray-8">{{ activity.data.new_value }}</span>
-        </template> </span
-      >&nbsp;<time
+        </template>
+      </span>
+      &nbsp;<time
         class="text-ink-gray-5"
         :datetime="activity.creation"
         :title="$dayjs(activity.creation)"
