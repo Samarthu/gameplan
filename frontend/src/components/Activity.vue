@@ -1,4 +1,5 @@
 <template>
+  <!-- gp-activity-vue: valid template (vite); keep in sync across deploy contexts -->
   <div class="relative flex items-center text-p-base">
     <div
       class="mr-3 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-gray-2 text-ink-gray-9"
@@ -32,7 +33,10 @@
         unpinned this discussion
       </span>
       <span class="text-ink-gray-9" v-if="activity.action == 'Discussion Title Changed'">
-        changed the title from "{{ activity.data.old_title }}" to "{{ activity.data.new_title }}"
+        changed the title from
+        <span class="text-ink-gray-8">“{{ activity.data.old_title }}”</span>
+        to
+        <span class="text-ink-gray-8">“{{ activity.data.new_title }}”</span>
       </span>
       <span class="text-ink-gray-5" v-if="activity.action == 'Task Value Changed'">
         <template v-if="activity.data.field === 'assigned_to'">
