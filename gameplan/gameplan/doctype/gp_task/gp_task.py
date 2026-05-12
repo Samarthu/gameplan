@@ -34,21 +34,35 @@ def assignee_users_from_doc(doc) -> set:
 def enrich_task_rows_with_assignees(rows: list):
 	if not rows:
 		return
-	names = [r["name"] for r in rows if r.get("name")]
+	# Parent `name` from SQL can be int (autoincrement) while child.parent is str — must match keys.
+	names = []
+	for r in rows:
+		n = r.get("name")
+		if n is None:
+			continue
+		ns = str(n).strip()
+		if ns:
+			names.append(ns)
 	if not names:
 		return
-	placeholders = ", ".join(["%s"] * len(names))
 	by_parent = frappe._dict()
-	for r in frappe.db.sql(
-		f"select parent, user from `tabGP Task Assignee` where parent in ({placeholders})",
-		tuple(names),
-		as_dict=True,
+	# Use ORM so the Link column `user` is quoted correctly (raw `select user` can
+	# mis-resolve vs MySQL's USER() function and collapse/wrong values).
+	for r in frappe.get_all(
+		"GP Task Assignee",
+		filters={"parent": ["in", names]},
+		fields=["parent", "user"],
+		order_by="parent asc, idx asc",
 	):
-		by_parent.setdefault(r.parent, []).append(r.user)
+		by_parent.setdefault(str(r.parent), []).append(r.user)
 	for row in rows:
-		users = list(by_parent.get(row.get("name"), []))
-		if not users and row.get("assigned_to"):
-			users = [row["assigned_to"]]
+		key = str(row.get("name")).strip() if row.get("name") is not None else ""
+		users = list(by_parent.get(key, []))
+		at = row.get("assigned_to")
+		if at and at not in users:
+			users.insert(0, at)
+		if not users and at:
+			users = [at]
 		row["assignee_users"] = users
 
 

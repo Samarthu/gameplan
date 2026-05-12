@@ -4,7 +4,7 @@
     width="16"
     height="16"
     fill="none"
-    class="text-ink-gray-7"
+    :class="statusColorClass"
     :aria-label="status"
   >
     <path
@@ -51,6 +51,29 @@ export default {
     status: {
       type: String,
       required: true,
+    },
+    overdue: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  computed: {
+    statusColorClass() {
+      if (this.overdue && this.status !== 'Done' && this.status !== 'Canceled') {
+        return 'text-ink-red-3'
+      }
+      switch (this.status) {
+        case 'Done':
+          return 'text-green-600'
+        case 'In Progress':
+          return 'text-ink-blue-3'
+        case 'Todo':
+          return 'text-ink-amber-3'
+        case 'Backlog':
+        case 'Canceled':
+        default:
+          return 'text-ink-gray-5'
+      }
     },
   },
 }

@@ -44,7 +44,7 @@
                     <button
                       class="flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
                     >
-                      <TaskStatusIcon :status="d.status" />
+                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
                     </button>
                   </Dropdown>
                 </Tooltip>
@@ -62,20 +62,49 @@
                 <div class="text-base text-ink-gray-5">#{{ d.name }}</div>
                 <div
                   v-if="$route.name != 'ProjectOverview' && d.project"
-                  class="flex min-w-0 items-center text-base leading-none text-ink-gray-5"
+                  class="flex min-w-0 flex-1 items-center text-base leading-none text-ink-gray-5"
                 >
                   <div class="px-2 leading-none text-ink-gray-5">&middot;</div>
                   <div>{{ d.team_title }}</div>
                   <LucideChevronRight class="h-3 w-3 shrink-0 text-ink-gray-5" />
-                  <div class="overflow-hidden text-ellipsis whitespace-nowrap">
+                  <div class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                     {{ d.project_title }}
                   </div>
                 </div>
-                <div class="hidden items-center @md:flex" v-if="assigneeLabel(d)">
+                <div
+                  class="hidden shrink-0 items-center @md:flex"
+                  v-if="assigneeIds(d).length"
+                >
                   <div class="px-2 leading-none text-ink-gray-5">&middot;</div>
-                  <span class="whitespace-nowrap text-base text-ink-gray-5">
-                    {{ assigneeLabel(d) }}
-                  </span>
+                  <div class="flex shrink-0 items-center">
+                    <div
+                      class="flex shrink-0 items-center"
+                      :class="assigneeStackSpacingClass(d)"
+                    >
+                      <Tooltip
+                        v-for="(uid, idx) in visibleAssigneeIds(d)"
+                        :key="uid + '-' + idx"
+                        :text="$user(uid).full_name"
+                      >
+                        <span
+                          class="relative inline-flex rounded-full ring-2 ring-surface-white"
+                          :style="{ zIndex: 10 + idx }"
+                        >
+                          <UserAvatar class="shrink-0" :user="uid" size="sm" />
+                        </span>
+                      </Tooltip>
+                      <Tooltip
+                        v-if="extraAssigneeCount(d) > 0"
+                        :text="extraAssigneeNames(d)"
+                      >
+                        <span
+                          class="relative z-10 inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-surface-gray-3 px-1 text-xs font-medium text-ink-gray-8 ring-2 ring-surface-white"
+                        >
+                          +{{ extraAssigneeCount(d) }}
+                        </span>
+                      </Tooltip>
+                    </div>
+                  </div>
                 </div>
 
                 <template v-if="d.due_date">
@@ -83,8 +112,8 @@
                   <div class="flex items-center">
                     <LucideCalendar class="h-3 w-3 text-ink-gray-5" />
                     <span class="ml-2 whitespace-nowrap text-base text-ink-gray-5">
-                      {{ $dayjs(d.due_date).format('D MMM') }}</span
-                    >
+                      {{ $dayjs(d.due_date).format('D MMM') }}
+                    </span>
                   </div>
                 </template>
                 <template v-if="d.priority">
@@ -131,6 +160,7 @@
 import { h } from 'vue'
 import { LoadingIndicator, Dropdown, Tooltip } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
+import UserAvatar from './UserAvatar.vue'
 
 export default {
   name: 'TaskList',
@@ -160,6 +190,7 @@ export default {
     Dropdown,
     Tooltip,
     TaskStatusIcon,
+    UserAvatar,
   },
   resources: {
     tasks() {
@@ -199,17 +230,67 @@ export default {
         }
       })
     },
-    assigneeIds(task) {
-      if (task.assignee_users?.length) return task.assignee_users
-      if (task.assigned_to) return [task.assigned_to]
+    normalizeUserIdList(val) {
+      if (val == null) return []
+      if (Array.isArray(val)) return val.filter(Boolean)
+      if (typeof val === 'string') {
+        const s = val.trim()
+        if (!s) return []
+        if (s.startsWith('[')) {
+          try {
+            const p = JSON.parse(s)
+            return Array.isArray(p) ? p.filter(Boolean) : []
+          } catch {
+            return []
+          }
+        }
+        return [s]
+      }
       return []
     },
-    assigneeLabel(task) {
-      const ids = this.assigneeIds(task)
-      if (!ids.length) return ''
-      const names = ids.slice(0, 2).map((id) => this.$user(id).full_name)
-      const extra = ids.length > 2 ? ` +${ids.length - 2}` : ''
-      return names.join(', ') + extra
+    userIdsFromAssigneesChild(task) {
+      const rows = task.assignees
+      if (!Array.isArray(rows) || !rows.length) return []
+      return rows.map((r) => (typeof r === 'object' && r ? r.user : null)).filter(Boolean)
+    },
+    assigneeIds(task) {
+      const seen = new Set()
+      const out = []
+      const add = (id) => {
+        if (!id || seen.has(id)) return
+        seen.add(id)
+        out.push(id)
+      }
+      for (const u of this.userIdsFromAssigneesChild(task)) add(u)
+      for (const u of this.normalizeUserIdList(task.assignee_users)) add(u)
+      add(task.assigned_to)
+      return out
+    },
+    assigneeStackSpacingClass(task) {
+      const n = this.assigneeIds(task).length
+      if (n <= 2) return 'gap-1'
+      return '-space-x-1.5'
+    },
+    visibleAssigneeIds(task) {
+      return this.assigneeIds(task).slice(0, 4)
+    },
+    extraAssigneeCount(task) {
+      const n = this.assigneeIds(task).length
+      return n > 4 ? n - 4 : 0
+    },
+    extraAssigneeNames(task) {
+      return this.assigneeIds(task)
+        .slice(4)
+        .map((id) => this.$user(id).full_name)
+        .filter(Boolean)
+        .join(', ')
+    },
+    isTaskOverdue(task) {
+      if (!task.due_date) return false
+      if (task.status === 'Done' || task.status === 'Canceled') return false
+      const due = this.$dayjs(task.due_date).startOf('day')
+      const today = this.$dayjs().startOf('day')
+      return due.isBefore(today)
     },
   },
   computed: {
