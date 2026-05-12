@@ -71,10 +71,10 @@
                     {{ d.project_title }}
                   </div>
                 </div>
-                <div class="hidden items-center @md:flex" v-if="d.assigned_to">
+                <div class="hidden items-center @md:flex" v-if="assigneeLabel(d)">
                   <div class="px-2 leading-none text-ink-gray-5">&middot;</div>
                   <span class="whitespace-nowrap text-base text-ink-gray-5">
-                    {{ $user(d.assigned_to).full_name }}
+                    {{ assigneeLabel(d) }}
                   </span>
                 </div>
 
@@ -198,6 +198,18 @@ export default {
           onClick: () => onClick(status),
         }
       })
+    },
+    assigneeIds(task) {
+      if (task.assignee_users?.length) return task.assignee_users
+      if (task.assigned_to) return [task.assigned_to]
+      return []
+    },
+    assigneeLabel(task) {
+      const ids = this.assigneeIds(task)
+      if (!ids.length) return ''
+      const names = ids.slice(0, 2).map((id) => this.$user(id).full_name)
+      const extra = ids.length > 2 ? ` +${ids.length - 2}` : ''
+      return names.join(', ') + extra
     },
   },
   computed: {

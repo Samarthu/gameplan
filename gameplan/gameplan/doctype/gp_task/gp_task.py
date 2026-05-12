@@ -15,11 +15,65 @@ from gameplan.mixins.mentions import HasMentions
 from gameplan.search import GameplanSearch
 
 
+def assignee_users_from_doc(doc) -> set:
+	"""All User ids that should be treated as assignees for this task document."""
+	if not doc:
+		return set()
+	users = set()
+	assignees = doc.get("assignees") if isinstance(doc, dict) else getattr(doc, "assignees", None)
+	for row in assignees or []:
+		u = row.get("user") if isinstance(row, dict) else getattr(row, "user", None)
+		if u:
+			users.add(u)
+	at = doc.get("assigned_to") if isinstance(doc, dict) else getattr(doc, "assigned_to", None)
+	if at:
+		users.add(at)
+	return users
+
+
+def enrich_task_rows_with_assignees(rows: list):
+	if not rows:
+		return
+	names = [r["name"] for r in rows if r.get("name")]
+	if not names:
+		return
+	placeholders = ", ".join(["%s"] * len(names))
+	by_parent = frappe._dict()
+	for r in frappe.db.sql(
+		f"select parent, user from `tabGP Task Assignee` where parent in ({placeholders})",
+		tuple(names),
+		as_dict=True,
+	):
+		by_parent.setdefault(r.parent, []).append(r.user)
+	for row in rows:
+		users = list(by_parent.get(row.get("name"), []))
+		if not users and row.get("assigned_to"):
+			users = [row["assigned_to"]]
+		row["assignee_users"] = users
+
+
 class GPTask(HasMentions, HasActivity, Document):
 	on_delete_cascade = ["GP Comment", "GP Activity", "GP Task Team Link"]
 	on_delete_set_null = ["GP Notification"]
 	activities = ["Task Value Changed"]
 	mentions_field = "description"
+
+	def before_validate(self):
+		users = []
+		seen = set()
+		for row in self.assignees or []:
+			u = row.user
+			if u and u not in seen:
+				seen.add(u)
+				users.append(u)
+		if not users and self.assigned_to:
+			users = [self.assigned_to]
+
+		self.assignees = []
+		for u in users:
+			self.append("assignees", {"user": u})
+
+		self.assigned_to = users[0] if users else None
 
 	def before_insert(self):
 		if not self.status:
@@ -37,9 +91,9 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.update_search_index()
 
 	def log_value_updates(self):
-		fields = ["title", "description", "status", "priority", "assigned_to", "due_date", "project"]
+		fields = ["title", "description", "status", "priority", "due_date", "project"]
+		prev_doc = self.get_doc_before_save()
 		for field in fields:
-			prev_doc = self.get_doc_before_save()
 			if prev_doc and str(self.get(field)) != str(prev_doc.get(field)):
 				self.log_activity(
 					"Task Value Changed",
@@ -50,6 +104,18 @@ class GPTask(HasMentions, HasActivity, Document):
 						"new_value": self.get(field),
 					},
 				)
+		old_assignees = sorted(assignee_users_from_doc(prev_doc)) if prev_doc else []
+		new_assignees = sorted(assignee_users_from_doc(self))
+		if old_assignees != new_assignees:
+			self.log_activity(
+				"Task Value Changed",
+				data={
+					"field": "assignees",
+					"field_label": _("Assignees"),
+					"old_value": old_assignees,
+					"new_value": new_assignees,
+				},
+			)
 
 	def update_search_index(self):
 		if self.has_value_changed("title") or self.has_value_changed("description"):
@@ -62,23 +128,28 @@ class GPTask(HasMentions, HasActivity, Document):
 		search.remove_doc(self)
 
 	def notify_assignment(self):
-		assignee = self.assigned_to
-		if not assignee:
+		current = assignee_users_from_doc(self)
+		if not current:
 			return
-		prev = self.get_doc_before_save()
-		if prev is not None and prev.get("assigned_to") == assignee:
-			return
-		if assignee == frappe.session.user:
+		prev_doc = self.get_doc_before_save()
+		if prev_doc:
+			previous = assignee_users_from_doc(prev_doc)
+		else:
+			previous = set()
+		new_users = current - previous
+		if not new_users:
 			return
 
 		from_user = frappe.session.user if frappe.session.user not in ("Guest", None) else self.owner
 		assigner_name = get_fullname(from_user) if from_user else _("Someone")
-		if prev is not None and prev.get("assigned_to"):
-			message = _("{0} reassigned this task to you: {1}").format(assigner_name, self.title)
-		else:
-			message = _("{0} assigned you a task: {1}").format(assigner_name, self.title)
-
-		GPNotification.notify_task_user(self, assignee, message, "Task Assigned", from_user)
+		for assignee in new_users:
+			if assignee == frappe.session.user:
+				continue
+			if previous:
+				message = _("{0} reassigned this task to you: {1}").format(assigner_name, self.title)
+			else:
+				message = _("{0} assigned you a task: {1}").format(assigner_name, self.title)
+			GPNotification.notify_task_user(self, assignee, message, "Task Assigned", from_user)
 
 	def update_tasks_count(self, delta=1):
 		if not self.project:
@@ -162,6 +233,7 @@ def get_list(
 	check_permissions(doctype, parent)
 	filters = filters or {}
 	assigned_or_owner = filters.pop("assigned_or_owner", None)
+	assigned_to_filter = filters.pop("assigned_to", None)
 	linked_team = filters.pop("linked_team", None)
 	linked_project = filters.pop("linked_project", None)
 	task_order_by = order_by
@@ -176,10 +248,10 @@ def get_list(
 		limit=limit,
 		group_by=group_by,
 	)
+	Task = frappe.qb.DocType(doctype)
 	if linked_team:
 		if not can_access_team(linked_team):
 			frappe.throw(_("Not permitted"), frappe.PermissionError)
-		Task = frappe.qb.DocType(doctype)
 		Link = frappe.qb.DocType("GP Task Team Link")
 		linked_tasks = frappe.qb.from_(Link).select(Link.task).where(Link.team == linked_team)
 		if linked_project:
@@ -190,13 +262,36 @@ def get_list(
 		if task_order_by:
 			query = apply_task_order_by(query, Task, task_order_by)
 	if assigned_or_owner:
-		Task = frappe.qb.DocType(doctype)
-		query = query.where((Task.assigned_to == assigned_or_owner) | (Task.owner == assigned_or_owner))
-	return query.run(as_dict=True, debug=debug)
+		Assignee = frappe.qb.DocType("GP Task Assignee")
+		sub = (
+			frappe.qb.from_(Assignee)
+			.select(Assignee.parent)
+			.distinct()
+			.where(Assignee.user == assigned_or_owner)
+		)
+		query = query.where(
+			(Task.assigned_to == assigned_or_owner)
+			| (Task.owner == assigned_or_owner)
+			| (Task.name.isin(sub))
+		)
+	elif assigned_to_filter:
+		Assignee = frappe.qb.DocType("GP Task Assignee")
+		sub = (
+			frappe.qb.from_(Assignee)
+			.select(Assignee.parent)
+			.distinct()
+			.where(Assignee.user == assigned_to_filter)
+		)
+		query = query.where((Task.assigned_to == assigned_to_filter) | (Task.name.isin(sub)))
+	rows = query.run(as_dict=True, debug=debug)
+	enrich_task_rows_with_assignees(rows)
+	return rows
 
 
 @frappe.whitelist()
-def get_duplicate_candidates(title=None, assigned_to=None, team=None, project=None, limit=5):
+def get_duplicate_candidates(
+	title=None, assigned_to=None, assignees=None, team=None, project=None, limit=5
+):
 	if not title:
 		return []
 
@@ -205,8 +300,19 @@ def get_duplicate_candidates(title=None, assigned_to=None, team=None, project=No
 		"status": ["not in", ["Done", "Canceled"]],
 		"title": ["like", f"%{title.strip()[:80]}%"],
 	}
+
+	user_set = set()
+	if assignees:
+		if isinstance(assignees, str):
+			assignees = frappe.parse_json(assignees)
+		for u in assignees:
+			if u:
+				user_set.add(u)
 	if assigned_to:
-		filters["assigned_to"] = assigned_to
+		user_set.add(assigned_to)
+
+	lim = frappe.utils.cint(limit) or 5
+	max_fetch = lim * 25 if user_set else lim
 
 	candidates = frappe.db.get_all(
 		"GP Task",
@@ -222,15 +328,27 @@ def get_duplicate_candidates(title=None, assigned_to=None, team=None, project=No
 			"project.title as project_title",
 			"modified",
 		],
-		limit=frappe.utils.cint(limit) or 5,
+		limit=max_fetch,
 		order_by="modified desc",
 	)
+	enrich_task_rows_with_assignees(candidates)
+	if user_set:
+		filtered = []
+		for task in candidates:
+			task_users = set(task.get("assignee_users") or [])
+			if task.get("assigned_to"):
+				task_users.add(task["assigned_to"])
+			if task_users & user_set:
+				filtered.append(task)
+		candidates = filtered
+
 	team = team or frappe.db.get_value("GP Project", project, "team") if project else team
-	return [
+	out = [
 		task
 		for task in candidates
 		if task.team != team and can_access_team(task.team)
 	]
+	return out[:lim]
 
 
 @frappe.whitelist()

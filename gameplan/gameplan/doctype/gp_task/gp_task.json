@@ -19,6 +19,7 @@
   "project",
   "team",
   "assigned_to",
+  "assignees",
   "comments_count"
  ],
  "fields": [
@@ -90,6 +91,12 @@
    "fieldtype": "Link",
    "label": "Assigned To",
    "options": "User"
+  },
+  {
+   "fieldname": "assignees",
+   "fieldtype": "Table",
+   "label": "Assignees",
+   "options": "GP Task Assignee"
   },
   {
    "fieldname": "completed_at",

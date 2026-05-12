@@ -44,10 +44,34 @@
             {{ $user(activity.data.new_value).full_name }}
           </UserProfileLink>
         </template>
+        <template v-else-if="activity.data.field === 'assignees'">
+          changed assignees
+          <template v-if="assigneeIdList(activity.data.old_value).length">
+            from
+            <template v-for="(uid, i) in assigneeIdList(activity.data.old_value)" :key="uid">
+              <template v-if="i > 0">,&nbsp;</template>
+              <UserProfileLink
+                class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
+                :user="$user(uid).name"
+              >
+                {{ $user(uid).full_name }}
+              </UserProfileLink>
+            </template>
+          </template>
+          &nbsp;to
+          <template v-for="(uid, i) in assigneeIdList(activity.data.new_value)" :key="'n' + uid">
+            <template v-if="i > 0">,&nbsp;</template>
+            <UserProfileLink
+              class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
+              :user="$user(uid).name"
+            >
+              {{ $user(uid).full_name }}
+            </UserProfileLink>
+          </template>
+        </template>
         <template v-else-if="activity.data.field === 'description'">
           updated the description
         </template>
-        <template v-else-if="activity.data.field === 'project'">
           changed project
           <span v-if="activity.data.old_value">from&nbsp;</span>
           <span class="text-ink-gray-8">
@@ -87,6 +111,21 @@ export default {
     },
   },
   components: { UserProfileLink },
-  methods: { projectTitle },
+  methods: {
+    projectTitle,
+    assigneeIdList(val) {
+      if (val == null || val === '') return []
+      if (Array.isArray(val)) return val.filter(Boolean)
+      if (typeof val === 'string') {
+        try {
+          const p = JSON.parse(val)
+          return Array.isArray(p) ? p.filter(Boolean) : []
+        } catch {
+          return []
+        }
+      }
+      return []
+    },
+  },
 }
 </script>

@@ -12,13 +12,13 @@
     }"
     :disableOutsideClickToClose="disableOutsideClickToClose"
     v-model="showDialog"
-    @after-leave="newTask = initialData"
+    @after-leave="resetDialog"
   >
     <template #body-content>
       <div class="space-y-4">
         <FormControl label="Title" v-model="newTask.title" autocomplete="off" />
         <FormControl label="Description" type="textarea" v-model="newTask.description" />
-        <div class="flex space-x-2">
+        <div class="flex flex-wrap gap-3">
           <Dropdown
             :options="
               statusOptions({
@@ -34,10 +34,31 @@
             </Button>
           </Dropdown>
           <TextInput type="date" placeholder="Set due date" v-model="newTask.due_date" />
+        </div>
+        <div class="space-y-2">
+          <div class="text-sm text-ink-gray-7">Assignees</div>
+          <div class="flex flex-wrap gap-1">
+            <span
+              v-for="uid in assigneeUserIds"
+              :key="uid"
+              class="inline-flex items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
+            >
+              {{ $user(uid).full_name }}
+              <button
+                type="button"
+                class="leading-none text-ink-gray-5 hover:text-ink-gray-8"
+                aria-label="Remove assignee"
+                @click="removeAssignee(uid)"
+              >
+                ×
+              </button>
+            </span>
+          </div>
           <Autocomplete
-            placeholder="Assign a user"
-            :options="assignableUsers"
-            v-model="newTask.assigned_to"
+            placeholder="Add assignee"
+            :options="assignableUsersForPicker"
+            v-model="assigneeAddSelection"
+            @update:modelValue="onAssigneePicked"
           />
         </div>
         <div v-if="newTask.team || newTask.project" class="space-y-2">
@@ -81,6 +102,9 @@ import { activeUsers } from '@/data/users'
 const props = defineProps(['modelValue', 'defaults'])
 const emit = defineEmits(['update:modelValue'])
 const showDialog = ref(false)
+const assigneeUserIds = ref([])
+const assigneeAddSelection = ref(null)
+
 const createTask = createResource({
   url: 'frappe.client.insert',
   makeParams(values) {
@@ -102,12 +126,17 @@ const initialData = {
   title: '',
   description: '',
   status: 'Backlog',
-  assigned_to: null,
   project: null,
   team: null,
 }
 
-const newTask = ref(initialData)
+const newTask = ref({ ...initialData })
+
+function resetDialog() {
+  newTask.value = { ...initialData }
+  assigneeUserIds.value = []
+  assigneeAddSelection.value = null
+}
 
 function statusOptions({ onClick }) {
   return ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled'].map((status) => {
@@ -126,17 +155,52 @@ const assignableUsers = computed(() => {
   }))
 })
 
+const assignableUsersForPicker = computed(() => {
+  const ids = new Set(assigneeUserIds.value)
+  return assignableUsers.value.filter((o) => !ids.has(o.value))
+})
+
+function onAssigneePicked(option) {
+  assigneeAddSelection.value = null
+  if (!option?.value) return
+  if (assigneeUserIds.value.includes(option.value)) return
+  assigneeUserIds.value = [...assigneeUserIds.value, option.value]
+}
+
+function removeAssignee(uid) {
+  assigneeUserIds.value = assigneeUserIds.value.filter((u) => u !== uid)
+}
+
 let _onSuccess
 function show({ defaults, onSuccess } = {}) {
-  newTask.value = { ...initialData, ...(defaults || {}) }
+  const d = { ...(defaults || {}) }
+  newTask.value = {
+    ...initialData,
+    title: d.title ?? initialData.title,
+    description: d.description ?? initialData.description,
+    status: d.status ?? initialData.status,
+    due_date: d.due_date ?? null,
+    project: d.project ?? null,
+    team: d.team ?? null,
+  }
+  assigneeUserIds.value = []
+  if (Array.isArray(d.assignees) && d.assignees.length) {
+    assigneeUserIds.value = d.assignees
+      .map((x) => (typeof x === 'string' ? x : x.user))
+      .filter(Boolean)
+  } else if (d.assigned_to) {
+    const u = typeof d.assigned_to === 'object' ? d.assigned_to?.value : d.assigned_to
+    if (u) assigneeUserIds.value = [u]
+  }
+  assigneeAddSelection.value = null
   showDialog.value = true
   _onSuccess = onSuccess
 }
 
 function onCreateClick(close) {
-  let newTaskDoc = {
+  const newTaskDoc = {
     ...newTask.value,
-    assigned_to: newTask.value.assigned_to?.value || newTask.value.assigned_to,
+    assignees: assigneeUserIds.value.map((user) => ({ user })),
   }
   createTask
     .submit(newTaskDoc, {
@@ -150,14 +214,11 @@ function onCreateClick(close) {
     .then(close)
 }
 
-function assigneeValue() {
-  return newTask.value.assigned_to?.value || newTask.value.assigned_to
-}
-
 function findSimilarTasks() {
   duplicateCandidates.submit({
     title: newTask.value.title,
-    assigned_to: assigneeValue(),
+    assignees: assigneeUserIds.value,
+    assigned_to: assigneeUserIds.value[0] || null,
     team: newTask.value.team,
     project: newTask.value.project,
   })

@@ -7,7 +7,7 @@ from frappe import _
 from gameplan.gameplan.doctype.gp_notification.gp_notification import GPNotification
 
 
-def already_sent_today(task_name: str, notif_type: str) -> bool:
+def already_sent_today(task_name: str, notif_type: str, to_user: str) -> bool:
 	from datetime import timedelta
 
 	start = frappe.utils.now_datetime().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -18,11 +18,22 @@ def already_sent_today(task_name: str, notif_type: str) -> bool:
 			[
 				["task", "=", task_name],
 				["type", "=", notif_type],
+				["to_user", "=", to_user],
 				["creation", ">=", start],
 				["creation", "<", end],
 			],
 		)
 	)
+
+
+def _task_assignee_user_ids(doc) -> list[str]:
+	users = []
+	if getattr(doc, "assigned_to", None):
+		users.append(doc.assigned_to)
+	for row in doc.assignees or []:
+		if row.user and row.user not in users:
+			users.append(row.user)
+	return users
 
 
 def send_task_due_notifications():
@@ -32,37 +43,43 @@ def send_task_due_notifications():
 	today_d = getdate()
 	tomorrow_d = add_days(today_d, 1)
 
-	base_filters = {"is_completed": 0, "assigned_to": ["!=", ""]}
+	def iter_task_names_with_assignees(due_date, op):
+		assert op in ("=", "<")
+		return frappe.db.sql(
+			f"""
+			select name from `tabGP Task` t
+			where is_completed = 0
+			and due_date is not null
+			and due_date {op} %(due)s
+			and (
+				ifnull(assigned_to, '') != ''
+				or exists (select 1 from `tabGP Task Assignee` a where a.parent = t.name)
+			)
+			""",
+			{"due": due_date},
+			pluck="name",
+		)
 
-	for row in frappe.get_all(
-		"GP Task",
-		filters={**base_filters, "due_date": tomorrow_d},
-		pluck="name",
-	):
-		if already_sent_today(row, "Task Due Soon"):
-			continue
+	for row in iter_task_names_with_assignees(tomorrow_d, "="):
 		doc = frappe.get_doc("GP Task", row)
 		message = _('Your task "{0}" is due tomorrow ({1}).').format(doc.title, formatdate(doc.due_date))
-		GPNotification.notify_task_user(doc, doc.assigned_to, message, "Task Due Soon", None)
+		for to_user in _task_assignee_user_ids(doc):
+			if already_sent_today(row, "Task Due Soon", to_user):
+				continue
+			GPNotification.notify_task_user(doc, to_user, message, "Task Due Soon", None)
 
-	for row in frappe.get_all(
-		"GP Task",
-		filters={**base_filters, "due_date": today_d},
-		pluck="name",
-	):
-		if already_sent_today(row, "Task Due Soon"):
-			continue
+	for row in iter_task_names_with_assignees(today_d, "="):
 		doc = frappe.get_doc("GP Task", row)
 		message = _('Your task "{0}" is due today.').format(doc.title)
-		GPNotification.notify_task_user(doc, doc.assigned_to, message, "Task Due Soon", None)
+		for to_user in _task_assignee_user_ids(doc):
+			if already_sent_today(row, "Task Due Soon", to_user):
+				continue
+			GPNotification.notify_task_user(doc, to_user, message, "Task Due Soon", None)
 
-	for row in frappe.get_all(
-		"GP Task",
-		filters={**base_filters, "due_date": ("<", today_d)},
-		pluck="name",
-	):
-		if already_sent_today(row, "Task Overdue"):
-			continue
+	for row in iter_task_names_with_assignees(today_d, "<"):
 		doc = frappe.get_doc("GP Task", row)
 		message = _('Your task "{0}" is overdue (due {1}).').format(doc.title, formatdate(doc.due_date))
-		GPNotification.notify_task_user(doc, doc.assigned_to, message, "Task Overdue", None)
+		for to_user in _task_assignee_user_ids(doc):
+			if already_sent_today(row, "Task Overdue", to_user):
+				continue
+			GPNotification.notify_task_user(doc, to_user, message, "Task Overdue", None)

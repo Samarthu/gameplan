@@ -22,4 +22,5 @@ execute:frappe.delete_doc_if_exists('DocType', 'Team Project Discussion', force=
 gameplan.gameplan.doctype.team_user_profile.patches.setup_rembg
 gameplan.gameplan.doctype.team_user_profile.patches.set_image
 gameplan.gameplan.doctype.gp_task.patches.set_status
+gameplan.gameplan.doctype.gp_task.patches.migrate_assigned_to_assignees
 gameplan.gameplan.doctype.gp_discussion_visit.patches.add_unique_constraint

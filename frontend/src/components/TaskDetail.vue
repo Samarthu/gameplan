@@ -68,12 +68,31 @@
           "
         />
         <div class="mt-8 flex flex-wrap items-center gap-2 sm:hidden">
-          <Autocomplete
-            placeholder="Assign a user"
-            :options="assignableUsers"
-            v-model="$resources.task.doc.assigned_to"
-            @update:modelValue="changeAssignee"
-          />
+          <div class="flex min-w-0 flex-col gap-2">
+            <div class="flex flex-wrap gap-1">
+              <span
+                v-for="uid in assigneeUserIds"
+                :key="uid"
+                class="inline-flex items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
+              >
+                {{ $user(uid).full_name }}
+                <button
+                  type="button"
+                  class="leading-none text-ink-gray-5 hover:text-ink-gray-8"
+                  aria-label="Remove assignee"
+                  @click="removeAssignee(uid)"
+                >
+                  ×
+                </button>
+              </span>
+            </div>
+            <Autocomplete
+              placeholder="Add assignee"
+              :options="assignableUsersForPicker"
+              v-model="assigneeAddSelection"
+              @update:modelValue="onAssigneePicked"
+            />
+          </div>
           <DatePicker
             v-model="$resources.task.doc.due_date"
             variant="subtle"
@@ -113,13 +132,30 @@
     </div>
     <div class="hidden w-[20rem] shrink-0 border-l sm:block">
       <div class="grid grid-cols-2 items-center gap-y-6 p-6 text-base text-ink-gray-7">
-        <div>Assignee</div>
-        <div>
+        <div>Assignees</div>
+        <div class="space-y-2">
+          <div class="flex flex-wrap gap-1">
+            <span
+              v-for="uid in assigneeUserIds"
+              :key="uid"
+              class="inline-flex items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
+            >
+              {{ $user(uid).full_name }}
+              <button
+                type="button"
+                class="leading-none text-ink-gray-5 hover:text-ink-gray-8"
+                aria-label="Remove assignee"
+                @click="removeAssignee(uid)"
+              >
+                ×
+              </button>
+            </span>
+          </div>
           <Autocomplete
-            placeholder="Assign a user"
-            :options="assignableUsers"
-            v-model="$resources.task.doc.assigned_to"
-            @update:modelValue="changeAssignee"
+            placeholder="Add assignee"
+            :options="assignableUsersForPicker"
+            v-model="assigneeAddSelection"
+            @update:modelValue="onAssigneePicked"
           />
         </div>
         <div>Due Date</div>
@@ -254,11 +290,23 @@ export default {
   data() {
     return {
       linkedTeam: null,
+      assigneeAddSelection: null,
     }
   },
   methods: {
-    changeAssignee(option) {
-      this.$resources.task.setValue.submit({ assigned_to: option?.value || '' })
+    onAssigneePicked(option) {
+      this.assigneeAddSelection = null
+      if (!option?.value) return
+      if (this.assigneeUserIds.includes(option.value)) return
+      this.persistAssignees([...this.assigneeUserIds, option.value])
+    },
+    persistAssignees(userIds) {
+      this.$resources.task.setValue.submit({
+        assignees: userIds.map((user) => ({ user })),
+      })
+    },
+    removeAssignee(uid) {
+      this.persistAssignees(this.assigneeUserIds.filter((u) => u !== uid))
     },
     changeProject(option) {
       this.$resources.task.setValue.submit(
@@ -312,11 +360,22 @@ export default {
     },
   },
   computed: {
+    assigneeUserIds() {
+      const doc = this.$resources.task.doc
+      if (!doc) return []
+      const fromRows = (doc.assignees || []).map((r) => r.user).filter(Boolean)
+      if (fromRows.length) return fromRows
+      return doc.assigned_to ? [doc.assigned_to] : []
+    },
     assignableUsers() {
       return activeUsers.value.map((user) => ({
         label: user.full_name,
         value: user.name,
       }))
+    },
+    assignableUsersForPicker() {
+      const ids = new Set(this.assigneeUserIds)
+      return this.assignableUsers.filter((o) => !ids.has(o.value))
     },
     statusOptions() {
       return ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled'].map((status) => {
