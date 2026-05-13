@@ -51,7 +51,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "\nBacklog\nTodo\nIn Progress\nUnder Testing\nReady to Merge\nDone\nCanceled"
+   "options": "\nBacklog\nTodo\nIn Progress\nUnder Testing\nReady to Merge\nDone\nCancelled"
   },
   {
    "fieldname": "priority",

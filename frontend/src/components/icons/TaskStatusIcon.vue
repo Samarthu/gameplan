@@ -50,7 +50,7 @@
       d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.5-8.5-4 4-2-2 1.06-1.06L7.5 8.38l2.94-2.94L11.5 6.5Z"
     />
     <path
-      v-else-if="status == 'Canceled'"
+      v-else-if="status == 'Cancelled'"
       fill="currentColor"
       fill-rule="evenodd"
       clip-rule="evenodd"
@@ -73,7 +73,7 @@ export default {
   },
   computed: {
     statusColorClass() {
-      if (this.overdue && this.status !== 'Done' && this.status !== 'Canceled') {
+      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled') {
         return 'text-red-500'
       }
       switch (this.status) {
@@ -87,7 +87,7 @@ export default {
           return 'text-teal-500'
         case 'Todo':
           return 'text-amber-500'
-        case 'Canceled':
+        case 'Cancelled':
           return 'text-red-400'
         case 'Backlog':
         default:

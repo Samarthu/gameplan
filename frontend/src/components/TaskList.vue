@@ -182,7 +182,7 @@ export default {
         'In Progress': true,
         'Under Testing': true,
         'Ready to Merge': true,
-        Canceled: false,
+        Cancelled: false,
         Done: false,
       },
     }
@@ -224,7 +224,7 @@ export default {
       }
     },
     statusOptions({ onClick }) {
-      return ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Done', 'Cancelled'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -289,7 +289,7 @@ export default {
     },
     isTaskOverdue(task) {
       if (!task.due_date) return false
-      if (task.status === 'Done' || task.status === 'Canceled') return false
+      if (task.status === 'Done' || task.status === 'Cancelled') return false
       const due = this.$dayjs(task.due_date).startOf('day')
       const today = this.$dayjs().startOf('day')
       return due.isBefore(today)
@@ -309,7 +309,7 @@ export default {
           },
         ]
       }
-      return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Canceled'].map((status) => {
+      return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled'].map((status) => {
         return {
           id: status,
           title: status,
