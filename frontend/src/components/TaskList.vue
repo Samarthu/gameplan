@@ -180,6 +180,8 @@ export default {
         Backlog: true,
         Todo: true,
         'In Progress': true,
+        'Under Testing': true,
+        'Ready to Merge': true,
         Canceled: false,
         Done: false,
       },
@@ -307,7 +309,7 @@ export default {
           },
         ]
       }
-      return ['In Progress', 'Todo', 'Backlog', 'Done', 'Canceled'].map((status) => {
+      return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Canceled'].map((status) => {
         return {
           id: status,
           title: status,
