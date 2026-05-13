@@ -139,7 +139,7 @@ function resetDialog() {
 }
 
 function statusOptions({ onClick }) {
-  return ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled'].map((status) => {
+  return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled'].map((status) => {
     return {
       icon: () => h(TaskStatusIcon, { status }),
       label: status,

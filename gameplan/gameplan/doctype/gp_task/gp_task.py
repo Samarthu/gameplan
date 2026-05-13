@@ -311,7 +311,7 @@ def get_duplicate_candidates(
 
 	filters = {
 		"is_completed": 0,
-		"status": ["not in", ["Done", "Canceled"]],
+		"status": ["not in", ["Done", "Cancelled"]],
 		"title": ["like", f"%{title.strip()[:80]}%"],
 	}
 

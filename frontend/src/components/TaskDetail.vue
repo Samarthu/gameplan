@@ -123,7 +123,7 @@
           <Autocomplete
             placeholder="Select project"
             :options="projectOptions"
-            v-model="$resources.task.doc.project"
+            v-model="selectedProject"
             @update:modelValue="changeProject"
           />
         </div>
@@ -177,7 +177,7 @@
           <Autocomplete
             placeholder="Select project"
             :options="projectOptions"
-            v-model="$resources.task.doc.project"
+            v-model="selectedProject"
             @update:modelValue="changeProject"
           />
         </div>
@@ -378,7 +378,7 @@ export default {
       return this.assignableUsers.filter((o) => !ids.has(o.value))
     },
     statusOptions() {
-      return ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -403,6 +403,20 @@ export default {
           value: project.name.toString(),
         })),
       }))
+    },
+    selectedProject: {
+      get() {
+        const projectId = this.$resources.task.doc?.project
+        if (!projectId) return null
+        for (const group of this.projectOptions) {
+          const found = group.items.find((item) => item.value == projectId)
+          if (found) return found
+        }
+        return null
+      },
+      set(option) {
+        this.$resources.task.doc.project = option?.value || ''
+      },
     },
     linkedTeams() {
       return this.$resources.task.getLinkedTeams.data || []

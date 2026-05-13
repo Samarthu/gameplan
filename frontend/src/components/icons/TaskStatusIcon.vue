@@ -36,7 +36,21 @@
       clip-rule="evenodd"
     />
     <path
-      v-else-if="status == 'Canceled'"
+      v-else-if="status == 'Under Testing'"
+      fill="currentColor"
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm0-1.75a5.25 5.25 0 1 1 0-10.5 5.25 5.25 0 0 1 0 10.5ZM6 7h4v1.5H6V7Zm0 2.5h4V11H6V9.5ZM6 5h2.5v1.5H6V5Z"
+    />
+    <path
+      v-else-if="status == 'Ready to Merge'"
+      fill="currentColor"
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.5-8.5-4 4-2-2 1.06-1.06L7.5 8.38l2.94-2.94L11.5 6.5Z"
+    />
+    <path
+      v-else-if="status == 'Cancelled'"
       fill="currentColor"
       fill-rule="evenodd"
       clip-rule="evenodd"
@@ -59,20 +73,25 @@ export default {
   },
   computed: {
     statusColorClass() {
-      if (this.overdue && this.status !== 'Done' && this.status !== 'Canceled') {
-        return 'text-ink-red-3'
+      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled') {
+        return 'text-red-500'
       }
       switch (this.status) {
         case 'Done':
           return 'text-green-600'
         case 'In Progress':
-          return 'text-ink-blue-3'
+          return 'text-blue-500'
+        case 'Under Testing':
+          return 'text-purple-500'
+        case 'Ready to Merge':
+          return 'text-teal-500'
         case 'Todo':
-          return 'text-ink-amber-3'
+          return 'text-amber-500'
+        case 'Cancelled':
+          return 'text-red-400'
         case 'Backlog':
-        case 'Canceled':
         default:
-          return 'text-ink-gray-5'
+          return 'text-gray-400'
       }
     },
   },
