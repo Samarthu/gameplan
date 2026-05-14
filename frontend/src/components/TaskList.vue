@@ -225,19 +225,40 @@
           <div class="relative">
             <button
               class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
-              @click="showDatePicker = !showDatePicker"
+              @click="togglePopover('date')"
             >
               <LucideCalendar class="h-3.5 w-3.5" />
               Due Date
             </button>
             <div
-              v-if="showDatePicker"
+              v-if="activePopover === 'date'"
               class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
             >
               <input
                 type="date"
                 class="block rounded-md border border-outline-gray-2 px-2 py-1 text-sm text-ink-gray-9 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
                 @change="bulkSetDueDate($event.target.value)"
+              />
+            </div>
+          </div>
+
+          <!-- Project -->
+          <div class="relative">
+            <button
+              class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('project')"
+            >
+              <LucideFolderOpen class="h-3.5 w-3.5" />
+              Project
+            </button>
+            <div
+              v-if="activePopover === 'project'"
+              class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+            >
+              <Autocomplete
+                :options="projectOptions"
+                placeholder="Search project..."
+                @update:modelValue="bulkSetProject"
               />
             </div>
           </div>
@@ -259,9 +280,10 @@
 </template>
 <script>
 import { h } from 'vue'
-import { LoadingIndicator, Dropdown, Tooltip } from 'frappe-ui'
+import { LoadingIndicator, Dropdown, Tooltip, Autocomplete } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
+import { activeProjects } from '@/data/projects'
 
 export default {
   name: 'TaskList',
@@ -287,13 +309,14 @@ export default {
         Done: false,
       },
       selectedTasks: [],
-      showDatePicker: false,
+      activePopover: null,
     }
   },
   components: {
     LoadingIndicator,
     Dropdown,
     Tooltip,
+    Autocomplete,
     TaskStatusIcon,
     UserAvatar,
   },
@@ -368,7 +391,10 @@ export default {
     },
     clearSelection() {
       this.selectedTasks = []
-      this.showDatePicker = false
+      this.activePopover = null
+    },
+    togglePopover(name) {
+      this.activePopover = this.activePopover === name ? null : name
     },
 
     // Bulk actions
@@ -379,8 +405,13 @@ export default {
       this.clearSelection()
     },
     bulkSetDueDate(date) {
-      this.showDatePicker = false
+      this.activePopover = null
       this.bulkUpdate('due_date', date)
+    },
+    bulkSetProject(option) {
+      if (!option) return
+      this.activePopover = null
+      this.bulkUpdate('project', option.value)
     },
 
     normalizeUserIdList(val) {
@@ -449,6 +480,12 @@ export default {
   computed: {
     tasks() {
       return this.$resources.tasks
+    },
+    projectOptions() {
+      return activeProjects.value.map((p) => ({
+        label: p.title,
+        value: p.name,
+      }))
     },
     bulkStatusOptions() {
       return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })
