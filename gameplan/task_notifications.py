@@ -48,7 +48,7 @@ def send_task_due_notifications():
 		return frappe.db.sql(
 			f"""
 			select name from `tabGP Task` t
-			where is_completed = 0
+			where is_completed = 0 and status != "Done"
 			and due_date is not null
 			and due_date {op} %(due)s
 			and (
