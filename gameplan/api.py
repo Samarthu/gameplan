@@ -26,6 +26,18 @@ def get_user_info(user=None):
 		distinct=True,
 	).run(as_dict=1)
 
+	# Always include the session user even if they have no Gameplan role (e.g. Administrator)
+	session_user_name = frappe.session.user
+	if not user and not any(u.name == session_user_name for u in users):
+		session_user_doc = frappe.db.get_value(
+			"User",
+			session_user_name,
+			["name", "email", "enabled", "user_image", "full_name", "user_type"],
+			as_dict=True,
+		)
+		if session_user_doc:
+			users.append(session_user_doc)
+
 	roles = frappe.db.get_all("Has Role", filters={"parenttype": "User"}, fields=["role", "parent"])
 	user_profiles = frappe.db.get_all(
 		"GP User Profile",
@@ -53,6 +65,9 @@ def get_user_info(user=None):
 		for role in ["Gameplan Guest", "Gameplan Member", "Gameplan Admin"]:
 			if role in user_roles:
 				user.role = role
+		user.is_system_manager = (
+			"System Manager" in user_roles or user.name == "Administrator"
+		)
 	return users
 
 

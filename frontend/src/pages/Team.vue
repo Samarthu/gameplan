@@ -34,6 +34,12 @@
             placement="left"
             :options="[
               {
+                label: 'Edit team name',
+                icon: 'edit-2',
+                condition: () => canEditTeamName,
+                onClick: () => renameTeam(),
+              },
+              {
                 label: 'Set cover image',
                 icon: 'image',
                 condition: () => !team.doc.cover_image,
@@ -81,6 +87,8 @@ import { Breadcrumbs, Dropdown, Badge, Tooltip } from 'frappe-ui'
 import IconPicker from '@/components/IconPicker.vue'
 import Tabs from '@/components/Tabs.vue'
 import { teams } from '@/data/teams'
+import { getUser } from '@/data/users'
+import { session } from '@/data/session'
 
 export default {
   name: 'Team',
@@ -98,9 +106,45 @@ export default {
       showCoverImage: Boolean(this.team.doc.cover_image),
     }
   },
+  computed: {
+    canEditTeamName() {
+      const user = getUser(session.user)
+      return user?.role === 'Gameplan Admin' || user?.is_system_manager
+    },
+  },
   methods: {
     updateTeamIcon(icon) {
       this.team.setValue.submit({ icon })
+    },
+    renameTeam() {
+      const input = { label: 'Team Name', value: this.team.doc.title }
+      const doSave = (close) => {
+        const newTitle = (input.value || '').trim()
+        if (!newTitle || newTitle === this.team.doc.title) {
+          close()
+          return
+        }
+        return this.team.setValue.submit(
+          { title: newTitle },
+          {
+            onSuccess: () => {
+              if (teams.reload) teams.reload()
+              close()
+            },
+          },
+        )
+      }
+      this.$dialog({
+        title: 'Edit Team Name',
+        input,
+        actions: [
+          {
+            label: 'Save',
+            variant: 'solid',
+            onClick: (close) => doSave(close),
+          },
+        ],
+      })
     },
     archiveTeam() {
       this.$dialog({
