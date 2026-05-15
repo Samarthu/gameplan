@@ -403,6 +403,7 @@ export default {
         await this.tasks.setValue.submit({ name, [field]: value })
       }
       this.clearSelection()
+      this.tasks.reload()
     },
     bulkSetDueDate(date) {
       this.activePopover = null
