@@ -23,6 +23,7 @@
             <Button :route="{ name: 'ProjectTasks' }">View all</Button>
           </div>
           <TaskList
+            compact
             :listOptions="{
               filters: {
                 project: project.doc.name,

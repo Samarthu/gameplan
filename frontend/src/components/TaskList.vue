@@ -2,9 +2,10 @@
   <div>
     <div class="@container" v-if="tasks.data?.length">
       <!-- Column header row -->
-      <div class="flex items-center border-b border-outline-gray-2 px-1 py-1.5 text-xs font-medium text-ink-gray-5">
+      <div v-if="!compact" class="flex items-center border-b border-outline-gray-2 px-1 py-1.5 text-xs font-medium text-ink-gray-5">
         <div class="w-9 shrink-0"></div>
         <div class="w-7 shrink-0"></div>
+        <div class="w-4 shrink-0"></div>
         <div class="min-w-0 flex-1 pl-1">Task</div>
         <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
         <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
@@ -72,12 +73,40 @@
 
         <div :class="{ hidden: !(isOpen[group.title] ?? true) }">
           <div v-for="(d, index) in group.tasks" :key="d.name">
+            <!-- ── Compact card row (overview widgets) ── -->
             <div
+              v-if="compact"
+              class="flex cursor-pointer items-center gap-3 rounded px-2 py-2.5 transition"
+              :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
+              @click="$router.push(taskRoute(d))"
+            >
+              <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" class="shrink-0" />
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium text-ink-gray-9">
+                    {{ d.title }}
+                  </span>
+                  <span class="shrink-0 whitespace-nowrap text-sm text-ink-gray-4">
+                    {{ $dayjs(d.modified).fromNow() }}
+                  </span>
+                </div>
+                <div class="mt-0.5 flex items-center justify-between text-sm text-ink-gray-4">
+                  <span>#{{ d.name }}</span>
+                  <div
+                    class="inline-grid h-4 w-4 place-items-center rounded-full bg-surface-gray-3 text-xs"
+                    :class="[d.unread ? 'text-ink-gray-9' : 'text-ink-gray-5', d.comments_count ? '' : 'invisible']"
+                  >
+                    {{ d.comments_count || 0 }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Full table row (tasks page) ── -->
+            <div
+              v-else
               class="flex cursor-pointer items-center rounded transition"
-              :class="[
-                isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2',
-                d.parent_task ? 'border-l-2 border-outline-gray-3 ml-4' : '',
-              ]"
+              :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
               @click="$router.push(taskRoute(d))"
             >
               <!-- Checkbox -->
@@ -107,11 +136,13 @@
                 </Tooltip>
               </div>
 
-              <!-- Child task connector icon -->
-              <LucideCornerDownRight
-                v-if="d.parent_task"
-                class="h-3.5 w-3.5 shrink-0 text-ink-gray-3"
-              />
+              <!-- Child task indicator -->
+              <div class="flex w-4 shrink-0 items-center justify-center">
+                <LucideCornerDownRight
+                  v-if="d.parent_task"
+                  class="h-3 w-3 text-ink-gray-3"
+                />
+              </div>
 
               <!-- Title + ID/Project -->
               <router-link
@@ -418,6 +449,10 @@ export default {
     listOptions: {
       type: Object,
       default: () => ({}),
+    },
+    compact: {
+      type: Boolean,
+      default: false,
     },
   },
   data() {

@@ -19,6 +19,7 @@
           <Button :route="{ name: 'MyTasks' }">View all</Button>
         </div>
         <TaskList
+          compact
           :listOptions="{
             filters: {
               status: ['in', ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge']],
