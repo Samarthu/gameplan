@@ -71,7 +71,7 @@ class GameplanSearch(Search):
 			id = f"GP Task:{doc.name}"
 			fields = {
 				"title": doc.title,
-				"content": html2text(doc.description),
+				"content": html2text(doc.description or ""),
 				"modified": doc.modified,
 				"team": doc.team,
 				"project": doc.project,

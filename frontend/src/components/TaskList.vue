@@ -74,7 +74,10 @@
           <div v-for="(d, index) in group.tasks" :key="d.name">
             <div
               class="flex cursor-pointer items-center rounded transition"
-              :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
+              :class="[
+                isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2',
+                d.parent_task ? 'border-l-2 border-outline-gray-3 ml-4' : '',
+              ]"
               @click="$router.push(taskRoute(d))"
             >
               <!-- Checkbox -->
@@ -103,6 +106,12 @@
                   </Dropdown>
                 </Tooltip>
               </div>
+
+              <!-- Child task connector icon -->
+              <LucideCornerDownRight
+                v-if="d.parent_task"
+                class="h-3.5 w-3.5 shrink-0 text-ink-gray-3"
+              />
 
               <!-- Title + ID/Project -->
               <router-link

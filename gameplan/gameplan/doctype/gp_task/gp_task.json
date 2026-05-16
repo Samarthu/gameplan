@@ -10,6 +10,7 @@
   "description",
   "start_date",
   "due_date",
+  "parent_task",
   "status",
   "priority",
   "is_completed",
@@ -44,6 +45,12 @@
    "fieldname": "due_date",
    "fieldtype": "Date",
    "label": "Due Date"
+  },
+  {
+   "fieldname": "parent_task",
+   "fieldtype": "Link",
+   "label": "Parent Task",
+   "options": "GP Task"
   },
   {
    "fieldname": "status",
