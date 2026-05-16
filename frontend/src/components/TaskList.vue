@@ -1,6 +1,53 @@
 <template>
   <div>
     <div class="@container" v-if="tasks.data?.length">
+      <!-- Column header row -->
+      <div class="flex items-center border-b border-outline-gray-2 px-1 py-1.5 text-xs font-medium text-ink-gray-5">
+        <div class="w-9 shrink-0"></div>
+        <div class="w-7 shrink-0"></div>
+        <div class="min-w-0 flex-1 pl-1">Task</div>
+        <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
+        <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
+        <div v-if="columns.due_date.visible" class="w-24 shrink-0 pl-2">Due Date</div>
+        <div v-if="columns.status.visible" class="w-28 shrink-0 pl-2">Status</div>
+        <div v-if="columns.modified.visible" class="w-24 shrink-0 pr-2 text-right">Modified</div>
+        <div v-if="columns.created_by.visible" class="w-28 shrink-0 pl-2">Created By</div>
+        <div class="relative flex w-10 shrink-0 items-center justify-end pr-1" ref="columnsPicker">
+          <Tooltip text="Manage columns">
+            <button
+              class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-7 focus:outline-none"
+              @click.stop="showColumnsPicker = !showColumnsPicker"
+            >
+              <LucideSlidersHorizontal class="h-3.5 w-3.5" />
+            </button>
+          </Tooltip>
+          <div
+            v-if="showColumnsPicker"
+            class="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-outline-gray-2 bg-surface-white py-1 shadow-lg"
+            @click.stop
+          >
+            <div class="border-b border-outline-gray-2 px-3 py-1.5 text-xs font-semibold text-ink-gray-5">
+              Columns
+            </div>
+            <button
+              v-for="(col, key) in columns"
+              :key="key"
+              class="flex w-full items-center gap-2.5 px-3 py-1.5 text-sm text-ink-gray-8 hover:bg-surface-gray-2"
+              @click="toggleColumn(key)"
+            >
+              <span
+                class="flex h-4 w-4 shrink-0 items-center justify-center rounded border"
+                :class="col.visible ? 'border-ink-gray-9 bg-ink-gray-9' : 'border-outline-gray-3 bg-surface-white'"
+              >
+                <LucideCheck v-if="col.visible" class="h-3 w-3 text-surface-white" />
+              </span>
+              {{ col.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Groups -->
       <div v-for="group in groupedTasks" :key="group.title">
         <button
           class="group flex w-full items-baseline rounded-sm bg-surface-menu-bar px-2.5 py-2 text-base transition hover:bg-surface-gray-2"
@@ -16,21 +63,22 @@
               @change="toggleGroup(group)"
             />
           </label>
-          <span class="font-medium text-ink-gray-9">
-            {{ group.title }}
-          </span>
+          <span class="font-medium text-ink-gray-9">{{ group.title }}</span>
           <span class="ml-2 text-sm text-ink-gray-5">{{ group.tasks.length }}</span>
           <span class="ml-auto hidden text-sm text-ink-gray-5 group-hover:inline">
             {{ isOpen[group.title] ? 'Collapse' : 'Expand' }}
           </span>
         </button>
+
         <div :class="{ hidden: !(isOpen[group.title] ?? true) }">
           <div v-for="(d, index) in group.tasks" :key="d.name">
             <div
-              class="flex items-center rounded transition"
+              class="flex cursor-pointer items-center rounded transition"
               :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
+              @click="$router.push(taskRoute(d))"
             >
-              <label class="flex shrink-0 cursor-pointer items-center px-2.5 py-2" @click.stop>
+              <!-- Checkbox -->
+              <label class="flex w-9 shrink-0 cursor-pointer items-center justify-center py-2" @click.stop>
                 <input
                   type="checkbox"
                   class="h-4 w-4 cursor-pointer rounded border-gray-300 accent-gray-800 focus:ring-0"
@@ -38,143 +86,210 @@
                   @change="toggleTask(d.name)"
                 />
               </label>
-              <!-- Status icon outside router-link to avoid click conflicts -->
-              <div class="flex shrink-0 items-center px-1 py-2">
+
+              <!-- Status icon -->
+              <div class="flex w-7 shrink-0 items-center justify-center py-2" @click.stop>
                 <LoadingIndicator
                   class="h-4 w-4 text-ink-gray-5"
                   v-if="tasks.delete.loading && tasks.delete.params.name === d.name"
                 />
                 <Tooltip text="Change status" v-else>
                   <Dropdown
-                    :options="
-                      statusOptions({
-                        onClick: (status) =>
-                          tasks.setValue.submit({
-                            status,
-                            name: d.name,
-                          }),
-                      })
-                    "
+                    :options="statusOptions({ onClick: (status) => tasks.setValue.submit({ status, name: d.name }) })"
                   >
-                    <button
-                      class="flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-                    >
+                    <button class="flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3">
                       <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
                     </button>
                   </Dropdown>
                 </Tooltip>
               </div>
+
+              <!-- Title + ID/Project -->
               <router-link
                 :to="taskRoute(d)"
-                class="flex h-15 min-w-0 flex-1 items-center py-2 pr-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-                :class="{
-                  'pointer-events-none': tasks.delete.loading && tasks.delete.params.name === d.name,
-                }"
+                class="flex min-h-[2.5rem] min-w-0 flex-1 items-center py-2 pr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+                :class="{ 'pointer-events-none': tasks.delete.loading && tasks.delete.params.name === d.name }"
+                @click.stop
               >
-                <div class="w-full">
-                  <div class="flex min-w-0 items-start">
-                    <div
-                      class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium leading-4 text-ink-gray-9"
-                    >
-                      {{ d.title }}
-                    </div>
-                    <div class="ml-auto shrink-0 whitespace-nowrap text-sm text-ink-gray-5">
-                      {{ $dayjs(d.modified).fromNow() }}
-                    </div>
+                <div class="min-w-0">
+                  <div class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium leading-4 text-ink-gray-9">
+                    {{ d.title }}
                   </div>
-
-                  <div class="mt-1.5 flex items-center">
-                    <div class="text-base text-ink-gray-5">#{{ d.name }}</div>
-                    <div
-                      v-if="$route.name != 'ProjectOverview' && d.project"
-                      class="flex min-w-0 flex-1 items-center text-base leading-none text-ink-gray-5"
-                    >
-                      <div class="px-2 leading-none text-ink-gray-5">&middot;</div>
-                      <div>{{ d.team_title }}</div>
-                      <LucideChevronRight class="h-3 w-3 shrink-0 text-ink-gray-5" />
-                      <div class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                        {{ d.project_title }}
-                      </div>
-                    </div>
-                    <div
-                      class="hidden shrink-0 items-center @md:flex"
-                      v-if="assigneeIds(d).length"
-                    >
-                      <div class="px-2 leading-none text-ink-gray-5">&middot;</div>
-                      <div class="flex shrink-0 items-center">
-                        <div
-                          class="flex shrink-0 items-center"
-                          :class="assigneeStackSpacingClass(d)"
-                        >
-                          <Tooltip
-                            v-for="(uid, idx) in visibleAssigneeIds(d)"
-                            :key="uid + '-' + idx"
-                            :text="$user(uid).full_name"
-                          >
-                            <span
-                              class="relative inline-flex rounded-full ring-2 ring-surface-white"
-                              :style="{ zIndex: 10 + idx }"
-                            >
-                              <UserAvatar class="shrink-0" :user="uid" size="sm" />
-                            </span>
-                          </Tooltip>
-                          <Tooltip
-                            v-if="extraAssigneeCount(d) > 0"
-                            :text="extraAssigneeNames(d)"
-                          >
-                            <span
-                              class="relative z-10 inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-surface-gray-3 px-1 text-xs font-medium text-ink-gray-8 ring-2 ring-surface-white"
-                            >
-                              +{{ extraAssigneeCount(d) }}
-                            </span>
-                          </Tooltip>
-                        </div>
-                      </div>
-                    </div>
-
-                    <template v-if="d.due_date">
-                      <div class="px-2 leading-none text-ink-gray-5">&middot;</div>
-                      <div class="flex items-center">
-                        <LucideCalendar class="h-3 w-3 text-ink-gray-5" />
-                        <span class="ml-2 whitespace-nowrap text-base text-ink-gray-5">
-                          {{ $dayjs(d.due_date).format('D MMM') }}
-                        </span>
-                      </div>
+                  <div class="mt-1 flex items-center text-sm text-ink-gray-5">
+                    <span>#{{ d.name }}</span>
+                    <template v-if="$route.name != 'ProjectOverview' && d.project">
+                      <span class="mx-1">&middot;</span>
+                      <span class="shrink-0">{{ d.team_title }}</span>
+                      <LucideChevronRight class="h-3 w-3 shrink-0" />
+                      <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ d.project_title }}</span>
                     </template>
-                    <template v-if="d.priority">
-                      <div class="px-2 leading-none text-ink-gray-5">&middot;</div>
-                      <div class="flex items-center">
+                  </div>
+                </div>
+              </router-link>
+
+              <!-- Assignee column (inline edit) -->
+              <div
+                v-if="columns.assignee.visible"
+                class="relative flex w-28 shrink-0 items-center justify-center py-2"
+              >
+                <button
+                  class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none"
+                  @click.stop="toggleInlinePopover(d.name, 'assignee')"
+                >
+                  <template v-if="assigneeIds(d).length">
+                    <div class="isolate flex items-center" :class="assigneeStackSpacingClass(d)">
+                      <Tooltip
+                        v-for="(uid, idx) in visibleAssigneeIds(d)"
+                        :key="uid + '-' + idx"
+                        :text="$user(uid).full_name"
+                      >
+                        <span
+                          class="relative inline-flex rounded-full ring-2 ring-surface-white"
+                          :style="{ zIndex: idx + 1 }"
+                        >
+                          <UserAvatar class="shrink-0" :user="uid" size="sm" />
+                        </span>
+                      </Tooltip>
+                      <Tooltip v-if="extraAssigneeCount(d) > 0" :text="extraAssigneeNames(d)">
+                        <span class="relative inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-surface-gray-3 px-1 text-xs font-medium text-ink-gray-8 ring-2 ring-surface-white">
+                          +{{ extraAssigneeCount(d) }}
+                        </span>
+                      </Tooltip>
+                    </div>
+                  </template>
+                  <span v-else class="text-sm text-ink-gray-3">—</span>
+                </button>
+                <!-- Assignee picker popover -->
+                <div
+                  v-if="inlinePopover.name === d.name && inlinePopover.field === 'assignee'"
+                  class="absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  @click.stop
+                >
+                  <Autocomplete
+                    :options="userOptions"
+                    placeholder="Search user..."
+                    @update:modelValue="(opt) => setAssignee(d, opt)"
+                  />
+                </div>
+              </div>
+
+              <!-- Priority column (inline edit) -->
+              <div
+                v-if="columns.priority.visible"
+                class="flex w-24 shrink-0 items-center py-2 pl-2"
+              >
+                <div @click.stop>
+                  <Dropdown :options="priorityOptions(d)">
+                    <button class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
+                      <template v-if="d.priority">
                         <div
-                          class="h-2 w-2 rounded-full"
+                          class="h-2 w-2 shrink-0 rounded-full"
                           :class="{
+                            'bg-red-600': d.priority === 'Urgent',
                             'bg-surface-red-5': d.priority === 'High',
                             'bg-surface-amber-3': d.priority === 'Medium',
                             'bg-surface-gray-5': d.priority === 'Low',
                           }"
                         ></div>
-                        <span class="ml-2 text-base text-ink-gray-5">
-                          {{ d.priority }}
-                        </span>
-                      </div>
-                    </template>
-                    <div
-                      class="ml-auto inline-grid h-4 w-4 shrink-0 place-items-center rounded-full bg-surface-gray-3 text-xs"
-                      :class="[
-                        d.unread ? 'text-ink-gray-9' : 'text-ink-gray-5',
-                        d.comments_count ? '' : 'invisible',
-                      ]"
-                    >
-                      {{ d.comments_count || 0 }}
-                    </div>
-                  </div>
+                        <span class="ml-1 text-sm text-ink-gray-7">{{ d.priority }}</span>
+                      </template>
+                      <span v-else class="text-sm text-ink-gray-3">—</span>
+                    </button>
+                  </Dropdown>
                 </div>
-              </router-link>
+              </div>
+
+              <!-- Due Date column (inline edit) -->
+              <div
+                v-if="columns.due_date.visible"
+                class="relative flex w-24 shrink-0 items-center py-2 pl-2"
+              >
+                <button
+                  class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none"
+                  @click.stop="toggleInlinePopover(d.name, 'due_date')"
+                >
+                  <template v-if="d.due_date">
+                    <LucideCalendar
+                      class="h-3 w-3 shrink-0"
+                      :class="isTaskOverdue(d) ? 'text-red-500' : 'text-ink-gray-5'"
+                    />
+                    <span
+                      class="ml-1 whitespace-nowrap text-sm"
+                      :class="isTaskOverdue(d) ? 'text-red-500' : 'text-ink-gray-5'"
+                    >
+                      {{ $dayjs(d.due_date).format('D MMM') }}
+                    </span>
+                  </template>
+                  <span v-else class="text-sm text-ink-gray-3">—</span>
+                </button>
+                <!-- Date picker popover -->
+                <div
+                  v-if="inlinePopover.name === d.name && inlinePopover.field === 'due_date'"
+                  class="absolute left-0 top-full z-50 mt-1 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  @click.stop
+                >
+                  <input
+                    type="date"
+                    :value="d.due_date"
+                    class="block rounded-md border border-outline-gray-2 px-2 py-1 text-sm text-ink-gray-9 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+                    @change="setDueDate(d, $event.target.value)"
+                  />
+                  <button
+                    v-if="d.due_date"
+                    class="mt-1 w-full rounded px-2 py-1 text-xs text-ink-gray-5 hover:bg-surface-gray-2"
+                    @click="setDueDate(d, '')"
+                  >
+                    Clear date
+                  </button>
+                </div>
+              </div>
+
+              <!-- Status text column (inline edit) -->
+              <div
+                v-if="columns.status.visible"
+                class="flex w-28 shrink-0 items-center py-2 pl-2"
+              >
+                <div @click.stop>
+                  <Dropdown :options="statusOptions({ onClick: (status) => tasks.setValue.submit({ status, name: d.name }) })">
+                    <button class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
+                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
+                      <span class="ml-1 text-sm text-ink-gray-7">{{ d.status || '—' }}</span>
+                    </button>
+                  </Dropdown>
+                </div>
+              </div>
+
+              <!-- Modified column -->
+              <div v-if="columns.modified.visible" class="w-24 shrink-0 py-2 pr-2 text-right">
+                <span class="whitespace-nowrap text-sm text-ink-gray-5">{{ $dayjs(d.modified).fromNow() }}</span>
+              </div>
+
+              <!-- Created By column -->
+              <div v-if="columns.created_by.visible" class="flex w-28 shrink-0 items-center py-2 pl-2">
+                <Tooltip :text="$user(d.owner).full_name || d.owner">
+                  <UserAvatar class="shrink-0" :user="d.owner" size="sm" />
+                </Tooltip>
+                <span class="ml-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-ink-gray-6">
+                  {{ $user(d.owner).full_name || d.owner }}
+                </span>
+              </div>
+
+              <!-- Comments count -->
+              <div class="flex w-10 shrink-0 items-center justify-end pr-1 py-2">
+                <div
+                  class="inline-grid h-4 w-4 shrink-0 place-items-center rounded-full bg-surface-gray-3 text-xs"
+                  :class="[d.unread ? 'text-ink-gray-9' : 'text-ink-gray-5', d.comments_count ? '' : 'invisible']"
+                >
+                  {{ d.comments_count || 0 }}
+                </div>
+              </div>
             </div>
             <div class="mx-2.5 border-b" v-if="index < group.tasks.length - 1"></div>
           </div>
         </div>
       </div>
     </div>
+
     <div
       class="flex flex-col items-center rounded-lg border-2 border-dashed py-8 text-base text-ink-gray-5"
       v-else
@@ -203,9 +318,7 @@
 
           <!-- Status -->
           <Dropdown :options="bulkStatusOptions">
-            <button
-              class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
-            >
+            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideCircleDot class="h-3.5 w-3.5" />
               Status
             </button>
@@ -213,9 +326,7 @@
 
           <!-- Priority -->
           <Dropdown :options="bulkPriorityOptions">
-            <button
-              class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
-            >
+            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideFlag class="h-3.5 w-3.5" />
               Priority
             </button>
@@ -284,6 +395,9 @@ import { LoadingIndicator, Dropdown, Tooltip, Autocomplete } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
 import { activeProjects } from '@/data/projects'
+import { activeUsers } from '@/data/users'
+
+const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
 
 export default {
   name: 'TaskList',
@@ -298,6 +412,10 @@ export default {
     },
   },
   data() {
+    let saved = {}
+    try {
+      saved = JSON.parse(localStorage.getItem(COLUMNS_STORAGE_KEY) || '{}')
+    } catch {}
     return {
       isOpen: {
         Backlog: true,
@@ -305,12 +423,29 @@ export default {
         'In Progress': true,
         'Under Testing': true,
         'Ready to Merge': true,
+        Reopen: true,
         Cancelled: false,
         Done: false,
       },
       selectedTasks: [],
       activePopover: null,
+      showColumnsPicker: false,
+      inlinePopover: { name: null, field: null },
+      columns: {
+        assignee:   { label: 'Assignee',    visible: saved.assignee   ?? true },
+        priority:   { label: 'Priority',    visible: saved.priority   ?? true },
+        due_date:   { label: 'Due Date',    visible: saved.due_date   ?? true },
+        status:     { label: 'Status',      visible: saved.status     ?? false },
+        modified:   { label: 'Modified',    visible: saved.modified   ?? true },
+        created_by: { label: 'Created By',  visible: saved.created_by ?? false },
+      },
     }
+  },
+  mounted() {
+    document.addEventListener('click', this.handleOutsideClick)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleOutsideClick)
   },
   components: {
     LoadingIndicator,
@@ -357,6 +492,48 @@ export default {
           onClick: () => onClick(status),
         }
       })
+    },
+    toggleColumn(key) {
+      this.columns[key].visible = !this.columns[key].visible
+      const toSave = {}
+      for (const [k, v] of Object.entries(this.columns)) toSave[k] = v.visible
+      localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(toSave))
+    },
+    handleOutsideClick(e) {
+      if (this.showColumnsPicker && !this.$refs.columnsPicker?.contains(e.target)) {
+        this.showColumnsPicker = false
+      }
+      if (this.inlinePopover.name) {
+        this.inlinePopover = { name: null, field: null }
+      }
+    },
+    toggleInlinePopover(taskName, field) {
+      if (this.inlinePopover.name === taskName && this.inlinePopover.field === field) {
+        this.inlinePopover = { name: null, field: null }
+      } else {
+        this.inlinePopover = { name: taskName, field }
+      }
+    },
+    setDueDate(task, date) {
+      this.inlinePopover = { name: null, field: null }
+      this.tasks.setValue.submit({ name: task.name, due_date: date || null })
+    },
+    setAssignee(task, option) {
+      if (!option) return
+      this.inlinePopover = { name: null, field: null }
+      const existing = this.assigneeIds(task)
+      if (existing.includes(option.value)) return
+      const merged = [...existing, option.value]
+      this.tasks.setValue.submit({
+        name: task.name,
+        assignees: merged.map((user) => ({ user })),
+      })
+    },
+    priorityOptions(task) {
+      return ['Urgent', 'High', 'Medium', 'Low'].map((p) => ({
+        label: p,
+        onClick: () => this.tasks.setValue.submit({ name: task.name, priority: p }),
+      }))
     },
 
     // Selection helpers
@@ -457,15 +634,15 @@ export default {
       return '-space-x-1.5'
     },
     visibleAssigneeIds(task) {
-      return this.assigneeIds(task).slice(0, 4)
+      return this.assigneeIds(task).slice(0, 3)
     },
     extraAssigneeCount(task) {
       const n = this.assigneeIds(task).length
-      return n > 4 ? n - 4 : 0
+      return n > 3 ? n - 3 : 0
     },
     extraAssigneeNames(task) {
       return this.assigneeIds(task)
-        .slice(4)
+        .slice(3)
         .map((id) => this.$user(id).full_name)
         .filter(Boolean)
         .join(', ')
@@ -488,34 +665,26 @@ export default {
         value: p.name,
       }))
     },
+    userOptions() {
+      return activeUsers.value.map((u) => ({
+        label: u.full_name || u.name,
+        value: u.name,
+      }))
+    },
     bulkStatusOptions() {
       return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })
     },
     bulkPriorityOptions() {
       return [
-        {
-          label: 'High',
-          onClick: () => this.bulkUpdate('priority', 'High'),
-        },
-        {
-          label: 'Medium',
-          onClick: () => this.bulkUpdate('priority', 'Medium'),
-        },
-        {
-          label: 'Low',
-          onClick: () => this.bulkUpdate('priority', 'Low'),
-        },
+        { label: 'Urgent', onClick: () => this.bulkUpdate('priority', 'Urgent') },
+        { label: 'High',   onClick: () => this.bulkUpdate('priority', 'High') },
+        { label: 'Medium', onClick: () => this.bulkUpdate('priority', 'Medium') },
+        { label: 'Low',    onClick: () => this.bulkUpdate('priority', 'Low') },
       ]
     },
     groupedTasks() {
       if (!this.groupByStatus) {
-        return [
-          {
-            id: 'all',
-            title: '',
-            tasks: this.tasks.data,
-          },
-        ]
+        return [{ id: 'all', title: '', tasks: this.tasks.data }]
       }
       return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Reopen'].map((status) => {
         return {
