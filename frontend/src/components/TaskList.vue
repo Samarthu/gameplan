@@ -350,7 +350,7 @@ export default {
       }
     },
     statusOptions({ onClick }) {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -517,7 +517,7 @@ export default {
           },
         ]
       }
-      return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled'].map((status) => {
+      return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Reopen'].map((status) => {
         return {
           id: status,
           title: status,
