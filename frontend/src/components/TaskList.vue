@@ -153,26 +153,18 @@
                   />
                 </div>
 
-                <!-- Title + ID/Project -->
+                <!-- Title + ID -->
                 <router-link
                   :to="taskRoute(d)"
                   class="flex min-h-[2.5rem] min-w-0 flex-1 items-center py-2 pr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
                   :class="{ 'pointer-events-none': tasks.delete.loading && tasks.delete.params.name === d.name }"
                   @click.stop
                 >
-                  <div class="min-w-0">
-                    <div class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium leading-4 text-ink-gray-9">
+                  <div class="flex min-w-0 items-baseline gap-2">
+                    <div class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium leading-4 text-ink-gray-9">
                       {{ d.title }}
                     </div>
-                    <div class="mt-1 flex items-center text-sm text-ink-gray-5">
-                      <span>#{{ d.name }}</span>
-                      <template v-if="$route.name != 'ProjectOverview' && d.project">
-                        <span class="mx-1">&middot;</span>
-                        <span class="shrink-0">{{ d.team_title }}</span>
-                        <LucideChevronRight class="h-3 w-3 shrink-0" />
-                        <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ d.project_title }}</span>
-                      </template>
-                    </div>
+                    <span class="shrink-0 text-sm text-ink-gray-5">#{{ d.name }}</span>
                   </div>
                 </router-link>
               </div>
