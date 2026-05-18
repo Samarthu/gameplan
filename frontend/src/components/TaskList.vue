@@ -1,12 +1,14 @@
 <template>
   <div>
-    <div class="@container" v-if="tasks.data?.length">
-      <!-- Column header row -->
-      <div v-if="!compact" class="flex items-center border-b border-outline-gray-2 px-1 py-1.5 text-xs font-medium text-ink-gray-5">
-        <div class="w-9 shrink-0"></div>
-        <div class="w-7 shrink-0"></div>
-        <div class="w-4 shrink-0"></div>
-        <div class="min-w-0 flex-1 pl-1">Task</div>
+    <div class="@container overflow-x-auto" v-if="tasks.data?.length" @scroll.passive="syncGroupHeaderScroll">
+      <!-- Column header row — scrolls horizontally with columns -->
+      <div v-if="!compact" class="min-w-max sticky top-0 z-30 flex items-center border-b border-outline-gray-2 bg-surface-white px-1 py-1.5 text-xs font-medium text-ink-gray-5">
+        <div class="sticky left-0 z-10 flex w-[21rem] shrink-0 items-center bg-surface-white">
+          <div class="w-9 shrink-0"></div>
+          <div class="w-7 shrink-0"></div>
+          <div class="w-4 shrink-0"></div>
+          <div class="flex-1 pl-1">Task</div>
+        </div>
         <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
         <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
         <div v-if="columns.due_date.visible" class="w-24 shrink-0 pl-2">Due Date</div>
@@ -48,10 +50,14 @@
         </div>
       </div>
 
-      <!-- Groups -->
+      <!-- Groups — each group title is a direct child of the scroll container
+           so width:100% = visible viewport width, making sticky left-0 work -->
       <div v-for="group in groupedTasks" :key="group.title">
+        <!-- Group title: outside min-w-max so it sticks at left:0 correctly -->
         <button
-          class="group flex w-full items-baseline rounded-sm bg-surface-menu-bar px-2.5 py-2 text-base transition hover:bg-surface-gray-2"
+          class="task-group-header group sticky z-20 flex items-baseline rounded-sm bg-surface-menu-bar px-2.5 py-2 text-base transition-colors hover:bg-surface-gray-2"
+          :class="compact ? 'top-0' : 'top-[2.125rem]'"
+          :style="{ transform: `translateX(${horizontalScrollLeft}px)` }"
           v-if="group.title && group.tasks.length"
           @click="isOpen[group.title] = !isOpen[group.title]"
         >
@@ -70,8 +76,8 @@
             {{ isOpen[group.title] ? 'Collapse' : 'Expand' }}
           </span>
         </button>
-
-        <div :class="{ hidden: !(isOpen[group.title] ?? true) }">
+        <!-- Task rows: inside min-w-max for horizontal scroll -->
+        <div class="min-w-max" :class="{ hidden: !(isOpen[group.title] ?? true) }">
           <div v-for="(d, index) in group.tasks" :key="d.name">
             <!-- ── Compact card row (overview widgets) ── -->
             <div
@@ -105,67 +111,71 @@
             <!-- ── Full table row (tasks page) ── -->
             <div
               v-else
-              class="flex cursor-pointer items-center rounded transition"
+              class="group flex cursor-pointer items-center rounded transition"
               :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
               @click="$router.push(taskRoute(d))"
             >
-              <!-- Checkbox -->
-              <label class="flex w-9 shrink-0 cursor-pointer items-center justify-center py-2" @click.stop>
-                <input
-                  type="checkbox"
-                  class="h-4 w-4 cursor-pointer rounded border-gray-300 accent-gray-800 focus:ring-0"
-                  :checked="isSelected(d.name)"
-                  @change="toggleTask(d.name)"
-                />
-              </label>
+              <!-- Sticky Task column: checkbox + status + child indicator + title -->
+              <div class="sticky left-0 z-10 flex w-[21rem] shrink-0 items-center"
+                :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'bg-surface-white group-hover:bg-surface-gray-2'">
+                <!-- Checkbox -->
+                <label class="flex w-9 shrink-0 cursor-pointer items-center justify-center py-2" @click.stop>
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 cursor-pointer rounded border-gray-300 accent-gray-800 focus:ring-0"
+                    :checked="isSelected(d.name)"
+                    @change="toggleTask(d.name)"
+                  />
+                </label>
 
-              <!-- Status icon -->
-              <div class="flex w-7 shrink-0 items-center justify-center py-2" @click.stop>
-                <LoadingIndicator
-                  class="h-4 w-4 text-ink-gray-5"
-                  v-if="tasks.delete.loading && tasks.delete.params.name === d.name"
-                />
-                <Tooltip text="Change status" v-else>
-                  <Dropdown
-                    :options="statusOptions({ onClick: (status) => tasks.setValue.submit({ status, name: d.name }) })"
-                  >
-                    <button class="flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3">
-                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
-                    </button>
-                  </Dropdown>
-                </Tooltip>
-              </div>
-
-              <!-- Child task indicator -->
-              <div class="flex w-4 shrink-0 items-center justify-center">
-                <LucideCornerDownRight
-                  v-if="d.parent_task"
-                  class="h-3 w-3 text-ink-gray-3"
-                />
-              </div>
-
-              <!-- Title + ID/Project -->
-              <router-link
-                :to="taskRoute(d)"
-                class="flex min-h-[2.5rem] min-w-0 flex-1 items-center py-2 pr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-                :class="{ 'pointer-events-none': tasks.delete.loading && tasks.delete.params.name === d.name }"
-                @click.stop
-              >
-                <div class="min-w-0">
-                  <div class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium leading-4 text-ink-gray-9">
-                    {{ d.title }}
-                  </div>
-                  <div class="mt-1 flex items-center text-sm text-ink-gray-5">
-                    <span>#{{ d.name }}</span>
-                    <template v-if="$route.name != 'ProjectOverview' && d.project">
-                      <span class="mx-1">&middot;</span>
-                      <span class="shrink-0">{{ d.team_title }}</span>
-                      <LucideChevronRight class="h-3 w-3 shrink-0" />
-                      <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ d.project_title }}</span>
-                    </template>
-                  </div>
+                <!-- Status icon -->
+                <div class="flex w-7 shrink-0 items-center justify-center py-2" @click.stop>
+                  <LoadingIndicator
+                    class="h-4 w-4 text-ink-gray-5"
+                    v-if="tasks.delete.loading && tasks.delete.params.name === d.name"
+                  />
+                  <Tooltip text="Change status" v-else>
+                    <Dropdown
+                      :options="statusOptions({ onClick: (status) => tasks.setValue.submit({ status, name: d.name }) })"
+                    >
+                      <button class="flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3">
+                        <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
+                      </button>
+                    </Dropdown>
+                  </Tooltip>
                 </div>
-              </router-link>
+
+                <!-- Child task indicator -->
+                <div class="flex w-4 shrink-0 items-center justify-center">
+                  <LucideCornerDownRight
+                    v-if="d.parent_task"
+                    class="h-3 w-3 text-ink-gray-3"
+                  />
+                </div>
+
+                <!-- Title + ID/Project -->
+                <router-link
+                  :to="taskRoute(d)"
+                  class="flex min-h-[2.5rem] min-w-0 flex-1 items-center py-2 pr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+                  :class="{ 'pointer-events-none': tasks.delete.loading && tasks.delete.params.name === d.name }"
+                  @click.stop
+                >
+                  <div class="min-w-0">
+                    <div class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium leading-4 text-ink-gray-9">
+                      {{ d.title }}
+                    </div>
+                    <div class="mt-1 flex items-center text-sm text-ink-gray-5">
+                      <span>#{{ d.name }}</span>
+                      <template v-if="$route.name != 'ProjectOverview' && d.project">
+                        <span class="mx-1">&middot;</span>
+                        <span class="shrink-0">{{ d.team_title }}</span>
+                        <LucideChevronRight class="h-3 w-3 shrink-0" />
+                        <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ d.project_title }}</span>
+                      </template>
+                    </div>
+                  </div>
+                </router-link>
+              </div>
 
               <!-- Assignee column (inline edit) -->
               <div
@@ -323,7 +333,7 @@
             </div>
             <div class="mx-2.5 border-b" v-if="index < group.tasks.length - 1"></div>
           </div>
-        </div>
+        </div><!-- end min-w-max per group -->
       </div>
     </div>
 
@@ -469,6 +479,7 @@ export default {
         Done: false,
       },
       selectedTasks: [],
+      horizontalScrollLeft: 0,
       activePopover: null,
       showColumnsPicker: false,
       inlinePopover: { name: null, field: null },
@@ -513,6 +524,9 @@ export default {
     },
   },
   methods: {
+    syncGroupHeaderScroll(event) {
+      this.horizontalScrollLeft = event.target.scrollLeft
+    },
     taskRoute(task) {
       if (this.$route.name === 'TeamTasks') {
         return {
@@ -748,3 +762,19 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.task-group-header {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+}
+
+@supports (width: 100cqw) {
+  .task-group-header {
+    width: 100cqw;
+    min-width: 100cqw;
+    max-width: 100cqw;
+  }
+}
+</style>
