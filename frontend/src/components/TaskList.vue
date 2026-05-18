@@ -2,8 +2,8 @@
   <div>
     <div class="@container overflow-x-auto" v-if="tasks.data?.length" @scroll.passive="syncGroupHeaderScroll">
       <!-- Column header row — scrolls horizontally with columns -->
-      <div v-if="!compact" class="min-w-max sticky top-0 z-30 flex items-center border-b border-outline-gray-2 bg-surface-white px-1 py-1.5 text-xs font-medium text-ink-gray-5">
-        <div class="sticky left-0 z-10 flex w-[21rem] shrink-0 items-center bg-surface-white">
+      <div v-if="!compact" class="min-w-max sticky top-0 z-[3] flex items-center border-b border-outline-gray-2 bg-surface-white px-1 py-1.5 text-xs font-medium text-ink-gray-5">
+        <div class="sticky left-0 z-[1] flex w-[21rem] shrink-0 items-center bg-surface-white">
           <div class="w-9 shrink-0"></div>
           <div class="w-7 shrink-0"></div>
           <div class="w-4 shrink-0"></div>
@@ -55,7 +55,7 @@
       <div v-for="group in groupedTasks" :key="group.title">
         <!-- Group title: outside min-w-max so it sticks at left:0 correctly -->
         <button
-          class="task-group-header group sticky z-20 flex items-baseline rounded-sm bg-surface-menu-bar px-2.5 py-2 text-base transition-colors hover:bg-surface-gray-2"
+          class="task-group-header group sticky z-[2] flex items-baseline rounded-sm bg-surface-menu-bar px-2.5 py-2 text-base transition-colors hover:bg-surface-gray-2"
           :class="compact ? 'top-0' : 'top-[2.125rem]'"
           :style="{ transform: `translateX(${horizontalScrollLeft}px)` }"
           v-if="group.title && group.tasks.length"
@@ -123,7 +123,7 @@
               @click="$router.push(taskRoute(d))"
             >
               <!-- Sticky Task column: checkbox + status + child indicator + title -->
-              <div class="sticky left-0 z-10 flex w-[21rem] shrink-0 items-center"
+              <div class="sticky left-0 z-[1] flex w-[21rem] shrink-0 items-center"
                 :class="[
                   isSelected(d.name)
                     ? 'bg-surface-blue-1'
@@ -342,7 +342,16 @@
               </div>
 
               <!-- Comments count -->
-              <div class="flex w-10 shrink-0 items-center justify-end pr-1 py-2">
+              <div class="flex w-10 shrink-0 items-center justify-end gap-1 pr-1 py-2">
+                <Tooltip text="Delete task" v-if="canDeleteTask(d)">
+                  <button
+                    class="invisible grid h-6 w-6 shrink-0 place-items-center rounded text-ink-gray-4 hover:bg-surface-red-1 hover:text-red-500 focus:visible focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3 group-hover:visible"
+                    :disabled="tasks.delete.loading && tasks.delete.params.name === d.name"
+                    @click.stop="confirmDeleteTask(d)"
+                  >
+                    <LucideTrash2 class="h-3.5 w-3.5" />
+                  </button>
+                </Tooltip>
                 <div
                   class="inline-grid h-4 w-4 shrink-0 place-items-center rounded-full bg-surface-gray-3 text-xs"
                   :class="[d.unread ? 'text-ink-gray-9' : 'text-ink-gray-5', d.comments_count ? '' : 'invisible']"
@@ -688,6 +697,37 @@ export default {
       if (!option) return
       this.activePopover = null
       this.bulkUpdate('project', option.value)
+    },
+    canDeleteTask(task) {
+      const user = this.$user('sessionUser')
+      return (
+        task.owner === user.name ||
+        user.name === 'Administrator' ||
+        user.role === 'Gameplan Admin' ||
+        user.is_system_manager
+      )
+    },
+    confirmDeleteTask(task) {
+      this.$dialog({
+        title: 'Delete task',
+        message: 'Are you sure you want to delete this task?',
+        actions: [
+          {
+            label: 'Delete',
+            theme: 'red',
+            variant: 'solid',
+            onClick: (close) => {
+              return this.tasks.delete.submit(task.name, {
+                onSuccess: () => {
+                  close()
+                  this.selectedTasks = this.selectedTasks.filter((name) => name !== task.name)
+                  this.tasks.reload()
+                },
+              })
+            },
+          },
+        ],
+      })
     },
 
     normalizeUserIdList(val) {

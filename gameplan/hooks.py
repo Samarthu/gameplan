@@ -113,7 +113,10 @@ after_migrate = ["gameplan.search.build_index_in_background"]
 # 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
-has_permission = {"GP Page": "gameplan.gameplan.doctype.gp_page.gp_page.has_permission"}
+has_permission = {
+	"GP Page": "gameplan.gameplan.doctype.gp_page.gp_page.has_permission",
+	"GP Task": "gameplan.gameplan.doctype.gp_task.gp_task.has_permission",
+}
 
 # DocType Class
 # ---------------

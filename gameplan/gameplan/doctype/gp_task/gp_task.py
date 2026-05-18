@@ -232,6 +232,15 @@ class GPTask(HasMentions, HasActivity, Document):
 		return self.get_linked_teams()
 
 
+def has_permission(doc, user, ptype):
+	if ptype != "delete":
+		return None
+	if user == "Administrator" or doc.owner == user:
+		return True
+	roles = frappe.get_roles(user)
+	return bool({"Gameplan Admin", "System Manager"} & set(roles))
+
+
 @frappe.whitelist()
 def get_list(
 	fields=None,
