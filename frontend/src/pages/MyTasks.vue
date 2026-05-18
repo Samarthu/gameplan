@@ -12,7 +12,7 @@
       </Button>
     </header>
 
-    <div class="mx-auto w-full max-w-4xl px-3 sm:px-5">
+    <div class="w-full px-3 sm:px-5">
       <div class="flex pt-3 sm:pt-5">
         <TabButtons
           :buttons="[

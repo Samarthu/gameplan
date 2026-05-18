@@ -79,7 +79,13 @@
         }
       "
     />
-    <router-view class="mx-auto max-w-4xl px-5" :team="team" />
+    <router-view v-slot="{ Component, route }">
+      <component
+        :is="Component"
+        :class="route.meta?.fullWidth ? 'w-full px-5' : 'mx-auto max-w-4xl px-5'"
+        :team="team"
+      />
+    </router-view>
   </div>
 </template>
 <script>

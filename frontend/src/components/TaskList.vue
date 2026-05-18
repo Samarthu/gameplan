@@ -2,8 +2,8 @@
   <div>
     <div class="@container overflow-x-auto" v-if="tasks.data?.length" @scroll.passive="syncGroupHeaderScroll">
       <!-- Column header row — scrolls horizontally with columns -->
-      <div v-if="!compact" class="min-w-max sticky top-0 z-[3] flex items-center border-b border-outline-gray-2 bg-surface-white px-1 py-1.5 text-xs font-medium text-ink-gray-5">
-        <div class="sticky left-0 z-[1] flex w-[21rem] shrink-0 items-center bg-surface-white">
+      <div v-if="!compact" class="sticky top-0 z-[3] flex min-w-full items-center border-b border-outline-gray-2 bg-surface-white px-1 py-1.5 text-xs font-medium text-ink-gray-5">
+        <div class="sticky left-0 z-[1] flex min-w-[21rem] flex-1 items-center bg-surface-white">
           <div class="w-9 shrink-0"></div>
           <div class="w-7 shrink-0"></div>
           <div class="w-4 shrink-0"></div>
@@ -77,7 +77,7 @@
           </span>
         </button>
         <!-- Task rows: inside min-w-max for horizontal scroll -->
-        <div class="min-w-max" :class="{ hidden: !(isOpen[group.title] ?? true) }">
+        <div class="min-w-full" :class="{ hidden: !(isOpen[group.title] ?? true) }">
           <div v-for="(d, index) in visibleTasksForGroup(group.tasks)" :key="d.name">
             <!-- ── Compact card row (overview widgets) ── -->
             <div
@@ -123,7 +123,7 @@
               @click="$router.push(taskRoute(d))"
             >
               <!-- Sticky Task column: checkbox + status + child indicator + title -->
-              <div class="sticky left-0 z-[1] flex w-[21rem] shrink-0 items-center"
+              <div class="sticky left-0 z-[1] flex min-w-[21rem] flex-1 items-center"
                 :class="[
                   isSelected(d.name)
                     ? 'bg-surface-blue-1'

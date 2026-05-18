@@ -1,5 +1,5 @@
 <template>
-  <div class="py-6">
+  <div class="w-full py-6">
     <div class="mb-4.5 flex items-center justify-between">
       <h2 class="text-xl font-semibold text-ink-gray-9">Tasks</h2>
       <Button variant="solid" @click="showNewTaskDialog">
