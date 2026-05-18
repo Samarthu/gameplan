@@ -13,7 +13,7 @@
     </header>
 
     <div class="w-full px-3 sm:px-5">
-      <div class="flex pt-3 sm:pt-5">
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-3 sm:pt-5">
         <TabButtons
           :buttons="[
             { label: 'All', value: 'all' },
@@ -22,9 +22,21 @@
           ]"
           v-model="currentTab"
         />
+        <TabButtons
+          :buttons="[
+            { label: 'List', value: 'list' },
+            { label: 'Kanban', value: 'kanban' },
+          ]"
+          v-model="viewMode"
+        />
       </div>
       <div class="pb-6 mt-3 sm:mt-4">
-        <TaskList :listOptions="listOptions" :groupByStatus="true" />
+        <TaskList
+          :listOptions="listOptions"
+          :groupByStatus="true"
+          :viewMode="viewMode"
+          @request-new-task="showNewTaskDialog"
+        />
         <NewTaskDialog ref="newTaskDialog" />
       </div>
     </div>
@@ -33,10 +45,27 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons } from 'frappe-ui'
+import { useRoute, useRouter } from 'vue-router'
 import { getUser } from '@/data/users'
 
 let newTaskDialog = ref(null)
 let currentTab = ref('all')
+const route = useRoute()
+const router = useRouter()
+let viewMode = computed({
+  get() {
+    return route.query.view === 'kanban' ? 'kanban' : 'list'
+  },
+  set(value) {
+    let query = { ...route.query }
+    if (value === 'kanban') {
+      query.view = 'kanban'
+    } else {
+      delete query.view
+    }
+    router.replace({ query })
+  },
+})
 
 let listOptions = computed(() => {
   let me = getUser('sessionUser').name
@@ -48,10 +77,11 @@ let listOptions = computed(() => {
   return { filters }
 })
 
-function showNewTaskDialog() {
+function showNewTaskDialog(options = {}) {
   newTaskDialog.value.show({
     defaults: {
       assigned_to: getUser('sessionUser').name,
+      status: options.status,
     },
     onSuccess: () => {
       let tasks = getCachedListResource(['Tasks', listOptions.value])
