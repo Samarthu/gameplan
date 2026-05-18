@@ -130,8 +130,9 @@
                     : d.parent_task
                       ? 'bg-surface-gray-1 group-hover:bg-surface-gray-2'
                       : 'bg-surface-white group-hover:bg-surface-gray-2',
-                  d.parent_task ? 'pl-4' : '',
-                ]">
+                ]"
+                :style="{ paddingLeft: `${taskDepth(d) * 1}rem` }"
+              >
                 <!-- Checkbox -->
                 <label class="flex w-9 shrink-0 cursor-pointer items-center justify-center py-2" @click.stop>
                   <input
@@ -570,14 +571,28 @@ export default {
       }
     },
     visibleTasksForGroup(tasks) {
+      return this.collectVisibleTasks(tasks)
+    },
+    collectVisibleTasks(tasks, depth = 0, visited = new Set()) {
       const visibleTasks = []
       for (const task of tasks) {
-        visibleTasks.push(task)
+        if (visited.has(task.name)) continue
+        visited.add(task.name)
+        visibleTasks.push({ ...task, _depth: depth })
         if (this.isChildTasksOpen(task.name)) {
-          visibleTasks.push(...(this.childTasksByParent[task.name] || []))
+          visibleTasks.push(
+            ...this.collectVisibleTasks(
+              this.childTasksByParent[task.name] || [],
+              depth + 1,
+              visited,
+            ),
+          )
         }
       }
       return visibleTasks
+    },
+    taskDepth(task) {
+      return Number(task._depth || 0)
     },
     taskRoute(task) {
       if (this.$route.name === 'TeamTasks') {
