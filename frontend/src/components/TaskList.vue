@@ -15,7 +15,7 @@
         <div v-if="columns.status.visible" class="w-28 shrink-0 pl-2">Status</div>
         <div v-if="columns.modified.visible" class="w-24 shrink-0 pr-2 text-right">Modified</div>
         <div v-if="columns.created_by.visible" class="w-28 shrink-0 pl-2">Created By</div>
-        <div class="relative flex w-10 shrink-0 items-center justify-end pr-1" ref="columnsPicker">
+        <div class="relative flex w-8 shrink-0 items-center justify-end pr-1" ref="columnsPicker">
           <Tooltip text="Manage columns">
             <button
               class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-7 focus:outline-none"
@@ -342,8 +342,8 @@
                 </Tooltip>
               </div>
 
-              <!-- Comments count -->
-              <div class="flex w-10 shrink-0 items-center justify-end gap-1 pr-1 py-2">
+              <!-- Row actions -->
+              <div class="flex w-8 shrink-0 items-center justify-end pr-1 py-2">
                 <Tooltip text="Delete task" v-if="canDeleteTask(d)">
                   <button
                     class="invisible grid h-6 w-6 shrink-0 place-items-center rounded text-ink-gray-4 hover:bg-surface-red-1 hover:text-red-500 focus:visible focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3 group-hover:visible"
@@ -353,12 +353,6 @@
                     <LucideTrash2 class="h-3.5 w-3.5" />
                   </button>
                 </Tooltip>
-                <div
-                  class="inline-grid h-4 w-4 shrink-0 place-items-center rounded-full bg-surface-gray-3 text-xs"
-                  :class="[d.unread ? 'text-ink-gray-9' : 'text-ink-gray-5', d.comments_count ? '' : 'invisible']"
-                >
-                  {{ d.comments_count || 0 }}
-                </div>
               </div>
             </div>
             <div class="mx-2.5 border-b" v-if="index < visibleTasksForGroup(group.tasks).length - 1"></div>
