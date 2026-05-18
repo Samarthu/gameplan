@@ -93,6 +93,7 @@
 
         <!-- Delete button -->
         <button
+          v-if="canDeleteTask(task)"
           class="invisible shrink-0 rounded p-0.5 text-ink-gray-3 hover:text-red-500 group-hover:visible"
           @click.stop="deleteTask(task)"
         >
@@ -193,6 +194,15 @@ export default {
       this.$resources.deleteTaskResource.submit(
         { doctype: 'GP Task', name: task.name },
         { onSuccess: () => this.childTasks.reload() },
+      )
+    },
+    canDeleteTask(task) {
+      const user = this.$user('sessionUser')
+      return (
+        task.owner === user.name ||
+        user.name === 'Administrator' ||
+        user.role === 'Gameplan Admin' ||
+        user.is_system_manager
       )
     },
     changeStatus(task, status) {

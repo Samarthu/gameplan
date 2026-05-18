@@ -20,6 +20,7 @@
             v-focus
           />
           <Dropdown
+            v-if="canDeleteTask"
             :options="[
               {
                 label: 'Delete',
@@ -469,6 +470,17 @@ export default {
           label: team.title,
           value: team.name,
         }))
+    },
+    canDeleteTask() {
+      const task = this.$resources.task.doc
+      const user = this.$user('sessionUser')
+      return Boolean(
+        task &&
+          (task.owner === user.name ||
+            user.name === 'Administrator' ||
+            user.role === 'Gameplan Admin' ||
+            user.is_system_manager),
+      )
     },
   },
   components: {

@@ -15,7 +15,11 @@ export let Dialogs = {
         {{
           'body-content': () => {
             return [
-              dialog.message && <p class="text-p-base text-ink-gray-7">{dialog.message}</p>,
+              dialog.message && (
+                <p class="max-w-full whitespace-normal break-words text-p-base text-ink-gray-7">
+                  {dialog.message}
+                </p>
+              ),
               dialog.input && (
                 <div class="mt-3">
                   {dialog.input.label && (

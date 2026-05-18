@@ -33,6 +33,7 @@ const routes = [
     name: 'MyTasks',
     path: '/tasks',
     component: () => import('@/pages/MyTasks.vue'),
+    meta: { fullWidth: true },
   },
   {
     name: 'Task',
@@ -133,6 +134,7 @@ const routes = [
             name: 'TeamTasks',
             path: 'tasks',
             component: () => import('@/pages/TeamTasks.vue'),
+            meta: { fullWidth: true },
           },
         ],
       },
@@ -176,6 +178,7 @@ const routes = [
                 path: 'tasks',
                 component: () => import('@/pages/ProjectTasks.vue'),
                 props: true,
+                meta: { fullWidth: true },
               },
               {
                 name: 'ProjectTaskDetail',

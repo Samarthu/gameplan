@@ -1,334 +1,61 @@
 <template>
   <div>
-    <div class="@container" v-if="tasks.data?.length">
-      <!-- Column header row -->
-      <div v-if="!compact" class="flex items-center border-b border-outline-gray-2 px-1 py-1.5 text-xs font-medium text-ink-gray-5">
-        <div class="w-9 shrink-0"></div>
-        <div class="w-7 shrink-0"></div>
-        <div class="w-4 shrink-0"></div>
-        <div class="min-w-0 flex-1 pl-1">Task</div>
-        <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
-        <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
-        <div v-if="columns.due_date.visible" class="w-24 shrink-0 pl-2">Due Date</div>
-        <div v-if="columns.status.visible" class="w-28 shrink-0 pl-2">Status</div>
-        <div v-if="columns.modified.visible" class="w-24 shrink-0 pr-2 text-right">Modified</div>
-        <div v-if="columns.created_by.visible" class="w-28 shrink-0 pl-2">Created By</div>
-        <div class="relative flex w-10 shrink-0 items-center justify-end pr-1" ref="columnsPicker">
-          <Tooltip text="Manage columns">
-            <button
-              class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-7 focus:outline-none"
-              @click.stop="showColumnsPicker = !showColumnsPicker"
-            >
-              <LucideSlidersHorizontal class="h-3.5 w-3.5" />
-            </button>
-          </Tooltip>
-          <div
-            v-if="showColumnsPicker"
-            class="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-outline-gray-2 bg-surface-white py-1 shadow-lg"
-            @click.stop
-          >
-            <div class="border-b border-outline-gray-2 px-3 py-1.5 text-xs font-semibold text-ink-gray-5">
-              Columns
-            </div>
-            <button
-              v-for="(col, key) in columns"
-              :key="key"
-              class="flex w-full items-center gap-2.5 px-3 py-1.5 text-sm text-ink-gray-8 hover:bg-surface-gray-2"
-              @click="toggleColumn(key)"
-            >
-              <span
-                class="flex h-4 w-4 shrink-0 items-center justify-center rounded border"
-                :class="col.visible ? 'border-ink-gray-9 bg-ink-gray-9' : 'border-outline-gray-3 bg-surface-white'"
-              >
-                <LucideCheck v-if="col.visible" class="h-3 w-3 text-surface-white" />
-              </span>
-              {{ col.label }}
-            </button>
-          </div>
-        </div>
-      </div>
+    <KanbanView
+      v-if="tasks.data?.length && viewMode === 'kanban'"
+      :tasksResource="tasks"
+      :kanbanGroups="kanbanGroups"
+      :childTasksByParent="childTasksByParent"
+      :isSelected="isSelected"
+      :toggleTask="toggleTask"
+      :taskRoute="taskRoute"
+      :assigneeIds="assigneeIds"
+      :visibleAssigneeIds="visibleAssigneeIds"
+      :isTaskOverdue="isTaskOverdue"
+      :priorityIconClass="priorityIconClass"
+      :statusOptions="statusOptions"
+      :kanbanColumnClass="kanbanColumnClass"
+      @request-new-task="$emit('request-new-task', $event)"
+    />
 
-      <!-- Groups -->
-      <div v-for="group in groupedTasks" :key="group.title">
-        <button
-          class="group flex w-full items-baseline rounded-sm bg-surface-menu-bar px-2.5 py-2 text-base transition hover:bg-surface-gray-2"
-          v-if="group.title && group.tasks.length"
-          @click="isOpen[group.title] = !isOpen[group.title]"
-        >
-          <label class="mr-2 flex items-center" @click.stop>
-            <input
-              type="checkbox"
-              class="h-3.5 w-3.5 rounded border-outline-gray-3 text-ink-gray-9 focus:ring-0"
-              :checked="isGroupFullySelected(group)"
-              :indeterminate.prop="isGroupPartiallySelected(group)"
-              @change="toggleGroup(group)"
-            />
-          </label>
-          <span class="font-medium text-ink-gray-9">{{ group.title }}</span>
-          <span class="ml-2 text-sm text-ink-gray-5">{{ group.tasks.length }}</span>
-          <span class="ml-auto hidden text-sm text-ink-gray-5 group-hover:inline">
-            {{ isOpen[group.title] ? 'Collapse' : 'Expand' }}
-          </span>
-        </button>
-
-        <div :class="{ hidden: !(isOpen[group.title] ?? true) }">
-          <div v-for="(d, index) in group.tasks" :key="d.name">
-            <!-- ── Compact card row (overview widgets) ── -->
-            <div
-              v-if="compact"
-              class="flex cursor-pointer items-center gap-3 rounded px-2 py-2.5 transition"
-              :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
-              @click="$router.push(taskRoute(d))"
-            >
-              <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" class="shrink-0" />
-              <div class="min-w-0 flex-1">
-                <div class="flex items-baseline justify-between gap-2">
-                  <span class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium text-ink-gray-9">
-                    {{ d.title }}
-                  </span>
-                  <span class="shrink-0 whitespace-nowrap text-sm text-ink-gray-4">
-                    {{ $dayjs(d.modified).fromNow() }}
-                  </span>
-                </div>
-                <div class="mt-0.5 flex items-center justify-between text-sm text-ink-gray-4">
-                  <span>#{{ d.name }}</span>
-                  <div
-                    class="inline-grid h-4 w-4 place-items-center rounded-full bg-surface-gray-3 text-xs"
-                    :class="[d.unread ? 'text-ink-gray-9' : 'text-ink-gray-5', d.comments_count ? '' : 'invisible']"
-                  >
-                    {{ d.comments_count || 0 }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- ── Full table row (tasks page) ── -->
-            <div
-              v-else
-              class="flex cursor-pointer items-center rounded transition"
-              :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
-              @click="$router.push(taskRoute(d))"
-            >
-              <!-- Checkbox -->
-              <label class="flex w-9 shrink-0 cursor-pointer items-center justify-center py-2" @click.stop>
-                <input
-                  type="checkbox"
-                  class="h-4 w-4 cursor-pointer rounded border-gray-300 accent-gray-800 focus:ring-0"
-                  :checked="isSelected(d.name)"
-                  @change="toggleTask(d.name)"
-                />
-              </label>
-
-              <!-- Status icon -->
-              <div class="flex w-7 shrink-0 items-center justify-center py-2" @click.stop>
-                <LoadingIndicator
-                  class="h-4 w-4 text-ink-gray-5"
-                  v-if="tasks.delete.loading && tasks.delete.params.name === d.name"
-                />
-                <Tooltip text="Change status" v-else>
-                  <Dropdown
-                    :options="statusOptions({ onClick: (status) => tasks.setValue.submit({ status, name: d.name }) })"
-                  >
-                    <button class="flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3">
-                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
-                    </button>
-                  </Dropdown>
-                </Tooltip>
-              </div>
-
-              <!-- Child task indicator -->
-              <div class="flex w-4 shrink-0 items-center justify-center">
-                <LucideCornerDownRight
-                  v-if="d.parent_task"
-                  class="h-3 w-3 text-ink-gray-3"
-                />
-              </div>
-
-              <!-- Title + ID/Project -->
-              <router-link
-                :to="taskRoute(d)"
-                class="flex min-h-[2.5rem] min-w-0 flex-1 items-center py-2 pr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-                :class="{ 'pointer-events-none': tasks.delete.loading && tasks.delete.params.name === d.name }"
-                @click.stop
-              >
-                <div class="min-w-0">
-                  <div class="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium leading-4 text-ink-gray-9">
-                    {{ d.title }}
-                  </div>
-                  <div class="mt-1 flex items-center text-sm text-ink-gray-5">
-                    <span>#{{ d.name }}</span>
-                    <template v-if="$route.name != 'ProjectOverview' && d.project">
-                      <span class="mx-1">&middot;</span>
-                      <span class="shrink-0">{{ d.team_title }}</span>
-                      <LucideChevronRight class="h-3 w-3 shrink-0" />
-                      <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ d.project_title }}</span>
-                    </template>
-                  </div>
-                </div>
-              </router-link>
-
-              <!-- Assignee column (inline edit) -->
-              <div
-                v-if="columns.assignee.visible"
-                class="relative flex w-28 shrink-0 items-center justify-center py-2"
-              >
-                <button
-                  class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none"
-                  @click.stop="toggleInlinePopover(d.name, 'assignee')"
-                >
-                  <template v-if="assigneeIds(d).length">
-                    <div class="isolate flex items-center" :class="assigneeStackSpacingClass(d)">
-                      <Tooltip
-                        v-for="(uid, idx) in visibleAssigneeIds(d)"
-                        :key="uid + '-' + idx"
-                        :text="$user(uid).full_name"
-                      >
-                        <span
-                          class="relative inline-flex rounded-full ring-2 ring-surface-white"
-                          :style="{ zIndex: idx + 1 }"
-                        >
-                          <UserAvatar class="shrink-0" :user="uid" size="sm" />
-                        </span>
-                      </Tooltip>
-                      <Tooltip v-if="extraAssigneeCount(d) > 0" :text="extraAssigneeNames(d)">
-                        <span class="relative inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-surface-gray-3 px-1 text-xs font-medium text-ink-gray-8 ring-2 ring-surface-white">
-                          +{{ extraAssigneeCount(d) }}
-                        </span>
-                      </Tooltip>
-                    </div>
-                  </template>
-                  <span v-else class="text-sm text-ink-gray-3">—</span>
-                </button>
-                <!-- Assignee picker popover -->
-                <div
-                  v-if="inlinePopover.name === d.name && inlinePopover.field === 'assignee'"
-                  class="absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
-                  @click.stop
-                >
-                  <Autocomplete
-                    :options="userOptions"
-                    placeholder="Search user..."
-                    @update:modelValue="(opt) => setAssignee(d, opt)"
-                  />
-                </div>
-              </div>
-
-              <!-- Priority column (inline edit) -->
-              <div
-                v-if="columns.priority.visible"
-                class="flex w-24 shrink-0 items-center py-2 pl-2"
-              >
-                <div @click.stop>
-                  <Dropdown :options="priorityOptions(d)">
-                    <button class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
-                      <template v-if="d.priority">
-                        <div
-                          class="h-2 w-2 shrink-0 rounded-full"
-                          :class="{
-                            'bg-red-600': d.priority === 'Urgent',
-                            'bg-surface-red-5': d.priority === 'High',
-                            'bg-surface-amber-3': d.priority === 'Medium',
-                            'bg-surface-gray-5': d.priority === 'Low',
-                          }"
-                        ></div>
-                        <span class="ml-1 text-sm text-ink-gray-7">{{ d.priority }}</span>
-                      </template>
-                      <span v-else class="text-sm text-ink-gray-3">—</span>
-                    </button>
-                  </Dropdown>
-                </div>
-              </div>
-
-              <!-- Due Date column (inline edit) -->
-              <div
-                v-if="columns.due_date.visible"
-                class="relative flex w-24 shrink-0 items-center py-2 pl-2"
-              >
-                <button
-                  class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none"
-                  @click.stop="toggleInlinePopover(d.name, 'due_date')"
-                >
-                  <template v-if="d.due_date">
-                    <LucideCalendar
-                      class="h-3 w-3 shrink-0"
-                      :class="isTaskOverdue(d) ? 'text-red-500' : 'text-ink-gray-5'"
-                    />
-                    <span
-                      class="ml-1 whitespace-nowrap text-sm"
-                      :class="isTaskOverdue(d) ? 'text-red-500' : 'text-ink-gray-5'"
-                    >
-                      {{ $dayjs(d.due_date).format('D MMM') }}
-                    </span>
-                  </template>
-                  <span v-else class="text-sm text-ink-gray-3">—</span>
-                </button>
-                <!-- Date picker popover -->
-                <div
-                  v-if="inlinePopover.name === d.name && inlinePopover.field === 'due_date'"
-                  class="absolute left-0 top-full z-50 mt-1 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
-                  @click.stop
-                >
-                  <input
-                    type="date"
-                    :value="d.due_date"
-                    class="block rounded-md border border-outline-gray-2 px-2 py-1 text-sm text-ink-gray-9 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
-                    @change="setDueDate(d, $event.target.value)"
-                  />
-                  <button
-                    v-if="d.due_date"
-                    class="mt-1 w-full rounded px-2 py-1 text-xs text-ink-gray-5 hover:bg-surface-gray-2"
-                    @click="setDueDate(d, '')"
-                  >
-                    Clear date
-                  </button>
-                </div>
-              </div>
-
-              <!-- Status text column (inline edit) -->
-              <div
-                v-if="columns.status.visible"
-                class="flex w-28 shrink-0 items-center py-2 pl-2"
-              >
-                <div @click.stop>
-                  <Dropdown :options="statusOptions({ onClick: (status) => tasks.setValue.submit({ status, name: d.name }) })">
-                    <button class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
-                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
-                      <span class="ml-1 text-sm text-ink-gray-7">{{ d.status || '—' }}</span>
-                    </button>
-                  </Dropdown>
-                </div>
-              </div>
-
-              <!-- Modified column -->
-              <div v-if="columns.modified.visible" class="w-24 shrink-0 py-2 pr-2 text-right">
-                <span class="whitespace-nowrap text-sm text-ink-gray-5">{{ $dayjs(d.modified).fromNow() }}</span>
-              </div>
-
-              <!-- Created By column -->
-              <div v-if="columns.created_by.visible" class="flex w-28 shrink-0 items-center py-2 pl-2">
-                <Tooltip :text="$user(d.owner).full_name || d.owner">
-                  <UserAvatar class="shrink-0" :user="d.owner" size="sm" />
-                </Tooltip>
-                <span class="ml-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-ink-gray-6">
-                  {{ $user(d.owner).full_name || d.owner }}
-                </span>
-              </div>
-
-              <!-- Comments count -->
-              <div class="flex w-10 shrink-0 items-center justify-end pr-1 py-2">
-                <div
-                  class="inline-grid h-4 w-4 shrink-0 place-items-center rounded-full bg-surface-gray-3 text-xs"
-                  :class="[d.unread ? 'text-ink-gray-9' : 'text-ink-gray-5', d.comments_count ? '' : 'invisible']"
-                >
-                  {{ d.comments_count || 0 }}
-                </div>
-              </div>
-            </div>
-            <div class="mx-2.5 border-b" v-if="index < group.tasks.length - 1"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ListView
+      v-else-if="tasks.data?.length"
+      :tasksResource="tasks"
+      :groupedTasks="groupedTasks"
+      :compact="compact"
+      :columns="columns"
+      :isOpen="isOpen"
+      :horizontalScrollLeft="horizontalScrollLeft"
+      :showColumnsPicker="showColumnsPicker"
+      :inlinePopover="inlinePopover"
+      :userOptions="userOptions"
+      :syncGroupHeaderScroll="syncGroupHeaderScroll"
+      :visibleTasksForGroup="visibleTasksForGroup"
+      :isGroupFullySelected="isGroupFullySelected"
+      :isGroupPartiallySelected="isGroupPartiallySelected"
+      :toggleGroup="toggleGroup"
+      :isSelected="isSelected"
+      :toggleTask="toggleTask"
+      :taskRoute="taskRoute"
+      :isTaskOverdue="isTaskOverdue"
+      :statusOptions="statusOptions"
+      :hasChildTasks="hasChildTasks"
+      :isChildTasksOpen="isChildTasksOpen"
+      :toggleChildTasks="toggleChildTasks"
+      :taskDepth="taskDepth"
+      :assigneeIds="assigneeIds"
+      :assigneeStackSpacingClass="assigneeStackSpacingClass"
+      :visibleAssigneeIds="visibleAssigneeIds"
+      :extraAssigneeCount="extraAssigneeCount"
+      :extraAssigneeNames="extraAssigneeNames"
+      :toggleInlinePopover="toggleInlinePopover"
+      :setAssignee="setAssignee"
+      :priorityOptions="priorityOptions"
+      :setDueDate="setDueDate"
+      :canDeleteTask="canDeleteTask"
+      :confirmDeleteTask="confirmDeleteTask"
+      :toggleColumn="toggleColumn"
+      :toggleColumnsPicker="toggleColumnsPicker"
+    />
 
     <div
       class="flex flex-col items-center rounded-lg border-2 border-dashed py-8 text-base text-ink-gray-5"
@@ -431,9 +158,10 @@
 </template>
 <script>
 import { h } from 'vue'
-import { LoadingIndicator, Dropdown, Tooltip, Autocomplete } from 'frappe-ui'
+import { Dropdown, Autocomplete } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
-import UserAvatar from './UserAvatar.vue'
+import ListView from './ListView.vue'
+import KanbanView from './KanbanView.vue'
 import { activeProjects } from '@/data/projects'
 import { activeUsers } from '@/data/users'
 
@@ -442,6 +170,10 @@ const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
 export default {
   name: 'TaskList',
   props: {
+    viewMode: {
+      type: String,
+      default: 'list',
+    },
     groupByStatus: {
       type: Boolean,
       default: false,
@@ -472,6 +204,8 @@ export default {
         Done: false,
       },
       selectedTasks: [],
+      openChildTasks: {},
+      horizontalScrollLeft: 0,
       activePopover: null,
       showColumnsPicker: false,
       inlinePopover: { name: null, field: null },
@@ -492,12 +226,11 @@ export default {
     document.removeEventListener('click', this.handleOutsideClick)
   },
   components: {
-    LoadingIndicator,
     Dropdown,
-    Tooltip,
     Autocomplete,
     TaskStatusIcon,
-    UserAvatar,
+    ListView,
+    KanbanView,
   },
   resources: {
     tasks() {
@@ -516,6 +249,45 @@ export default {
     },
   },
   methods: {
+    syncGroupHeaderScroll(event) {
+      this.horizontalScrollLeft = event.target.scrollLeft
+    },
+    hasChildTasks(task) {
+      return Boolean(this.childTasksByParent[task.name]?.length)
+    },
+    isChildTasksOpen(taskName) {
+      return Boolean(this.openChildTasks[taskName])
+    },
+    toggleChildTasks(taskName) {
+      this.openChildTasks = {
+        ...this.openChildTasks,
+        [taskName]: !this.openChildTasks[taskName],
+      }
+    },
+    visibleTasksForGroup(tasks) {
+      return this.collectVisibleTasks(tasks)
+    },
+    collectVisibleTasks(tasks, depth = 0, visited = new Set()) {
+      const visibleTasks = []
+      for (const task of tasks) {
+        if (visited.has(task.name)) continue
+        visited.add(task.name)
+        visibleTasks.push({ ...task, _depth: depth })
+        if (this.isChildTasksOpen(task.name)) {
+          visibleTasks.push(
+            ...this.collectVisibleTasks(
+              this.childTasksByParent[task.name] || [],
+              depth + 1,
+              visited,
+            ),
+          )
+        }
+      }
+      return visibleTasks
+    },
+    taskDepth(task) {
+      return Number(task._depth || 0)
+    },
     taskRoute(task) {
       if (this.$route.name === 'TeamTasks') {
         return {
@@ -543,8 +315,11 @@ export default {
       for (const [k, v] of Object.entries(this.columns)) toSave[k] = v.visible
       localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(toSave))
     },
+    toggleColumnsPicker() {
+      this.showColumnsPicker = !this.showColumnsPicker
+    },
     handleOutsideClick(e) {
-      if (this.showColumnsPicker && !this.$refs.columnsPicker?.contains(e.target)) {
+      if (this.showColumnsPicker) {
         this.showColumnsPicker = false
       }
       if (this.inlinePopover.name) {
@@ -578,6 +353,26 @@ export default {
         label: p,
         onClick: () => this.tasks.setValue.submit({ name: task.name, priority: p }),
       }))
+    },
+    priorityIconClass(priority) {
+      return {
+        Urgent: 'text-red-600',
+        High: 'text-red-500',
+        Medium: 'text-amber-500',
+        Low: 'text-ink-gray-5',
+      }[priority] || 'text-ink-gray-5'
+    },
+    kanbanColumnClass(status) {
+      return {
+        Backlog: 'bg-surface-gray-1',
+        Todo: 'bg-amber-50',
+        'In Progress': 'bg-pink-50',
+        'Under Testing': 'bg-surface-blue-1',
+        'Ready to Merge': 'bg-green-50',
+        Done: 'bg-green-50',
+        Cancelled: 'bg-surface-red-1',
+        Reopen: 'bg-orange-50',
+      }[status] || 'bg-surface-gray-1'
     },
 
     // Selection helpers
@@ -634,6 +429,37 @@ export default {
       if (!option) return
       this.activePopover = null
       this.bulkUpdate('project', option.value)
+    },
+    canDeleteTask(task) {
+      const user = this.$user('sessionUser')
+      return (
+        task.owner === user.name ||
+        user.name === 'Administrator' ||
+        user.role === 'Gameplan Admin' ||
+        user.is_system_manager
+      )
+    },
+    confirmDeleteTask(task) {
+      this.$dialog({
+        title: 'Delete task',
+        message: 'Are you sure you want to delete this task?',
+        actions: [
+          {
+            label: 'Delete',
+            theme: 'red',
+            variant: 'solid',
+            onClick: (close) => {
+              return this.tasks.delete.submit(task.name, {
+                onSuccess: () => {
+                  close()
+                  this.selectedTasks = this.selectedTasks.filter((name) => name !== task.name)
+                  this.tasks.reload()
+                },
+              })
+            },
+          },
+        ],
+      })
     },
 
     normalizeUserIdList(val) {
@@ -728,7 +554,7 @@ export default {
     },
     groupedTasks() {
       if (!this.groupByStatus) {
-        return [{ id: 'all', title: '', tasks: this.tasks.data }]
+        return [{ id: 'all', title: '', tasks: this.topLevelTasks }]
       }
       return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Reopen'].map((status) => {
         return {
@@ -738,15 +564,37 @@ export default {
         }
       })
     },
+    kanbanGroups() {
+      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+        return {
+          id: status,
+          title: status,
+          tasks: this.tasksByStatus[status] || [],
+        }
+      })
+    },
     tasksByStatus() {
       const tasksByStatus = {}
-      this.tasks.data.forEach((task) => {
+      this.topLevelTasks.forEach((task) => {
         if (!tasksByStatus[task.status]) {
           tasksByStatus[task.status] = []
         }
         tasksByStatus[task.status].push(task)
       })
       return tasksByStatus
+    },
+    childTasksByParent() {
+      return (this.tasks.data || []).reduce((childrenByParent, task) => {
+        if (!task.parent_task) return childrenByParent
+        if (!childrenByParent[task.parent_task]) {
+          childrenByParent[task.parent_task] = []
+        }
+        childrenByParent[task.parent_task].push(task)
+        return childrenByParent
+      }, {})
+    },
+    topLevelTasks() {
+      return (this.tasks.data || []).filter((task) => !task.parent_task)
     },
   },
 }

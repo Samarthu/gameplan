@@ -66,6 +66,39 @@ def enrich_task_rows_with_assignees(rows: list):
 		row["assignee_users"] = users
 
 
+def append_descendant_task_rows(rows: list, fields):
+	if not rows:
+		return rows
+
+	seen = {str(row.name) for row in rows if row.get("name") is not None}
+	parent_names = list(seen)
+	descendants = []
+	fetch_fields = fields or ["*"]
+
+	while parent_names:
+		children = frappe.get_all(
+			"GP Task",
+			filters={"parent_task": ["in", parent_names]},
+			fields=fetch_fields,
+			order_by="creation asc",
+		)
+		parent_names = []
+		for child in children:
+			child_name = str(child.name)
+			if child_name in seen:
+				continue
+			if not can_access_team(child.get("team")):
+				continue
+			seen.add(child_name)
+			parent_names.append(child_name)
+			descendants.append(child)
+
+	if descendants:
+		enrich_task_rows_with_assignees(descendants)
+		rows.extend(descendants)
+	return rows
+
+
 class GPTask(HasMentions, HasActivity, Document):
 	on_delete_cascade = ["GP Comment", "GP Activity", "GP Task Team Link"]
 	on_delete_set_null = ["GP Notification"]
@@ -232,6 +265,15 @@ class GPTask(HasMentions, HasActivity, Document):
 		return self.get_linked_teams()
 
 
+def has_permission(doc, user, ptype):
+	if ptype != "delete":
+		return None
+	if user == "Administrator" or doc.owner == user:
+		return True
+	roles = frappe.get_roles(user)
+	return bool({"Gameplan Admin", "System Manager"} & set(roles))
+
+
 @frappe.whitelist()
 def get_list(
 	fields=None,
@@ -299,7 +341,7 @@ def get_list(
 		query = query.where((Task.assigned_to == assigned_to_filter) | (Task.name.isin(sub)))
 	rows = query.run(as_dict=True, debug=debug)
 	enrich_task_rows_with_assignees(rows)
-	return rows
+	return append_descendant_task_rows(rows, fields)
 
 
 @frappe.whitelist()
