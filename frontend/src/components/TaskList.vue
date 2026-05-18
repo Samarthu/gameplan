@@ -78,7 +78,7 @@
         </button>
         <!-- Task rows: inside min-w-max for horizontal scroll -->
         <div class="min-w-max" :class="{ hidden: !(isOpen[group.title] ?? true) }">
-          <div v-for="(d, index) in group.tasks" :key="d.name">
+          <div v-for="(d, index) in visibleTasksForGroup(group.tasks)" :key="d.name">
             <!-- ── Compact card row (overview widgets) ── -->
             <div
               v-if="compact"
@@ -112,12 +112,26 @@
             <div
               v-else
               class="group flex cursor-pointer items-center rounded transition"
-              :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
+              :class="[
+                isSelected(d.name)
+                  ? 'bg-surface-blue-1'
+                  : d.parent_task
+                    ? 'bg-surface-gray-1 hover:bg-surface-gray-2'
+                    : 'hover:bg-surface-gray-2',
+                d.parent_task ? 'border-l-2 border-outline-gray-3' : '',
+              ]"
               @click="$router.push(taskRoute(d))"
             >
               <!-- Sticky Task column: checkbox + status + child indicator + title -->
               <div class="sticky left-0 z-10 flex w-[21rem] shrink-0 items-center"
-                :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'bg-surface-white group-hover:bg-surface-gray-2'">
+                :class="[
+                  isSelected(d.name)
+                    ? 'bg-surface-blue-1'
+                    : d.parent_task
+                      ? 'bg-surface-gray-1 group-hover:bg-surface-gray-2'
+                      : 'bg-surface-white group-hover:bg-surface-gray-2',
+                  d.parent_task ? 'pl-4' : '',
+                ]">
                 <!-- Checkbox -->
                 <label class="flex w-9 shrink-0 cursor-pointer items-center justify-center py-2" @click.stop>
                   <input
@@ -147,8 +161,22 @@
 
                 <!-- Child task indicator -->
                 <div class="flex w-4 shrink-0 items-center justify-center">
+                  <button
+                    v-if="hasChildTasks(d)"
+                    class="rounded p-0.5 text-ink-gray-4 hover:bg-surface-gray-3 hover:text-ink-gray-7 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+                    @click.stop="toggleChildTasks(d.name)"
+                  >
+                    <LucideChevronDown
+                      v-if="isChildTasksOpen(d.name)"
+                      class="h-3 w-3"
+                    />
+                    <LucideChevronRight
+                      v-else
+                      class="h-3 w-3"
+                    />
+                  </button>
                   <LucideCornerDownRight
-                    v-if="d.parent_task"
+                    v-else-if="d.parent_task"
                     class="h-3 w-3 text-ink-gray-3"
                   />
                 </div>
@@ -323,7 +351,7 @@
                 </div>
               </div>
             </div>
-            <div class="mx-2.5 border-b" v-if="index < group.tasks.length - 1"></div>
+            <div class="mx-2.5 border-b" v-if="index < visibleTasksForGroup(group.tasks).length - 1"></div>
           </div>
         </div><!-- end min-w-max per group -->
       </div>
@@ -471,6 +499,7 @@ export default {
         Done: false,
       },
       selectedTasks: [],
+      openChildTasks: {},
       horizontalScrollLeft: 0,
       activePopover: null,
       showColumnsPicker: false,
@@ -518,6 +547,28 @@ export default {
   methods: {
     syncGroupHeaderScroll(event) {
       this.horizontalScrollLeft = event.target.scrollLeft
+    },
+    hasChildTasks(task) {
+      return Boolean(this.childTasksByParent[task.name]?.length)
+    },
+    isChildTasksOpen(taskName) {
+      return Boolean(this.openChildTasks[taskName])
+    },
+    toggleChildTasks(taskName) {
+      this.openChildTasks = {
+        ...this.openChildTasks,
+        [taskName]: !this.openChildTasks[taskName],
+      }
+    },
+    visibleTasksForGroup(tasks) {
+      const visibleTasks = []
+      for (const task of tasks) {
+        visibleTasks.push(task)
+        if (this.isChildTasksOpen(task.name)) {
+          visibleTasks.push(...(this.childTasksByParent[task.name] || []))
+        }
+      }
+      return visibleTasks
     },
     taskRoute(task) {
       if (this.$route.name === 'TeamTasks') {
@@ -731,7 +782,7 @@ export default {
     },
     groupedTasks() {
       if (!this.groupByStatus) {
-        return [{ id: 'all', title: '', tasks: this.tasks.data }]
+        return [{ id: 'all', title: '', tasks: this.topLevelTasks }]
       }
       return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Reopen'].map((status) => {
         return {
@@ -743,13 +794,26 @@ export default {
     },
     tasksByStatus() {
       const tasksByStatus = {}
-      this.tasks.data.forEach((task) => {
+      this.topLevelTasks.forEach((task) => {
         if (!tasksByStatus[task.status]) {
           tasksByStatus[task.status] = []
         }
         tasksByStatus[task.status].push(task)
       })
       return tasksByStatus
+    },
+    childTasksByParent() {
+      return (this.tasks.data || []).reduce((childrenByParent, task) => {
+        if (!task.parent_task) return childrenByParent
+        if (!childrenByParent[task.parent_task]) {
+          childrenByParent[task.parent_task] = []
+        }
+        childrenByParent[task.parent_task].push(task)
+        return childrenByParent
+      }, {})
+    },
+    topLevelTasks() {
+      return (this.tasks.data || []).filter((task) => !task.parent_task)
     },
   },
 }
