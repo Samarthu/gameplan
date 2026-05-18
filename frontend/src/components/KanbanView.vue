@@ -5,10 +5,10 @@
         <section
           v-for="group in kanbanGroups"
           :key="group.title"
-          class="flex w-72 shrink-0 flex-col rounded-lg border border-outline-gray-2 bg-surface-gray-1/70"
+          class="kanban-column flex w-72 shrink-0 flex-col rounded-lg border border-outline-gray-2 bg-surface-gray-1/70"
           :class="[
             kanbanColumnClass(group.title),
-            dragOverStatus === group.title ? 'ring-2 ring-outline-gray-4' : '',
+            dragOverStatus === group.title ? 'kanban-column-drop-target ring-2 ring-outline-gray-4' : '',
           ]"
           @dragover.prevent="onColumnDragOver(group.title)"
           @dragleave="onColumnDragLeave(group.title, $event)"
@@ -28,7 +28,7 @@
             </button>
           </div>
 
-          <div class="flex-1 space-y-2 overflow-y-auto px-2 pb-3">
+          <div class="flex-1 overflow-y-auto px-2 pb-3">
             <button
               v-if="!group.tasks.length"
               class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-medium text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-8"
@@ -38,19 +38,20 @@
               Add Task
             </button>
 
-            <article
-              v-for="d in group.tasks"
-              :key="d.name"
-              draggable="true"
-              class="group cursor-grab rounded-lg border border-outline-gray-2 bg-surface-white p-3 shadow-sm transition hover:border-outline-gray-3 hover:shadow active:cursor-grabbing"
-              :class="[
-                isSelected(d.name) ? 'ring-2 ring-outline-gray-4' : '',
-                draggedTask?.name === d.name ? 'opacity-50' : '',
-              ]"
-              @dragstart="onDragStart(d, $event)"
-              @dragend="onDragEnd"
-              @click="$router.push(taskRoute(d))"
-            >
+            <TransitionGroup name="kanban-card" tag="div" class="space-y-2">
+              <article
+                v-for="d in group.tasks"
+                :key="d.name"
+                draggable="true"
+                class="kanban-card group cursor-grab rounded-lg border border-outline-gray-2 bg-surface-white p-3 shadow-sm hover:border-outline-gray-3 hover:shadow active:cursor-grabbing"
+                :class="[
+                  isSelected(d.name) ? 'ring-2 ring-outline-gray-4' : '',
+                  draggedTask?.name === d.name ? 'kanban-card-dragging' : '',
+                ]"
+                @dragstart="onDragStart(d, $event)"
+                @dragend="onDragEnd"
+                @click="$router.push(taskRoute(d))"
+              >
               <div class="mb-2 flex items-start gap-2">
                 <label class="mt-0.5 flex shrink-0 cursor-pointer items-center" @click.stop>
                   <input
@@ -134,7 +135,8 @@
                   </button>
                 </div>
               </div>
-            </article>
+              </article>
+            </TransitionGroup>
 
             <button
               v-if="group.tasks.length"
@@ -195,6 +197,9 @@ export default {
       this.draggedTask = task
       event.dataTransfer.effectAllowed = 'move'
       event.dataTransfer.setData('text/plain', task.name)
+      if (event.dataTransfer.setDragImage) {
+        event.dataTransfer.setDragImage(event.currentTarget, 24, 24)
+      }
     },
     onColumnDragOver(status) {
       if (!this.draggedTask) return
@@ -221,3 +226,54 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.kanban-column {
+  transition:
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.kanban-column-drop-target {
+  transform: translateY(-2px);
+}
+
+.kanban-card {
+  will-change: transform, opacity;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 140ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.kanban-card:hover {
+  transform: translateY(-1px);
+}
+
+.kanban-card-dragging {
+  opacity: 0.45;
+  transform: scale(0.98);
+}
+
+.kanban-card-move,
+.kanban-card-enter-active,
+.kanban-card-leave-active {
+  transition:
+    transform 220ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 160ms ease;
+}
+
+.kanban-card-enter-from,
+.kanban-card-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+
+.kanban-card-leave-active {
+  position: absolute;
+  width: calc(100% - 1rem);
+}
+</style>
