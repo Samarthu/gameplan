@@ -127,11 +127,28 @@
             @update:modelValue="changeProject"
           />
         </div>
+        <ChildTasks
+          class="mt-8 border-t border-outline-gray-2 pt-6"
+          :parentTaskId="taskId"
+          :parentTask="$resources.task.doc"
+        />
         <CommentsList class="mt-8" doctype="GP Task" :name="taskId" />
       </div>
     </div>
     <div class="hidden w-[20rem] shrink-0 border-l sm:block">
       <div class="grid grid-cols-2 items-center gap-y-6 p-6 text-base text-ink-gray-7">
+        <template v-if="$resources.task.doc.parent_task">
+          <div class="text-ink-gray-7">Parent Task</div>
+          <div>
+            <button
+              class="flex items-center gap-1.5 rounded px-1.5 py-1 text-sm text-ink-gray-8 hover:bg-surface-gray-2 w-full text-left"
+              @click="openParentTask"
+            >
+              <LucideCornerLeftUp class="h-3.5 w-3.5 shrink-0 text-ink-gray-4" />
+              <span class="truncate">{{ parentTaskTitle || '#' + $resources.task.doc.parent_task }}</span>
+            </button>
+          </div>
+        </template>
         <div>Assignees</div>
         <div class="space-y-2">
           <div class="flex flex-wrap gap-1">
@@ -244,6 +261,7 @@ import { Autocomplete, Dropdown, LoadingText, DatePicker } from 'frappe-ui'
 import CommentsList from '@/components/CommentsList.vue'
 import TaskStatusIcon from '@/components/icons/TaskStatusIcon.vue'
 import TaskPriorityIcon from '@/components/icons/TaskPriorityIcon.vue'
+import ChildTasks from '@/components/ChildTasks.vue'
 import { activeUsers } from '@/data/users'
 import { activeTeams } from '@/data/teams'
 import { getTeamProjects } from '@/data/projects'
@@ -253,6 +271,16 @@ export default {
   props: ['taskId'],
   directives: { focus },
   resources: {
+    parentTask() {
+      const parentId = this.$resources.task?.doc?.parent_task
+      if (!parentId) return null
+      return {
+        type: 'document',
+        doctype: 'GP Task',
+        name: parentId,
+        auto: true,
+      }
+    },
     task() {
       return {
         type: 'document',
@@ -345,6 +373,14 @@ export default {
         },
       )
     },
+    openParentTask() {
+      const parent = this.$resources.parentTask?.doc
+      const parentId = this.$resources.task.doc.parent_task
+      this.$router.push({
+        name: parent?.project ? 'ProjectTaskDetail' : 'Task',
+        params: { teamId: parent?.team, projectId: parent?.project, taskId: parentId },
+      })
+    },
     updateRoute() {
       let task = this.$resources.task.doc
       if (task) {
@@ -360,6 +396,9 @@ export default {
     },
   },
   computed: {
+    parentTaskTitle() {
+      return this.$resources.parentTask?.doc?.title || null
+    },
     assigneeUserIds() {
       const doc = this.$resources.task.doc
       if (!doc) return []
@@ -378,7 +417,7 @@ export default {
       return this.assignableUsers.filter((o) => !ids.has(o.value))
     },
     statusOptions() {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -443,6 +482,7 @@ export default {
     LoadingText,
     TaskPriorityIcon,
     DatePicker,
+    ChildTasks,
   },
 }
 </script>

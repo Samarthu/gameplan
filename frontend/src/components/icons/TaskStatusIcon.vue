@@ -56,6 +56,13 @@
       clip-rule="evenodd"
       d="M8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1C4.13401 1 1 4.13401 1 8C1 11.866 4.13401 15 8 15ZM5.14645 5.14645C4.95118 5.34171 4.95118 5.65829 5.14645 5.85355L7.29289 8L5.14645 10.1464C4.95118 10.3417 4.95118 10.6583 5.14645 10.8536C5.34171 11.0488 5.65829 11.0488 5.85355 10.8536L8 8.70711L10.1464 10.8536C10.3417 11.0488 10.6583 11.0488 10.8536 10.8536C11.0488 10.6583 11.0488 10.3417 10.8536 10.1464L8.70711 8L10.8536 5.85355C11.0488 5.65829 11.0488 5.34171 10.8536 5.14645C10.6583 4.95118 10.3417 4.95118 10.1464 5.14645L8 7.29289L5.85355 5.14645C5.65829 4.95118 5.34171 4.95118 5.14645 5.14645Z"
     />
+    <path
+      v-else-if="status == 'Reopen'"
+      fill="currentColor"
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1ZM3.5 8A4.5 4.5 0 0 1 8 3.5V2a6 6 0 1 0 4.243 1.757L13.5 2.5H10v3.5l1.318-1.318A4.5 4.5 0 1 1 3.5 8Z"
+    />
   </svg>
 </template>
 <script>
@@ -73,7 +80,7 @@ export default {
   },
   computed: {
     statusColorClass() {
-      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled') {
+      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled' && this.status !== 'Reopen') {
         return 'text-red-500'
       }
       switch (this.status) {
@@ -89,6 +96,8 @@ export default {
           return 'text-amber-500'
         case 'Cancelled':
           return 'text-red-400'
+        case 'Reopen':
+          return 'text-orange-500'
         case 'Backlog':
         default:
           return 'text-gray-400'
