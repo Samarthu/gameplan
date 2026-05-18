@@ -4,7 +4,7 @@
       v-if="tasks.data?.length && viewMode === 'kanban'"
       :tasksResource="tasks"
       :kanbanGroups="kanbanGroups"
-      :visibleTasksForGroup="visibleTasksForGroup"
+      :childTasksByParent="childTasksByParent"
       :isSelected="isSelected"
       :toggleTask="toggleTask"
       :taskRoute="taskRoute"

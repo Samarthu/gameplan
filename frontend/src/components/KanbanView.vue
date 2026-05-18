@@ -39,7 +39,7 @@
             </button>
 
             <article
-              v-for="d in visibleTasksForGroup(group.tasks)"
+              v-for="d in group.tasks"
               :key="d.name"
               draggable="true"
               class="group cursor-grab rounded-lg border border-outline-gray-2 bg-surface-white p-3 shadow-sm transition hover:border-outline-gray-3 hover:shadow active:cursor-grabbing"
@@ -101,6 +101,39 @@
                 </Dropdown>
                 <span class="text-xs text-ink-gray-4">{{ $dayjs(d.modified).fromNow() }}</span>
               </div>
+
+              <div
+                v-if="childTasks(d).length"
+                class="mt-3 border-t border-outline-gray-2 pt-2"
+                @click.stop
+              >
+                <div class="mb-1.5 text-xs font-medium text-ink-gray-5">
+                  Child tasks
+                </div>
+                <div class="space-y-1">
+                  <button
+                    v-for="child in childTasks(d)"
+                    :key="child.name"
+                    class="flex w-full items-start gap-2 rounded px-1.5 py-1.5 text-left hover:bg-surface-gray-2"
+                    @click="$router.push(taskRoute(child))"
+                  >
+                    <TaskStatusIcon
+                      :status="child.status"
+                      :overdue="isTaskOverdue(child)"
+                      class="mt-0.5 shrink-0"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <div class="truncate text-sm font-medium text-ink-gray-8">
+                        {{ child.title }}
+                      </div>
+                      <div class="mt-0.5 flex items-center justify-between gap-2 text-xs text-ink-gray-5">
+                        <span>#{{ child.name }}</span>
+                        <span class="shrink-0">{{ child.status || '—' }}</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </article>
 
             <button
@@ -136,7 +169,7 @@ export default {
   props: {
     tasksResource: { type: Object, required: true },
     kanbanGroups: { type: Array, required: true },
-    visibleTasksForGroup: { type: Function, required: true },
+    childTasksByParent: { type: Object, required: true },
     isSelected: { type: Function, required: true },
     toggleTask: { type: Function, required: true },
     taskRoute: { type: Function, required: true },
@@ -155,6 +188,9 @@ export default {
     }
   },
   methods: {
+    childTasks(task) {
+      return this.childTasksByParent[task.name] || []
+    },
     onDragStart(task, event) {
       this.draggedTask = task
       event.dataTransfer.effectAllowed = 'move'
