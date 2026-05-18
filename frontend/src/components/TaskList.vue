@@ -305,13 +305,10 @@
               </div>
 
               <!-- Created By column -->
-              <div v-if="columns.created_by.visible" class="flex w-28 shrink-0 items-center py-2 pl-2">
+              <div v-if="columns.created_by.visible" class="flex w-28 shrink-0 items-center justify-center py-2 pl-2">
                 <Tooltip :text="$user(d.owner).full_name || d.owner">
                   <UserAvatar class="shrink-0" :user="d.owner" size="sm" />
                 </Tooltip>
-                <span class="ml-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-ink-gray-6">
-                  {{ $user(d.owner).full_name || d.owner }}
-                </span>
               </div>
 
               <!-- Comments count -->
