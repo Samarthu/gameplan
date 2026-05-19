@@ -1,6 +1,6 @@
 <template>
-  <div class="overflow-x-auto pb-3">
-    <div class="grid min-w-[86rem] grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
+  <div class="w-full overflow-x-hidden pb-3">
+    <div class="grid w-full grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] gap-3">
       <section
         v-for="member in memberProgress"
         :key="member.id"
@@ -22,14 +22,6 @@
             </div>
             <h3 class="truncate text-sm font-semibold text-ink-gray-8">{{ member.label }}</h3>
           </div>
-          <div class="flex shrink-0 items-center gap-1 text-ink-gray-5">
-            <button class="grid h-6 w-6 place-items-center rounded hover:bg-surface-gray-2">
-              <LucidePlus class="h-3.5 w-3.5" />
-            </button>
-            <button class="grid h-6 w-6 place-items-center rounded hover:bg-surface-gray-2">
-              <LucideChevronsDown class="h-3.5 w-3.5" />
-            </button>
-          </div>
         </div>
 
         <div class="mt-5 grid grid-cols-[1fr_1fr_auto] items-center gap-3 text-sm">
@@ -43,7 +35,7 @@
           </div>
           <div class="relative grid h-14 w-14 place-items-center rounded-full">
             <svg class="absolute inset-0 h-14 w-14 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
-              <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" stroke-width="3.5" class="text-surface-gray-3" />
+              <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" stroke-width="3.5" class="text-gray-100" />
               <circle
                 cx="18"
                 cy="18"
@@ -52,11 +44,11 @@
                 stroke="currentColor"
                 stroke-width="3.5"
                 stroke-linecap="round"
-                class="text-green-500"
-                :stroke-dasharray="`${member.donePercent} 100`"
+                class="text-green-400"
+                :stroke-dasharray="`${member.donePercent} ${100 - member.donePercent}`"
               />
             </svg>
-            <span class="text-xs font-semibold text-ink-gray-7">{{ member.donePercent }}%</span>
+            <span class="text-[11px] font-semibold leading-none text-ink-gray-6">{{ member.donePercent }}%</span>
           </div>
         </div>
 
