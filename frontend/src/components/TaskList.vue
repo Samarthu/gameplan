@@ -23,6 +23,14 @@
       @request-new-task="$emit('request-new-task', $event)"
     />
 
+    <TeamView
+      v-else-if="tasks.data?.length && viewMode === 'team'"
+      :tasks="topLevelTasks"
+      :assigneeIds="assigneeIds"
+      :taskRoute="taskRoute"
+      :isTaskOverdue="isTaskOverdue"
+    />
+
     <ListView
       v-else-if="tasks.data?.length"
       :tasksResource="tasks"
@@ -178,6 +186,7 @@ import { Dropdown, Autocomplete } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
+import TeamView from './TeamView.vue'
 import { activeProjects } from '@/data/projects'
 import { activeUsers } from '@/data/users'
 
@@ -248,6 +257,7 @@ export default {
     TaskStatusIcon,
     ListView,
     KanbanView,
+    TeamView,
   },
   resources: {
     tasks() {

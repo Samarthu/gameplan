@@ -26,6 +26,7 @@
           :buttons="[
             { label: 'List', value: 'list' },
             { label: 'Kanban', value: 'kanban' },
+            { label: 'Team', value: 'team' },
           ]"
           v-model="viewMode"
         />
@@ -54,12 +55,12 @@ const route = useRoute()
 const router = useRouter()
 let viewMode = computed({
   get() {
-    return route.query.view === 'kanban' ? 'kanban' : 'list'
+    return ['kanban', 'team'].includes(route.query.view) ? route.query.view : 'list'
   },
   set(value) {
     let query = { ...route.query }
-    if (value === 'kanban') {
-      query.view = 'kanban'
+    if (value !== 'list') {
+      query.view = value
     } else {
       delete query.view
     }
