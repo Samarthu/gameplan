@@ -12,7 +12,7 @@
         <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
         <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
         <div v-if="columns.due_date.visible" class="w-24 shrink-0 pl-2">Due Date</div>
-        <div v-if="columns.status.visible" class="w-28 shrink-0 pl-2">Status</div>
+        <div v-if="columns.status.visible" class="w-40 shrink-0 pl-2">Status</div>
         <div v-if="columns.modified.visible" class="w-24 shrink-0 pr-2 text-right">Modified</div>
         <div v-if="columns.created_by.visible" class="w-28 shrink-0 pl-2">Created By</div>
         <div class="relative flex w-8 shrink-0 items-center justify-end pr-1" >
@@ -295,13 +295,13 @@
               <!-- Status text column (inline edit) -->
               <div
                 v-if="columns.status.visible"
-                class="flex w-28 shrink-0 items-center py-2 pl-2"
+                class="flex w-40 shrink-0 items-center py-2 pl-2"
               >
                 <div @click.stop>
                   <Dropdown :options="statusOptions({ onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
-                    <button class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
-                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
-                      <span class="ml-1 text-sm text-ink-gray-7">{{ d.status || '—' }}</span>
+                    <button class="flex max-w-full items-center gap-2 whitespace-nowrap rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
+                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" class="shrink-0" />
+                      <span class="truncate text-sm text-ink-gray-7">{{ d.status || '—' }}</span>
                     </button>
                   </Dropdown>
                 </div>
