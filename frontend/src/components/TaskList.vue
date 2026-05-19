@@ -26,6 +26,7 @@
       :isOpen="isOpen"
       :horizontalScrollLeft="horizontalScrollLeft"
       :showColumnsPicker="showColumnsPicker"
+      :columnsPickerStyle="columnsPickerStyle"
       :inlinePopover="inlinePopover"
       :userOptions="userOptions"
       :syncGroupHeaderScroll="syncGroupHeaderScroll"
@@ -208,6 +209,7 @@ export default {
       horizontalScrollLeft: 0,
       activePopover: null,
       showColumnsPicker: false,
+      columnsPickerStyle: {},
       inlinePopover: { name: null, field: null },
       columns: {
         assignee:   { label: 'Assignee',    visible: saved.assignee   ?? true },
@@ -315,7 +317,14 @@ export default {
       for (const [k, v] of Object.entries(this.columns)) toSave[k] = v.visible
       localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(toSave))
     },
-    toggleColumnsPicker() {
+    toggleColumnsPicker(event) {
+      if (!this.showColumnsPicker && event?.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect()
+        this.columnsPickerStyle = {
+          top: `${rect.bottom + 4}px`,
+          right: `${Math.max(window.innerWidth - rect.right, 8)}px`,
+        }
+      }
       this.showColumnsPicker = !this.showColumnsPicker
     },
     handleOutsideClick(e) {
