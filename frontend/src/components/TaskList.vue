@@ -144,6 +144,15 @@
 
           <div class="h-4 w-px bg-outline-gray-2"></div>
 
+          <!-- Delete -->
+          <button
+            class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-red-500 transition hover:bg-surface-red-1"
+            @click="confirmBulkDelete"
+          >
+            <LucideTrash2 class="h-3.5 w-3.5" />
+            Delete
+          </button>
+
           <!-- Clear -->
           <button
             class="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-5 transition hover:bg-surface-gray-2 hover:text-ink-gray-7"
@@ -201,8 +210,8 @@ export default {
         'Under Testing': true,
         'Ready to Merge': true,
         Reopen: true,
-        Cancelled: false,
-        Done: false,
+        Cancelled: true,
+        Done: true,
       },
       selectedTasks: [],
       openChildTasks: {},
@@ -244,7 +253,7 @@ export default {
         fields: ['*', 'project.title as project_title', 'team.title as team_title'],
         filters: this.listOptions.filters,
         orderBy: this.listOptions.orderBy || 'creation desc',
-        pageLength: this.listOptions.pageLength || 20,
+        pageLength: this.listOptions.pageLength || 1000,
         auto: true,
         realtime: true,
       }
@@ -470,6 +479,43 @@ export default {
         ],
       })
     },
+    confirmBulkDelete() {
+      const deletableTasks = this.selectedTaskDocs.filter((task) => this.canDeleteTask(task))
+      const skippedCount = this.selectedTasks.length - deletableTasks.length
+
+      if (!deletableTasks.length) {
+        this.$dialog({
+          title: 'Cannot delete tasks',
+          message: 'You do not have permission to delete the selected tasks.',
+        })
+        return
+      }
+
+      const taskLabel = deletableTasks.length === 1 ? 'task' : 'tasks'
+      const skippedMessage = skippedCount
+        ? ` ${skippedCount} selected ${skippedCount === 1 ? 'task is' : 'tasks are'} not deletable and will be skipped.`
+        : ''
+
+      this.$dialog({
+        title: `Delete ${deletableTasks.length} ${taskLabel}`,
+        message: `Are you sure you want to delete ${deletableTasks.length} selected ${taskLabel}?${skippedMessage}`,
+        actions: [
+          {
+            label: 'Delete',
+            theme: 'red',
+            variant: 'solid',
+            onClick: async (close) => {
+              for (const task of deletableTasks) {
+                await this.tasks.delete.submit(task.name)
+              }
+              close()
+              this.clearSelection()
+              this.tasks.reload()
+            },
+          },
+        ],
+      })
+    },
 
     normalizeUserIdList(val) {
       if (val == null) return []
@@ -549,6 +595,10 @@ export default {
         label: u.full_name || u.name,
         value: u.name,
       }))
+    },
+    selectedTaskDocs() {
+      const selected = new Set(this.selectedTasks)
+      return (this.tasks.data || []).filter((task) => selected.has(task.name))
     },
     bulkStatusOptions() {
       return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })
