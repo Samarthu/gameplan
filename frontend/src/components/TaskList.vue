@@ -14,6 +14,12 @@
       :priorityIconClass="priorityIconClass"
       :statusOptions="statusOptions"
       :kanbanColumnClass="kanbanColumnClass"
+      :userOptions="userOptions"
+      :setAssignee="setAssignee"
+      :priorityOptions="priorityOptions"
+      :setDueDate="setDueDate"
+      :canDeleteTask="canDeleteTask"
+      :confirmDeleteTask="confirmDeleteTask"
       @request-new-task="$emit('request-new-task', $event)"
     />
 

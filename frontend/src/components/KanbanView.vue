@@ -74,33 +74,96 @@
               </div>
 
               <div class="flex flex-wrap items-center gap-1.5 text-sm text-ink-gray-5">
-                <template v-if="assigneeIds(d).length">
-                  <Tooltip
-                    v-for="(uid, idx) in visibleAssigneeIds(d)"
-                    :key="uid + '-' + idx"
-                    :text="$user(uid).full_name"
+                <div class="relative" @click.stop>
+                  <button
+                    class="inline-flex min-h-[1.75rem] items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-2"
+                    @click="toggleCardPopover(d.name, 'assignee')"
                   >
-                    <UserAvatar class="shrink-0" :user="uid" size="sm" />
-                  </Tooltip>
-                </template>
-                <span v-if="d.due_date" class="inline-flex items-center gap-1 rounded border border-outline-gray-2 px-1.5 py-0.5" :class="isTaskOverdue(d) ? 'text-red-500' : ''">
-                  <LucideCalendar class="h-3 w-3" />
-                  {{ $dayjs(d.due_date).format('D MMM') }}
-                </span>
-                <span v-if="d.priority" class="inline-flex items-center gap-1 rounded border border-outline-gray-2 px-1.5 py-0.5">
-                  <LucideFlag class="h-3 w-3" :class="priorityIconClass(d.priority)" />
-                  {{ d.priority }}
-                </span>
+                    <template v-if="assigneeIds(d).length">
+                      <Tooltip
+                        v-for="(uid, idx) in visibleAssigneeIds(d)"
+                        :key="uid + '-' + idx"
+                        :text="$user(uid).full_name"
+                      >
+                        <UserAvatar class="shrink-0" :user="uid" size="sm" />
+                      </Tooltip>
+                    </template>
+                    <span v-else class="text-sm text-ink-gray-4">Unassigned</span>
+                  </button>
+                  <div
+                    v-if="cardPopover.name === d.name && cardPopover.field === 'assignee'"
+                    class="absolute left-0 top-full z-20 mt-1 w-52 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  >
+                    <Autocomplete
+                      :options="userOptions"
+                      placeholder="Search user..."
+                      @update:modelValue="(opt) => setAssignee(d, opt)"
+                    />
+                  </div>
+                </div>
+
+                <div class="relative" @click.stop>
+                  <button
+                    class="inline-flex items-center gap-1 rounded border border-outline-gray-2 px-1.5 py-0.5 hover:bg-surface-gray-2"
+                    :class="d.due_date && isTaskOverdue(d) ? 'text-red-500' : ''"
+                    @click="toggleCardPopover(d.name, 'due_date')"
+                  >
+                    <LucideCalendar class="h-3 w-3" />
+                    {{ d.due_date ? $dayjs(d.due_date).format('D MMM') : 'Due Date' }}
+                  </button>
+                  <div
+                    v-if="cardPopover.name === d.name && cardPopover.field === 'due_date'"
+                    class="absolute left-0 top-full z-20 mt-1 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  >
+                    <input
+                      type="date"
+                      :value="d.due_date"
+                      class="block rounded-md border border-outline-gray-2 px-2 py-1 text-sm text-ink-gray-9 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+                      @change="setCardDueDate(d, $event.target.value)"
+                    />
+                    <button
+                      v-if="d.due_date"
+                      class="mt-1 w-full rounded px-2 py-1 text-xs text-ink-gray-5 hover:bg-surface-gray-2"
+                      @click="setCardDueDate(d, '')"
+                    >
+                      Clear date
+                    </button>
+                  </div>
+                </div>
+
+                <div @click.stop>
+                  <Dropdown :options="priorityOptions(d)">
+                    <button
+                      class="inline-flex items-center gap-1 rounded border border-outline-gray-2 px-1.5 py-0.5 hover:bg-surface-gray-2"
+                    >
+                      <LucideFlag class="h-3 w-3" :class="priorityIconClass(d.priority)" />
+                      {{ d.priority || 'Priority' }}
+                    </button>
+                  </Dropdown>
+                </div>
               </div>
 
               <div class="mt-3 flex items-center justify-between gap-2">
-                <Dropdown :options="statusOptions({ onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
-                  <button class="flex items-center gap-1 rounded px-1.5 py-1 text-sm text-ink-gray-6 hover:bg-surface-gray-2" @click.stop>
-                    <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
-                    {{ d.status || '—' }}
-                  </button>
-                </Dropdown>
-                <span class="text-xs text-ink-gray-4">{{ $dayjs(d.modified).fromNow() }}</span>
+                <div @click.stop>
+                  <Dropdown :options="statusOptions({ onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
+                    <button class="flex items-center gap-1 rounded px-1.5 py-1 text-sm text-ink-gray-6 hover:bg-surface-gray-2">
+                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
+                      {{ d.status || '—' }}
+                    </button>
+                  </Dropdown>
+                </div>
+                <div class="flex items-center gap-1">
+                  <span class="text-xs text-ink-gray-4">{{ $dayjs(d.modified).fromNow() }}</span>
+                  <Tooltip text="Delete task" v-if="canDeleteTask(d)">
+                    <button
+                      class="grid h-6 w-6 shrink-0 place-items-center rounded text-ink-gray-4 hover:bg-surface-red-1 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+                      :disabled="tasksResource.delete.loading && tasksResource.delete.params.name === d.name"
+                      @click.stop="confirmDeleteTask(d)"
+                    >
+                      <LucideTrash2 class="h-3.5 w-3.5" />
+                    </button>
+                  </Tooltip>
+                </div>
               </div>
 
               <div
@@ -156,7 +219,7 @@
 </template>
 
 <script>
-import { Dropdown, Tooltip } from 'frappe-ui'
+import { Autocomplete, Dropdown, Tooltip } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
 
@@ -164,6 +227,7 @@ export default {
   name: 'KanbanView',
   components: {
     Dropdown,
+    Autocomplete,
     Tooltip,
     TaskStatusIcon,
     UserAvatar,
@@ -181,12 +245,19 @@ export default {
     priorityIconClass: { type: Function, required: true },
     statusOptions: { type: Function, required: true },
     kanbanColumnClass: { type: Function, required: true },
+    userOptions: { type: Array, required: true },
+    setAssignee: { type: Function, required: true },
+    priorityOptions: { type: Function, required: true },
+    setDueDate: { type: Function, required: true },
+    canDeleteTask: { type: Function, required: true },
+    confirmDeleteTask: { type: Function, required: true },
   },
   emits: ['request-new-task'],
   data() {
     return {
       draggedTask: null,
       dragOverStatus: null,
+      cardPopover: { name: null, field: null },
     }
   },
   methods: {
@@ -222,6 +293,17 @@ export default {
     onDragEnd() {
       this.draggedTask = null
       this.dragOverStatus = null
+    },
+    toggleCardPopover(taskName, field) {
+      if (this.cardPopover.name === taskName && this.cardPopover.field === field) {
+        this.cardPopover = { name: null, field: null }
+      } else {
+        this.cardPopover = { name: taskName, field }
+      }
+    },
+    setCardDueDate(task, date) {
+      this.cardPopover = { name: null, field: null }
+      this.setDueDate(task, date)
     },
   },
 }
