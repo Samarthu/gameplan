@@ -123,6 +123,8 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.assigned_to = users[0] if users else None
 
 	def before_insert(self):
+		if not self.task_type:
+			self.task_type = "Task"
 		if not self.status:
 			self.status = "Backlog"
 
@@ -138,7 +140,7 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.update_search_index()
 
 	def log_value_updates(self):
-		fields = ["title", "description", "status", "priority", "due_date", "project"]
+		fields = ["title", "description", "task_type", "status", "priority", "due_date", "project"]
 		prev_doc = self.get_doc_before_save()
 		for field in fields:
 			if prev_doc and str(self.get(field)) != str(prev_doc.get(field)):

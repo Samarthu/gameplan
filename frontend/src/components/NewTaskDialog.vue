@@ -21,6 +21,20 @@
         <div class="flex flex-wrap gap-3">
           <Dropdown
             :options="
+              taskTypeOptions({
+                onClick: (task_type) => (newTask.task_type = task_type),
+              })
+            "
+          >
+            <Button>
+              <template #prefix>
+                <LucideCircle class="h-4 w-4" />
+              </template>
+              {{ newTask.task_type }}
+            </Button>
+          </Dropdown>
+          <Dropdown
+            :options="
               statusOptions({
                 onClick: (status) => (newTask.status = status),
               })
@@ -125,6 +139,7 @@ const linkTaskToTeam = createResource({
 const initialData = {
   title: '',
   description: '',
+  task_type: 'Task',
   status: 'Backlog',
   project: null,
   team: null,
@@ -144,6 +159,15 @@ function statusOptions({ onClick }) {
       icon: () => h(TaskStatusIcon, { status }),
       label: status,
       onClick: () => onClick(status),
+    }
+  })
+}
+
+function taskTypeOptions({ onClick }) {
+  return ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request'].map((task_type) => {
+    return {
+      label: task_type,
+      onClick: () => onClick(task_type),
     }
   })
 }
@@ -178,6 +202,7 @@ function show({ defaults, onSuccess } = {}) {
     ...initialData,
     title: d.title ?? initialData.title,
     description: d.description ?? initialData.description,
+    task_type: d.task_type ?? initialData.task_type,
     status: d.status ?? initialData.status,
     due_date: d.due_date ?? null,
     project: d.project ?? null,

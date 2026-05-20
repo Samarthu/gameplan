@@ -9,6 +9,7 @@
           <div class="w-4 shrink-0"></div>
           <div class="flex-1 pl-1">Task</div>
         </div>
+        <div class="w-32 shrink-0 pl-2">Type</div>
         <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
         <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
         <div v-if="columns.due_date.visible" class="w-24 shrink-0 pl-2">Due Date</div>
@@ -173,6 +174,17 @@
                     <span class="shrink-0 text-sm text-ink-gray-5">#{{ d.name }}</span>
                   </div>
                 </router-link>
+              </div>
+
+              <div class="flex w-32 shrink-0 items-center py-2 pl-2">
+                <div @click.stop>
+                  <Dropdown :options="taskTypeOptions({ onClick: (task_type) => tasksResource.setValue.submit({ task_type, name: d.name }) })">
+                    <button class="flex max-w-full items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
+                      <LucideCircle class="h-3 w-3 shrink-0 text-ink-gray-5" />
+                      <span class="truncate text-sm text-ink-gray-7">{{ d.task_type || 'Task' }}</span>
+                    </button>
+                  </Dropdown>
+                </div>
               </div>
 
               <!-- Assignee column (inline edit) -->
@@ -404,6 +416,7 @@ export default {
     taskRoute: { type: Function, required: true },
     isTaskOverdue: { type: Function, required: true },
     statusOptions: { type: Function, required: true },
+    taskTypeOptions: { type: Function, required: true },
     hasChildTasks: { type: Function, required: true },
     isChildTasksOpen: { type: Function, required: true },
     toggleChildTasks: { type: Function, required: true },

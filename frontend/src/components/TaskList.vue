@@ -13,6 +13,7 @@
       :isTaskOverdue="isTaskOverdue"
       :priorityIconClass="priorityIconClass"
       :statusOptions="statusOptions"
+      :taskTypeOptions="taskTypeOptions"
       :kanbanColumnClass="kanbanColumnClass"
       :userOptions="userOptions"
       :setAssignee="setAssignee"
@@ -53,6 +54,7 @@
       :taskRoute="taskRoute"
       :isTaskOverdue="isTaskOverdue"
       :statusOptions="statusOptions"
+      :taskTypeOptions="taskTypeOptions"
       :hasChildTasks="hasChildTasks"
       :isChildTasksOpen="isChildTasksOpen"
       :toggleChildTasks="toggleChildTasks"
@@ -103,6 +105,14 @@
             <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideCircleDot class="h-3.5 w-3.5" />
               Status
+            </button>
+          </Dropdown>
+
+          <!-- Type -->
+          <Dropdown :options="bulkTaskTypeOptions">
+            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+              <LucideCircle class="h-3.5 w-3.5" />
+              Type
             </button>
           </Dropdown>
 
@@ -191,6 +201,7 @@ import { activeProjects } from '@/data/projects'
 import { activeUsers } from '@/data/users'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
+const TASK_TYPES = ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request']
 
 export default {
   name: 'TaskList',
@@ -335,6 +346,12 @@ export default {
           onClick: () => onClick(status),
         }
       })
+    },
+    taskTypeOptions({ onClick }) {
+      return TASK_TYPES.map((taskType) => ({
+        label: taskType,
+        onClick: () => onClick(taskType),
+      }))
     },
     toggleColumn(key) {
       this.columns[key].visible = !this.columns[key].visible
@@ -618,6 +635,9 @@ export default {
     },
     bulkStatusOptions() {
       return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })
+    },
+    bulkTaskTypeOptions() {
+      return this.taskTypeOptions({ onClick: (task_type) => this.bulkUpdate('task_type', task_type) })
     },
     bulkPriorityOptions() {
       return [

@@ -102,6 +102,17 @@
                   </div>
                 </div>
 
+                <div @click.stop>
+                  <Dropdown :options="taskTypeOptions({ onClick: (task_type) => tasksResource.setValue.submit({ task_type, name: d.name }) })">
+                    <button
+                      class="inline-flex items-center gap-1 rounded border border-outline-gray-2 px-1.5 py-0.5 hover:bg-surface-gray-2"
+                    >
+                      <LucideCircle class="h-3 w-3" />
+                      {{ d.task_type || 'Task' }}
+                    </button>
+                  </Dropdown>
+                </div>
+
                 <div class="relative" @click.stop>
                   <button
                     class="inline-flex items-center gap-1 rounded border border-outline-gray-2 px-1.5 py-0.5 hover:bg-surface-gray-2"
@@ -244,6 +255,7 @@ export default {
     isTaskOverdue: { type: Function, required: true },
     priorityIconClass: { type: Function, required: true },
     statusOptions: { type: Function, required: true },
+    taskTypeOptions: { type: Function, required: true },
     kanbanColumnClass: { type: Function, required: true },
     userOptions: { type: Array, required: true },
     setAssignee: { type: Function, required: true },
