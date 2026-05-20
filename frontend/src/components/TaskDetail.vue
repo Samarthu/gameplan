@@ -1,24 +1,20 @@
 <template>
   <div class="flex h-full flex-1" v-if="$resources.task.doc">
-    <div class="w-full flex-1">
+    <div class="min-w-0 flex-1 overflow-y-auto border-r border-outline-gray-2">
       <div class="relative p-6">
         <div class="absolute right-0 top-0 p-6" v-show="$resources.task.setValueDebounced.loading">
           <LoadingText v-if="!$resources.task.setValueDebounced.error" text="Saving..." />
           <ErrorMessage :message="$resources.task.setValueDebounced.error" />
         </div>
-        <div class="mb-2 flex items-center justify-between space-x-2">
-          <input
-            type="text"
-            placeholder="Title"
-            class="-ml-0.5 w-full rounded-sm border-none p-0.5 text-2xl bg-surface-white font-semibold text-ink-gray-9 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
-            @change="
-              $resources.task.setValueDebounced.submit({
-                title: $event.target.value,
-              })
-            "
-            v-model="$resources.task.doc.title"
-            v-focus
-          />
+        <div class="mb-6 flex items-center justify-between gap-2">
+          <Dropdown :options="taskTypeOptions">
+            <Button class="whitespace-nowrap">
+              <template #prefix>
+                <LucideCircle class="h-4 w-4" />
+              </template>
+              {{ $resources.task.doc.task_type || 'Task' }}
+            </Button>
+          </Dropdown>
           <Dropdown
             v-if="canDeleteTask"
             :options="[
@@ -53,6 +49,127 @@
             </Button>
           </Dropdown>
         </div>
+        <div class="mb-3">
+          <input
+            type="text"
+            placeholder="Title"
+            class="-ml-0.5 w-full rounded-sm border-none bg-surface-white p-0.5 text-2xl font-semibold text-ink-gray-9 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+            @change="
+              $resources.task.setValueDebounced.submit({
+                title: $event.target.value,
+              })
+            "
+            v-model="$resources.task.doc.title"
+            v-focus
+          />
+        </div>
+        <div class="mb-8 grid max-w-4xl grid-cols-1 gap-x-12 gap-y-4 border-b border-outline-gray-2 pb-8 text-base text-ink-gray-7 md:grid-cols-2">
+          <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
+            <template v-if="$resources.task.doc.parent_task">
+              <div class="text-ink-gray-6">Parent Task</div>
+              <button
+                class="flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left text-sm text-ink-gray-8 hover:bg-surface-gray-2"
+                @click="openParentTask"
+              >
+                <LucideCornerLeftUp class="h-3.5 w-3.5 shrink-0 text-ink-gray-4" />
+                <span class="truncate">{{ parentTaskTitle || '#' + $resources.task.doc.parent_task }}</span>
+              </button>
+            </template>
+            <div class="text-ink-gray-6">Status</div>
+            <Dropdown :options="statusOptions">
+              <Button class="whitespace-nowrap">
+                <template #prefix>
+                  <TaskStatusIcon :status="$resources.task.doc.status" />
+                </template>
+                {{ $resources.task.doc.status || 'Set status' }}
+              </Button>
+            </Dropdown>
+            <div class="text-ink-gray-6">Due</div>
+            <DatePicker
+              v-model="$resources.task.doc.due_date"
+              variant="subtle"
+              placeholder="Due date"
+              :disabled="false"
+              @update:modelValue="
+                $resources.task.setValue.submit({
+                  due_date: $event,
+                })
+              "
+            />
+            <div class="text-ink-gray-6">Project</div>
+            <Autocomplete
+              placeholder="Select project"
+              :options="projectOptions"
+              v-model="selectedProject"
+              @update:modelValue="changeProject"
+            />
+          </div>
+          <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
+            <div class="text-ink-gray-6">Assignees</div>
+            <div class="space-y-2">
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="uid in assigneeUserIds"
+                  :key="uid"
+                  class="inline-flex max-w-full items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
+                >
+                  <span class="truncate whitespace-nowrap">{{ $user(uid).full_name }}</span>
+                  <button
+                    type="button"
+                    class="shrink-0 leading-none text-ink-gray-5 hover:text-ink-gray-8"
+                    aria-label="Remove assignee"
+                    @click="removeAssignee(uid)"
+                  >
+                    ×
+                  </button>
+                </span>
+              </div>
+              <Autocomplete
+                placeholder="Add assignee"
+                :options="assignableUsersForPicker"
+                v-model="assigneeAddSelection"
+                @update:modelValue="onAssigneePicked"
+              />
+            </div>
+            <div class="text-ink-gray-6">Priority</div>
+            <Dropdown :options="priorityOptions">
+              <Button class="whitespace-nowrap">
+                <template v-if="$resources.task.doc.priority" #prefix>
+                  <TaskPriorityIcon :priority="$resources.task.doc.priority" />
+                </template>
+                {{ $resources.task.doc.priority || 'Set priority' }}
+              </Button>
+            </Dropdown>
+            <div class="text-ink-gray-6">Linked Teams</div>
+            <div class="space-y-2">
+              <div v-if="linkedTeams.length" class="space-y-1">
+                <div
+                  v-for="team in linkedTeams"
+                  :key="team.name"
+                  class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
+                >
+                  <span class="truncate text-base text-ink-gray-8">{{ team.team_title || team.team }}</span>
+                  <Button
+                    variant="ghost"
+                    @click="unlinkTeam(team.team)"
+                    :loading="$resources.task.unlinkTeam.loading"
+                    :aria-label="`Remove ${team.team_title || team.team}`"
+                  >
+                    <template #icon>
+                      <LucideTrash2 class="h-4 w-4" />
+                    </template>
+                  </Button>
+                </div>
+              </div>
+              <Autocomplete
+                placeholder="Link a team"
+                :options="linkableTeamOptions"
+                v-model="linkedTeam"
+                @update:modelValue="linkTeam"
+              />
+            </div>
+          </div>
+        </div>
         <TextEditor
           ref="description"
           editor-class="prose-sm max-w-none focus-within:ring-2 focus-within:ring-outline-gray-3 rounded-sm p-0.5 -ml-0.5 min-h-[4rem]"
@@ -68,208 +185,18 @@
               : null
           "
         />
-        <div class="mt-8 flex flex-wrap items-center gap-2 sm:hidden">
-          <div class="flex min-w-0 flex-col gap-2">
-            <div class="flex flex-wrap gap-1">
-              <span
-                v-for="uid in assigneeUserIds"
-                :key="uid"
-                class="inline-flex items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
-              >
-                {{ $user(uid).full_name }}
-                <button
-                  type="button"
-                  class="leading-none text-ink-gray-5 hover:text-ink-gray-8"
-                  aria-label="Remove assignee"
-                  @click="removeAssignee(uid)"
-                >
-                  ×
-                </button>
-              </span>
-            </div>
-            <Autocomplete
-              placeholder="Add assignee"
-              :options="assignableUsersForPicker"
-              v-model="assigneeAddSelection"
-              @update:modelValue="onAssigneePicked"
-            />
-          </div>
-          <DatePicker
-            v-model="$resources.task.doc.due_date"
-            variant="subtle"
-            placeholder="Due date"
-            :disabled="false"
-            @update:modelValue="
-              $resources.task.setValue.submit({
-                due_date: $event,
-              })
-            "
-          />
-          <Dropdown :options="statusOptions">
-            <Button class="whitespace-nowrap">
-              <template #prefix>
-                <TaskStatusIcon :status="$resources.task.doc.status" />
-              </template>
-              {{ $resources.task.doc.status || 'Set status' }}
-            </Button>
-          </Dropdown>
-          <Dropdown :options="taskTypeOptions">
-            <Button class="whitespace-nowrap">
-              <template #prefix>
-                <LucideCircle class="h-4 w-4" />
-              </template>
-              {{ $resources.task.doc.task_type || 'Task' }}
-            </Button>
-          </Dropdown>
-          <Dropdown :options="priorityOptions">
-            <Button class="whitespace-nowrap">
-              <template v-if="$resources.task.doc.priority" #prefix>
-                <TaskPriorityIcon :priority="$resources.task.doc.priority" />
-              </template>
-              {{ $resources.task.doc.priority || 'Set priority' }}
-            </Button>
-          </Dropdown>
-          <Autocomplete
-            placeholder="Select project"
-            :options="projectOptions"
-            v-model="selectedProject"
-            @update:modelValue="changeProject"
-          />
-        </div>
         <ChildTasks
           class="mt-8 border-t border-outline-gray-2 pt-6"
           :parentTaskId="taskId"
           :parentTask="$resources.task.doc"
         />
-        <CommentsList class="mt-8" doctype="GP Task" :name="taskId" />
+        <CommentsList class="mt-8 xl:hidden" doctype="GP Task" :name="taskId" />
       </div>
     </div>
-    <div class="hidden w-[20rem] shrink-0 border-l sm:block">
-      <div class="grid grid-cols-2 items-center gap-y-6 p-6 text-base text-ink-gray-7">
-        <template v-if="$resources.task.doc.parent_task">
-          <div class="text-ink-gray-7">Parent Task</div>
-          <div>
-            <button
-              class="flex items-center gap-1.5 rounded px-1.5 py-1 text-sm text-ink-gray-8 hover:bg-surface-gray-2 w-full text-left"
-              @click="openParentTask"
-            >
-              <LucideCornerLeftUp class="h-3.5 w-3.5 shrink-0 text-ink-gray-4" />
-              <span class="truncate">{{ parentTaskTitle || '#' + $resources.task.doc.parent_task }}</span>
-            </button>
-          </div>
-        </template>
-        <div>Assignees</div>
-        <div class="space-y-2">
-          <div class="flex flex-wrap gap-1">
-            <span
-              v-for="uid in assigneeUserIds"
-              :key="uid"
-              class="inline-flex max-w-full items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
-            >
-              <span class="truncate whitespace-nowrap">{{ $user(uid).full_name }}</span>
-              <button
-                type="button"
-                class="shrink-0 leading-none text-ink-gray-5 hover:text-ink-gray-8"
-                aria-label="Remove assignee"
-                @click="removeAssignee(uid)"
-              >
-                ×
-              </button>
-            </span>
-          </div>
-          <Autocomplete
-            placeholder="Add assignee"
-            :options="assignableUsersForPicker"
-            v-model="assigneeAddSelection"
-            @update:modelValue="onAssigneePicked"
-          />
-        </div>
-        <div>Due Date</div>
-        <div>
-          <DatePicker
-            v-model="$resources.task.doc.due_date"
-            variant="subtle"
-            placeholder="Due date"
-            :disabled="false"
-            @update:modelValue="
-              $resources.task.setValue.submit({
-                due_date: $event,
-              })
-            "
-          />
-        </div>
-        <div>Project</div>
-        <div>
-          <Autocomplete
-            placeholder="Select project"
-            :options="projectOptions"
-            v-model="selectedProject"
-            @update:modelValue="changeProject"
-          />
-        </div>
-        <div>Linked Teams</div>
-        <div class="space-y-2">
-          <div v-if="linkedTeams.length" class="space-y-1">
-            <div
-              v-for="team in linkedTeams"
-              :key="team.name"
-              class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
-            >
-              <span class="truncate text-base text-ink-gray-8">{{
-                team.team_title || team.team
-              }}</span>
-              <Button
-                variant="ghost"
-                @click="unlinkTeam(team.team)"
-                :loading="$resources.task.unlinkTeam.loading"
-                :aria-label="`Remove ${team.team_title || team.team}`"
-              >
-                <template #icon>
-                  <LucideTrash2 class="h-4 w-4" />
-                </template>
-              </Button>
-            </div>
-          </div>
-          <Autocomplete
-            placeholder="Link a team"
-            :options="linkableTeamOptions"
-            v-model="linkedTeam"
-            @update:modelValue="linkTeam"
-          />
-        </div>
-        <div>Status</div>
-        <div>
-          <Dropdown :options="statusOptions">
-            <Button class="whitespace-nowrap">
-              <template #prefix>
-                <TaskStatusIcon :status="$resources.task.doc.status" />
-              </template>
-              {{ $resources.task.doc.status || 'Set status' }}
-            </Button>
-          </Dropdown>
-        </div>
-        <div>Type</div>
-        <div>
-          <Dropdown :options="taskTypeOptions">
-            <Button class="whitespace-nowrap">
-              <template #prefix>
-                <LucideCircle class="h-4 w-4" />
-              </template>
-              {{ $resources.task.doc.task_type || 'Task' }}
-            </Button>
-          </Dropdown>
-        </div>
-        <div>Priority</div>
-        <div>
-          <Dropdown :options="priorityOptions">
-            <Button class="whitespace-nowrap">
-              <template v-if="$resources.task.doc.priority" #prefix>
-                <TaskPriorityIcon :priority="$resources.task.doc.priority" />
-              </template>
-              {{ $resources.task.doc.priority || 'Set priority' }}
-            </Button>
-          </Dropdown>
-        </div>
+    <div class="hidden w-[28rem] shrink-0 bg-surface-white xl:flex xl:flex-col">
+      <div class="border-b border-outline-gray-2 px-6 py-4 text-base font-semibold text-ink-gray-9">Activity</div>
+      <div class="min-h-0 flex-1 flex flex-col">
+        <CommentsList doctype="GP Task" :name="taskId" class="flex-1 min-h-0" />
       </div>
     </div>
   </div>

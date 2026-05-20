@@ -1,11 +1,11 @@
 <template>
-  <div>
+  <div class="flex flex-col h-screen min-h-0">
     <header
       class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-5 py-2.5"
     >
       <Breadcrumbs class="h-7" :items="breadcrumbs" />
     </header>
-    <div>
+    <div class="flex-1 min-h-0 flex flex-col">
       <TaskDetail :taskId="taskId" />
     </div>
   </div>
