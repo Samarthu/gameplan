@@ -13,8 +13,23 @@
       :isTaskOverdue="isTaskOverdue"
       :priorityIconClass="priorityIconClass"
       :statusOptions="statusOptions"
+      :taskTypeOptions="taskTypeOptions"
       :kanbanColumnClass="kanbanColumnClass"
+      :userOptions="userOptions"
+      :setAssignee="setAssignee"
+      :priorityOptions="priorityOptions"
+      :setDueDate="setDueDate"
+      :canDeleteTask="canDeleteTask"
+      :confirmDeleteTask="confirmDeleteTask"
       @request-new-task="$emit('request-new-task', $event)"
+    />
+
+    <TeamView
+      v-else-if="tasks.data?.length && viewMode === 'team'"
+      :tasks="topLevelTasks"
+      :assigneeIds="assigneeIds"
+      :taskRoute="taskRoute"
+      :isTaskOverdue="isTaskOverdue"
     />
 
     <ListView
@@ -26,6 +41,7 @@
       :isOpen="isOpen"
       :horizontalScrollLeft="horizontalScrollLeft"
       :showColumnsPicker="showColumnsPicker"
+      :columnsPickerStyle="columnsPickerStyle"
       :inlinePopover="inlinePopover"
       :userOptions="userOptions"
       :syncGroupHeaderScroll="syncGroupHeaderScroll"
@@ -38,6 +54,7 @@
       :taskRoute="taskRoute"
       :isTaskOverdue="isTaskOverdue"
       :statusOptions="statusOptions"
+      :taskTypeOptions="taskTypeOptions"
       :hasChildTasks="hasChildTasks"
       :isChildTasksOpen="isChildTasksOpen"
       :toggleChildTasks="toggleChildTasks"
@@ -88,6 +105,14 @@
             <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideCircleDot class="h-3.5 w-3.5" />
               Status
+            </button>
+          </Dropdown>
+
+          <!-- Type -->
+          <Dropdown :options="bulkTaskTypeOptions">
+            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+              <LucideCircle class="h-3.5 w-3.5" />
+              Type
             </button>
           </Dropdown>
 
@@ -143,6 +168,15 @@
 
           <div class="h-4 w-px bg-outline-gray-2"></div>
 
+          <!-- Delete -->
+          <button
+            class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-red-500 transition hover:bg-surface-red-1"
+            @click="confirmBulkDelete"
+          >
+            <LucideTrash2 class="h-3.5 w-3.5" />
+            Delete
+          </button>
+
           <!-- Clear -->
           <button
             class="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-5 transition hover:bg-surface-gray-2 hover:text-ink-gray-7"
@@ -162,10 +196,12 @@ import { Dropdown, Autocomplete } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
+import TeamView from './TeamView.vue'
 import { activeProjects } from '@/data/projects'
 import { activeUsers } from '@/data/users'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
+const TASK_TYPES = ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request']
 
 export default {
   name: 'TaskList',
@@ -200,14 +236,15 @@ export default {
         'Under Testing': true,
         'Ready to Merge': true,
         Reopen: true,
-        Cancelled: false,
-        Done: false,
+        Cancelled: true,
+        Done: true,
       },
       selectedTasks: [],
       openChildTasks: {},
       horizontalScrollLeft: 0,
       activePopover: null,
       showColumnsPicker: false,
+      columnsPickerStyle: {},
       inlinePopover: { name: null, field: null },
       columns: {
         assignee:   { label: 'Assignee',    visible: saved.assignee   ?? true },
@@ -231,6 +268,7 @@ export default {
     TaskStatusIcon,
     ListView,
     KanbanView,
+    TeamView,
   },
   resources: {
     tasks() {
@@ -242,7 +280,7 @@ export default {
         fields: ['*', 'project.title as project_title', 'team.title as team_title'],
         filters: this.listOptions.filters,
         orderBy: this.listOptions.orderBy || 'creation desc',
-        pageLength: this.listOptions.pageLength || 20,
+        pageLength: this.listOptions.pageLength || 1000,
         auto: true,
         realtime: true,
       }
@@ -309,13 +347,26 @@ export default {
         }
       })
     },
+    taskTypeOptions({ onClick }) {
+      return TASK_TYPES.map((taskType) => ({
+        label: taskType,
+        onClick: () => onClick(taskType),
+      }))
+    },
     toggleColumn(key) {
       this.columns[key].visible = !this.columns[key].visible
       const toSave = {}
       for (const [k, v] of Object.entries(this.columns)) toSave[k] = v.visible
       localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(toSave))
     },
-    toggleColumnsPicker() {
+    toggleColumnsPicker(event) {
+      if (!this.showColumnsPicker && event?.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect()
+        this.columnsPickerStyle = {
+          top: `${rect.bottom + 4}px`,
+          right: `${Math.max(window.innerWidth - rect.right, 8)}px`,
+        }
+      }
       this.showColumnsPicker = !this.showColumnsPicker
     },
     handleOutsideClick(e) {
@@ -461,6 +512,43 @@ export default {
         ],
       })
     },
+    confirmBulkDelete() {
+      const deletableTasks = this.selectedTaskDocs.filter((task) => this.canDeleteTask(task))
+      const skippedCount = this.selectedTasks.length - deletableTasks.length
+
+      if (!deletableTasks.length) {
+        this.$dialog({
+          title: 'Cannot delete tasks',
+          message: 'You do not have permission to delete the selected tasks.',
+        })
+        return
+      }
+
+      const taskLabel = deletableTasks.length === 1 ? 'task' : 'tasks'
+      const skippedMessage = skippedCount
+        ? ` ${skippedCount} selected ${skippedCount === 1 ? 'task is' : 'tasks are'} not deletable and will be skipped.`
+        : ''
+
+      this.$dialog({
+        title: `Delete ${deletableTasks.length} ${taskLabel}`,
+        message: `Are you sure you want to delete ${deletableTasks.length} selected ${taskLabel}?${skippedMessage}`,
+        actions: [
+          {
+            label: 'Delete',
+            theme: 'red',
+            variant: 'solid',
+            onClick: async (close) => {
+              for (const task of deletableTasks) {
+                await this.tasks.delete.submit(task.name)
+              }
+              close()
+              this.clearSelection()
+              this.tasks.reload()
+            },
+          },
+        ],
+      })
+    },
 
     normalizeUserIdList(val) {
       if (val == null) return []
@@ -541,8 +629,15 @@ export default {
         value: u.name,
       }))
     },
+    selectedTaskDocs() {
+      const selected = new Set(this.selectedTasks)
+      return (this.tasks.data || []).filter((task) => selected.has(task.name))
+    },
     bulkStatusOptions() {
       return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })
+    },
+    bulkTaskTypeOptions() {
+      return this.taskTypeOptions({ onClick: (task_type) => this.bulkUpdate('task_type', task_type) })
     },
     bulkPriorityOptions() {
       return [

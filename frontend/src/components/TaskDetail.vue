@@ -113,6 +113,14 @@
               {{ $resources.task.doc.status || 'Set status' }}
             </Button>
           </Dropdown>
+          <Dropdown :options="taskTypeOptions">
+            <Button>
+              <template #prefix>
+                <LucideCircle class="h-4 w-4" />
+              </template>
+              {{ $resources.task.doc.task_type || 'Task' }}
+            </Button>
+          </Dropdown>
           <Dropdown :options="priorityOptions">
             <Button>
               <template v-if="$resources.task.doc.priority" #prefix>
@@ -234,6 +242,17 @@
                 <TaskStatusIcon :status="$resources.task.doc.status" />
               </template>
               {{ $resources.task.doc.status || 'Set status' }}
+            </Button>
+          </Dropdown>
+        </div>
+        <div>Type</div>
+        <div>
+          <Dropdown :options="taskTypeOptions">
+            <Button>
+              <template #prefix>
+                <LucideCircle class="h-4 w-4" />
+              </template>
+              {{ $resources.task.doc.task_type || 'Task' }}
             </Button>
           </Dropdown>
         </div>
@@ -432,6 +451,14 @@ export default {
           icon: () => h(TaskPriorityIcon, { priority }),
           label: priority,
           onClick: () => this.$resources.task.setValue.submit({ priority }),
+        }
+      })
+    },
+    taskTypeOptions() {
+      return ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request'].map((task_type) => {
+        return {
+          label: task_type,
+          onClick: () => this.$resources.task.setValue.submit({ task_type }),
         }
       })
     },

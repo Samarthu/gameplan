@@ -9,44 +9,22 @@
           <div class="w-4 shrink-0"></div>
           <div class="flex-1 pl-1">Task</div>
         </div>
+        <div class="w-32 shrink-0 pl-2">Type</div>
         <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
         <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
         <div v-if="columns.due_date.visible" class="w-24 shrink-0 pl-2">Due Date</div>
-        <div v-if="columns.status.visible" class="w-28 shrink-0 pl-2">Status</div>
+        <div v-if="columns.status.visible" class="w-40 shrink-0 pl-2">Status</div>
         <div v-if="columns.modified.visible" class="w-24 shrink-0 pr-2 text-right">Modified</div>
         <div v-if="columns.created_by.visible" class="w-28 shrink-0 pl-2">Created By</div>
         <div class="relative flex w-8 shrink-0 items-center justify-end pr-1" >
           <Tooltip text="Manage columns">
             <button
               class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-7 focus:outline-none"
-              @click.stop="toggleColumnsPicker"
+              @click.stop="toggleColumnsPicker($event)"
             >
               <LucideSlidersHorizontal class="h-3.5 w-3.5" />
             </button>
           </Tooltip>
-          <div
-            v-if="showColumnsPicker"
-            class="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-outline-gray-2 bg-surface-white py-1 shadow-lg"
-            @click.stop
-          >
-            <div class="border-b border-outline-gray-2 px-3 py-1.5 text-xs font-semibold text-ink-gray-5">
-              Columns
-            </div>
-            <button
-              v-for="(col, key) in columns"
-              :key="key"
-              class="flex w-full items-center gap-2.5 px-3 py-1.5 text-sm text-ink-gray-8 hover:bg-surface-gray-2"
-              @click="toggleColumn(key)"
-            >
-              <span
-                class="flex h-4 w-4 shrink-0 items-center justify-center rounded border"
-                :class="col.visible ? 'border-ink-gray-9 bg-ink-gray-9' : 'border-outline-gray-3 bg-surface-white'"
-              >
-                <LucideCheck v-if="col.visible" class="h-3 w-3 text-surface-white" />
-              </span>
-              {{ col.label }}
-            </button>
-          </div>
         </div>
       </div>
 
@@ -198,6 +176,17 @@
                 </router-link>
               </div>
 
+              <div class="flex w-32 shrink-0 items-center py-2 pl-2">
+                <div @click.stop>
+                  <Dropdown :options="taskTypeOptions({ onClick: (task_type) => tasksResource.setValue.submit({ task_type, name: d.name }) })">
+                    <button class="flex max-w-full items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
+                      <LucideCircle class="h-3 w-3 shrink-0 text-ink-gray-5" />
+                      <span class="truncate text-sm text-ink-gray-7">{{ d.task_type || 'Task' }}</span>
+                    </button>
+                  </Dropdown>
+                </div>
+              </div>
+
               <!-- Assignee column (inline edit) -->
               <div
                 v-if="columns.assignee.visible"
@@ -318,13 +307,13 @@
               <!-- Status text column (inline edit) -->
               <div
                 v-if="columns.status.visible"
-                class="flex w-28 shrink-0 items-center py-2 pl-2"
+                class="flex w-40 shrink-0 items-center py-2 pl-2"
               >
                 <div @click.stop>
                   <Dropdown :options="statusOptions({ onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
-                    <button class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
-                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
-                      <span class="ml-1 text-sm text-ink-gray-7">{{ d.status || '—' }}</span>
+                    <button class="flex max-w-full items-center gap-2 whitespace-nowrap rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
+                      <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" class="shrink-0" />
+                      <span class="truncate text-sm text-ink-gray-7">{{ d.status || '—' }}</span>
                     </button>
                   </Dropdown>
                 </div>
@@ -363,6 +352,32 @@
 
 
   </div>
+  <Teleport to="body">
+    <div
+      v-if="showColumnsPicker"
+      class="fixed z-50 w-44 rounded-lg border border-outline-gray-2 bg-surface-white py-1 shadow-lg"
+      :style="columnsPickerStyle"
+      @click.stop
+    >
+      <div class="border-b border-outline-gray-2 px-3 py-1.5 text-xs font-semibold text-ink-gray-5">
+        Columns
+      </div>
+      <button
+        v-for="(col, key) in columns"
+        :key="key"
+        class="flex w-full items-center gap-2.5 px-3 py-1.5 text-sm text-ink-gray-8 hover:bg-surface-gray-2"
+        @click="toggleColumn(key)"
+      >
+        <span
+          class="flex h-4 w-4 shrink-0 items-center justify-center rounded border"
+          :class="col.visible ? 'border-ink-gray-9 bg-ink-gray-9' : 'border-outline-gray-3 bg-surface-white'"
+        >
+          <LucideCheck v-if="col.visible" class="h-3 w-3 text-surface-white" />
+        </span>
+        {{ col.label }}
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <script>
@@ -388,6 +403,7 @@ export default {
     isOpen: { type: Object, required: true },
     horizontalScrollLeft: { type: Number, default: 0 },
     showColumnsPicker: { type: Boolean, default: false },
+    columnsPickerStyle: { type: Object, default: () => ({}) },
     inlinePopover: { type: Object, required: true },
     userOptions: { type: Array, required: true },
     syncGroupHeaderScroll: { type: Function, required: true },
@@ -400,6 +416,7 @@ export default {
     taskRoute: { type: Function, required: true },
     isTaskOverdue: { type: Function, required: true },
     statusOptions: { type: Function, required: true },
+    taskTypeOptions: { type: Function, required: true },
     hasChildTasks: { type: Function, required: true },
     isChildTasksOpen: { type: Function, required: true },
     toggleChildTasks: { type: Function, required: true },

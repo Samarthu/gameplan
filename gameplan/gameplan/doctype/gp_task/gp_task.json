@@ -11,6 +11,7 @@
   "start_date",
   "due_date",
   "parent_task",
+  "task_type",
   "status",
   "priority",
   "is_completed",
@@ -51,6 +52,13 @@
    "fieldtype": "Link",
    "label": "Parent Task",
    "options": "GP Task"
+  },
+  {
+   "default": "Task",
+   "fieldname": "task_type",
+   "fieldtype": "Select",
+   "label": "Task Type",
+   "options": "Task\nMilestone\nBug\nEvent\nForm Response\nMeeting Note\nRequest"
   },
   {
    "fieldname": "status",
