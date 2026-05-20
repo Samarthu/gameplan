@@ -106,7 +106,7 @@
             "
           />
           <Dropdown :options="statusOptions">
-            <Button>
+            <Button class="whitespace-nowrap">
               <template #prefix>
                 <TaskStatusIcon :status="$resources.task.doc.status" />
               </template>
@@ -114,7 +114,7 @@
             </Button>
           </Dropdown>
           <Dropdown :options="taskTypeOptions">
-            <Button>
+            <Button class="whitespace-nowrap">
               <template #prefix>
                 <LucideCircle class="h-4 w-4" />
               </template>
@@ -122,7 +122,7 @@
             </Button>
           </Dropdown>
           <Dropdown :options="priorityOptions">
-            <Button>
+            <Button class="whitespace-nowrap">
               <template v-if="$resources.task.doc.priority" #prefix>
                 <TaskPriorityIcon :priority="$resources.task.doc.priority" />
               </template>
@@ -164,12 +164,12 @@
             <span
               v-for="uid in assigneeUserIds"
               :key="uid"
-              class="inline-flex items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
+              class="inline-flex max-w-full items-center gap-1 rounded bg-surface-gray-2 px-2 py-0.5 text-sm text-ink-gray-8"
             >
-              {{ $user(uid).full_name }}
+              <span class="truncate whitespace-nowrap">{{ $user(uid).full_name }}</span>
               <button
                 type="button"
-                class="leading-none text-ink-gray-5 hover:text-ink-gray-8"
+                class="shrink-0 leading-none text-ink-gray-5 hover:text-ink-gray-8"
                 aria-label="Remove assignee"
                 @click="removeAssignee(uid)"
               >
@@ -222,8 +222,11 @@
                 variant="ghost"
                 @click="unlinkTeam(team.team)"
                 :loading="$resources.task.unlinkTeam.loading"
+                :aria-label="`Remove ${team.team_title || team.team}`"
               >
-                Remove
+                <template #icon>
+                  <LucideTrash2 class="h-4 w-4" />
+                </template>
               </Button>
             </div>
           </div>
@@ -237,7 +240,7 @@
         <div>Status</div>
         <div>
           <Dropdown :options="statusOptions">
-            <Button>
+            <Button class="whitespace-nowrap">
               <template #prefix>
                 <TaskStatusIcon :status="$resources.task.doc.status" />
               </template>
@@ -248,7 +251,7 @@
         <div>Type</div>
         <div>
           <Dropdown :options="taskTypeOptions">
-            <Button>
+            <Button class="whitespace-nowrap">
               <template #prefix>
                 <LucideCircle class="h-4 w-4" />
               </template>
@@ -259,7 +262,7 @@
         <div>Priority</div>
         <div>
           <Dropdown :options="priorityOptions">
-            <Button>
+            <Button class="whitespace-nowrap">
               <template v-if="$resources.task.doc.priority" #prefix>
                 <TaskPriorityIcon :priority="$resources.task.doc.priority" />
               </template>
