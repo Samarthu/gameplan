@@ -58,7 +58,7 @@
    "fieldname": "task_type",
    "fieldtype": "Select",
    "label": "Task Type",
-   "options": "Task\nMilestone\nBug\nEvent\nForm Response\nMeeting Note\nRequest"
+   "options": "Task\nFeature\nMilestone\nImprovement\nBug\nEvent\nForm Response\nMeeting Note\nRequest\nApproval\nFollow-up\nDocumentation\nSupport"
   },
   {
    "fieldname": "status",

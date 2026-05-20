@@ -201,7 +201,21 @@ import { activeProjects } from '@/data/projects'
 import { activeUsers } from '@/data/users'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
-const TASK_TYPES = ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request']
+const TASK_TYPES = [
+  'Task',
+  'Feature',
+  'Milestone',
+  'Improvement',
+  'Bug',
+  'Event',
+  'Form Response',
+  'Meeting Note',
+  'Request',
+  'Approval',
+  'Follow-up',
+  'Documentation',
+  'Support',
+]
 
 export default {
   name: 'TaskList',

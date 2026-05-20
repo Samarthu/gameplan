@@ -455,7 +455,21 @@ export default {
       })
     },
     taskTypeOptions() {
-      return ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request'].map((task_type) => {
+      return [
+        'Task',
+        'Feature',
+        'Milestone',
+        'Improvement',
+        'Bug',
+        'Event',
+        'Form Response',
+        'Meeting Note',
+        'Request',
+        'Approval',
+        'Follow-up',
+        'Documentation',
+        'Support',
+      ].map((task_type) => {
         return {
           label: task_type,
           onClick: () => this.$resources.task.setValue.submit({ task_type }),

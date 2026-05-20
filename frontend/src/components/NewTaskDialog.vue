@@ -164,7 +164,21 @@ function statusOptions({ onClick }) {
 }
 
 function taskTypeOptions({ onClick }) {
-  return ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request'].map((task_type) => {
+  return [
+    'Task',
+    'Feature',
+    'Milestone',
+    'Improvement',
+    'Bug',
+    'Event',
+    'Form Response',
+    'Meeting Note',
+    'Request',
+    'Approval',
+    'Follow-up',
+    'Documentation',
+    'Support',
+  ].map((task_type) => {
     return {
       label: task_type,
       onClick: () => onClick(task_type),
