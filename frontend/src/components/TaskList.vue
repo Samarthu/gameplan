@@ -104,16 +104,16 @@
       >
         <div
           v-if="selectedTasks.length > 0"
-          class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-outline-gray-2 bg-surface-white px-4 py-2.5 shadow-2xl"
+          class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-xl border border-outline-gray-2 bg-surface-white px-3 py-2 shadow-2xl"
         >
-          <span class="mr-1 text-sm font-medium whitespace-nowrap text-ink-gray-7">
+          <span class="mr-1 whitespace-nowrap text-sm font-medium text-ink-gray-7">
             {{ selectedTasks.length }} selected
           </span>
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Status -->
           <Dropdown :options="bulkStatusOptions">
-            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+            <button class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideCircleDot class="h-3.5 w-3.5" />
               Status
             </button>
@@ -121,7 +121,7 @@
 
           <!-- Type -->
           <Dropdown :options="bulkTaskTypeOptions">
-            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+            <button class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideCircle class="h-3.5 w-3.5" />
               Type
             </button>
@@ -129,7 +129,7 @@
 
           <!-- Priority -->
           <Dropdown :options="bulkPriorityOptions">
-            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+            <button class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideFlag class="h-3.5 w-3.5" />
               Priority
             </button>
@@ -138,11 +138,11 @@
           <!-- Due Date -->
           <div class="relative">
             <button
-              class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
               @click="togglePopover('date')"
             >
               <LucideCalendar class="h-3.5 w-3.5" />
-              Due Date
+              Due
             </button>
             <div
               v-if="activePopover === 'date'"
@@ -159,7 +159,7 @@
           <!-- Project -->
           <div class="relative">
             <button
-              class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
               @click="togglePopover('project')"
             >
               <LucideFolderOpen class="h-3.5 w-3.5" />
@@ -180,22 +180,28 @@
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Delete -->
-          <button
-            class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-red-500 transition hover:bg-surface-red-1"
-            @click="confirmBulkDelete"
-          >
-            <LucideTrash2 class="h-3.5 w-3.5" />
-            Delete
-          </button>
+          <Tooltip text="Delete selected tasks">
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-surface-red-1"
+              aria-label="Delete selected tasks"
+              @click="confirmBulkDelete"
+            >
+              <LucideTrash2 class="h-4 w-4" />
+            </button>
+          </Tooltip>
 
           <!-- Clear -->
-          <button
-            class="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-5 transition hover:bg-surface-gray-2 hover:text-ink-gray-7"
-            @click="clearSelection"
-          >
-            <LucideX class="h-3.5 w-3.5" />
-            Clear
-          </button>
+          <Tooltip text="Clear selection">
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-ink-gray-5 transition hover:bg-surface-gray-2 hover:text-ink-gray-7"
+              aria-label="Clear selection"
+              @click="clearSelection"
+            >
+              <LucideX class="h-4 w-4" />
+            </button>
+          </Tooltip>
         </div>
       </Transition>
     </Teleport>
@@ -203,7 +209,7 @@
 </template>
 <script>
 import { h } from 'vue'
-import { Dropdown, Autocomplete, call } from 'frappe-ui'
+import { Dropdown, Autocomplete, Tooltip, call } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
