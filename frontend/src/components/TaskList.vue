@@ -183,6 +183,34 @@
             </div>
           </div>
 
+          <!-- Copy to project -->
+          <div class="relative">
+            <Tooltip text="Copy to another project in the same team">
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-ink-gray-7 transition hover:bg-surface-gray-2 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Copy selected tasks to project"
+                :disabled="!canCopySelectionToProject"
+                @click.stop="togglePopover('copy-project')"
+              >
+                <LucideCopy class="h-4 w-4" />
+              </button>
+            </Tooltip>
+            <div
+              v-if="activePopover === 'copy-project'"
+              class="absolute w-64 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="copyProjectOptions"
+                placeholder="Copy to project..."
+                @update:modelValue="bulkCopyToProject"
+              />
+              <div v-if="!copyProjectOptions.length" class="px-2 py-1 text-sm text-ink-gray-5">
+                No other project in this team
+              </div>
+            </div>
+          </div>
+
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Delete -->
@@ -517,6 +545,13 @@ export default {
       this.activePopover = null
     },
     togglePopover(name) {
+      if (name === 'copy-project' && !this.canCopySelectionToProject) {
+        this.$dialog({
+          title: 'Cannot copy selection',
+          message: 'Select tasks from one team to copy them to another project in that same team.',
+        })
+        return
+      }
       this.activePopover = this.activePopover === name ? null : name
     },
 
@@ -536,6 +571,29 @@ export default {
       if (!option) return
       this.activePopover = null
       this.bulkUpdate('project', option.value)
+    },
+    async bulkCopyToProject(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const task of this.selectedTaskDocs) {
+        await call('frappe.client.insert', {
+          doc: {
+            doctype: 'GP Task',
+            title: task.title,
+            description: task.description,
+            start_date: task.start_date || null,
+            due_date: task.due_date || null,
+            task_type: task.task_type || 'Task',
+            status: task.status || 'Backlog',
+            priority: task.priority || null,
+            project: option.value,
+            team: this.copyTargetTeam,
+            assignees: this.assigneeIds(task).map((user) => ({ user })),
+          },
+        })
+      }
+      this.clearSelection()
+      this.tasks.reload()
     },
     canDeleteTask(task) {
       const user = this.$user('sessionUser')
@@ -710,6 +768,38 @@ export default {
         label: p.title,
         value: p.name,
       }))
+    },
+    selectedTaskTeams() {
+      const teams = new Set()
+      for (const task of this.selectedTaskDocs) {
+        const project = activeProjects.value.find((p) => p.name === task.project)
+        const team = task.team || project?.team
+        if (team) teams.add(team)
+      }
+      return [...teams]
+    },
+    selectedTaskProjectNames() {
+      return new Set(this.selectedTaskDocs.map((task) => task.project).filter(Boolean))
+    },
+    canCopySelectionToProject() {
+      return this.selectedTaskDocs.length > 0 && this.selectedTaskTeams.length === 1
+    },
+    copyTargetTeam() {
+      return this.selectedTaskTeams[0] || null
+    },
+    copyProjectOptions() {
+      if (!this.canCopySelectionToProject) return []
+      return activeProjects.value
+        .filter((project) => {
+          return (
+            project.team === this.copyTargetTeam &&
+            !this.selectedTaskProjectNames.has(project.name)
+          )
+        })
+        .map((project) => ({
+          label: project.title,
+          value: project.name,
+        }))
     },
     userOptions() {
       return activeUsers.value.map((u) => ({

@@ -65,6 +65,7 @@ declare module 'vue' {
     LucideCircle: typeof import('~icons/lucide/circle')['default']
     LucideCircleDot: typeof import('~icons/lucide/circle-dot')['default']
     LucideCoffee: typeof import('~icons/lucide/coffee')['default']
+    LucideCopy: typeof import('~icons/lucide/copy')['default']
     LucideCornerDownRight: typeof import('~icons/lucide/corner-down-right')['default']
     LucideCornerLeftUp: typeof import('~icons/lucide/corner-left-up')['default']
     LucideEdit: typeof import('~icons/lucide/edit')['default']
