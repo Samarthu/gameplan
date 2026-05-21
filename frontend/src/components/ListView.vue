@@ -14,6 +14,7 @@
         <div v-if="columns.priority.visible" class="w-24 shrink-0 pl-2">Priority</div>
         <div v-if="columns.due_date.visible" class="w-24 shrink-0 pl-2">Due Date</div>
         <div v-if="columns.status.visible" class="w-40 shrink-0 pl-2">Status</div>
+        <div v-if="columns.tags.visible" class="w-40 shrink-0 pl-2">Tags</div>
         <div v-if="columns.modified.visible" class="w-24 shrink-0 pr-2 text-right">Modified</div>
         <div v-if="columns.created_by.visible" class="w-28 shrink-0 pl-2">Created By</div>
         <div class="relative flex w-8 shrink-0 items-center justify-end pr-1" >
@@ -319,6 +320,25 @@
                 </div>
               </div>
 
+              <!-- Tags column -->
+              <div v-if="columns.tags.visible" class="flex w-40 shrink-0 items-center gap-1 py-2 pl-2">
+                <template v-if="parseTags(d._user_tags).length">
+                  <span
+                    v-for="tag in parseTags(d._user_tags).slice(0, 2)"
+                    :key="tag"
+                    class="inline-flex shrink-0 items-center gap-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700"
+                  >
+                    <LucideTag class="h-3 w-3 shrink-0" />
+                    {{ tag }}
+                  </span>
+                  <Tooltip v-if="parseTags(d._user_tags).length > 2" :text="parseTags(d._user_tags).slice(2).join(', ')">
+                    <span class="shrink-0 rounded bg-surface-gray-3 px-1.5 py-0.5 text-xs text-ink-gray-6">
+                      +{{ parseTags(d._user_tags).length - 2 }}
+                    </span>
+                  </Tooltip>
+                </template>
+              </div>
+
               <!-- Modified column -->
               <div v-if="columns.modified.visible" class="w-24 shrink-0 py-2 pr-2 text-right">
                 <span class="whitespace-nowrap text-sm text-ink-gray-5">{{ $dayjs(d.modified).fromNow() }}</span>
@@ -434,6 +454,12 @@ export default {
     confirmDeleteTask: { type: Function, required: true },
     toggleColumn: { type: Function, required: true },
     toggleColumnsPicker: { type: Function, required: true },
+  },
+  methods: {
+    parseTags(raw) {
+      if (!raw) return []
+      return raw.split(',').map((t) => t.trim()).filter(Boolean)
+    },
   },
 }
 </script>

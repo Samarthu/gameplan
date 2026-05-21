@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_tags": 1,
  "autoname": "autoincrement",
  "creation": "2022-02-01 01:30:15.103103",
  "doctype": "DocType",
@@ -58,7 +59,7 @@
    "fieldname": "task_type",
    "fieldtype": "Select",
    "label": "Task Type",
-   "options": "Task\nMilestone\nBug\nEvent\nForm Response\nMeeting Note\nRequest"
+   "options": "Task\nFeature\nMilestone\nImprovement\nBug\nEvent\nForm Response\nMeeting Note\nRequest\nApproval\nFollow-up\nDocumentation\nSupport"
   },
   {
    "fieldname": "status",

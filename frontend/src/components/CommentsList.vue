@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col h-full min-h-0">
     <div
       v-if="$resources.comments.data == null"
       class="flex animate-pulse items-start space-x-3 px-2 py-4 text-base"
@@ -19,7 +19,7 @@
         </div>
       </div>
     </div>
-    <div class="px-1">
+    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 xl:px-6 py-2" ref="scrollContainer">
       <template v-for="item in timelineItems" :key="item.doctype + item.name">
         <div
           v-if="newMessagesFrom && newMessagesFrom == item.name"
@@ -34,7 +34,7 @@
           </span>
         </div>
         <Comment
-          class="-my-5"
+          class="border-t border-outline-gray-2 first:border-t-0"
           v-if="item.doctype == 'GP Comment'"
           :ref="($comment) => setItemRef($comment, item)"
           :comment="item"
@@ -42,9 +42,12 @@
           :readOnlyMode="readOnlyMode"
           :comments="$resources.comments"
         />
-        <Activity class="my-5" v-else-if="item.doctype == 'GP Activity'" :activity="item" />
+        <template v-else-if="item.doctype == 'GP Activity'">
+          <div class="ml-10 border-t border-outline-gray-2"></div>
+          <Activity class="py-5" :activity="item" />
+        </template>
         <Poll
-          class="border-t"
+          class="border-t border-outline-gray-2 first:border-t-0"
           v-else-if="item.doctype == 'GP Poll'"
           :ref="($poll) => setItemRef($poll, item)"
           :highlight="highlightedItem == item"
@@ -54,8 +57,8 @@
       </template>
     </div>
 
-    <div v-if="!readOnlyMode && !disableNewComment" class="px-1 py-4" ref="addComment">
-      <div class="flex items-start">
+    <div v-if="!readOnlyMode && !disableNewComment" class="px-1 xl:px-6 py-4 xl:border-t xl:border-outline-gray-2 bg-surface-white z-[1]" ref="addComment">
+      <div class="flex items-start min-w-0">
         <div class="mr-3 hidden h-8 items-center sm:flex">
           <UserAvatar :user="$user().name" size="md" />
         </div>
@@ -63,6 +66,7 @@
           <button
             class="flex w-full items-center rounded-md border px-2 py-2 text-left text-base text-ink-gray-5 hover:border-outline-gray-3"
             @click="showCommentBox = true"
+            @focus="showCommentBox = true"
           >
             Add a comment
           </button>
@@ -87,7 +91,7 @@
         </div>
         <div
           v-show="showCommentBox"
-          class="w-full rounded-lg border bg-surface-white p-4 focus-within:border-outline-gray-3"
+          class="w-full min-w-0 rounded-lg border bg-surface-white p-4 focus-within:border-outline-gray-3"
           @keydown.ctrl.enter.capture.stop="submitComment"
           @keydown.meta.enter.capture.stop="submitComment"
         >
@@ -144,7 +148,7 @@ import { Tooltip } from 'frappe-ui'
 
 export default {
   name: 'CommentsArea',
-  props: ['doctype', 'name', 'newCommentsFrom', 'readOnlyMode', 'disableNewComment'],
+  props: ['doctype', 'name', 'newCommentsFrom', 'readOnlyMode', 'disableNewComment', 'filter'],
   components: {
     CommentEditor,
     Comment,
@@ -347,14 +351,28 @@ export default {
         this.$router.replace({ query: {} })
       }, 10000)
     },
+    getScrollContainer() {
+      let container = this.$refs.scrollContainer
+      if (container && window.innerWidth >= 1280) {
+        return container
+      }
+      return getScrollContainer()
+    },
     scrollToElement($el) {
-      let scrollContainer = getScrollContainer()
-      let headerHeight = 64
-      let top = $el.offsetTop - scrollContainer.scrollTop - headerHeight
-      scrollContainer.scrollBy({ top, left: 0, behavior: 'smooth' })
+      let scrollContainer = this.getScrollContainer()
+      if (scrollContainer === this.$refs.scrollContainer) {
+        let containerRect = scrollContainer.getBoundingClientRect()
+        let elRect = $el.getBoundingClientRect()
+        let top = elRect.top - containerRect.top
+        scrollContainer.scrollBy({ top, left: 0, behavior: 'smooth' })
+      } else {
+        let headerHeight = 64
+        let top = $el.offsetTop - scrollContainer.scrollTop - headerHeight
+        scrollContainer.scrollBy({ top, left: 0, behavior: 'smooth' })
+      }
     },
     scrollToEnd() {
-      let scrollContainer = getScrollContainer()
+      let scrollContainer = this.getScrollContainer()
       scrollContainer.scrollTop = scrollContainer.scrollHeight
     },
     discardComment() {
@@ -428,18 +446,21 @@ export default {
   computed: {
     timelineItems() {
       let items = []
-      if (this.$resources.comments.data?.length) {
-        items = items.concat(this.$resources.comments.data)
+      const f = this.filter || 'all'
+      if (f === 'all' || f === 'comments') {
+        if (this.$resources.comments.data?.length) {
+          items = items.concat(this.$resources.comments.data)
+        }
+        if (this.$resources.polls.data?.length) {
+          items = items.concat(this.$resources.polls.data)
+        }
       }
-      if (this.$resources.activities.data?.length) {
-        items = items.concat(this.$resources.activities.data)
+      if (f === 'all' || f === 'activity') {
+        if (this.$resources.activities.data?.length) {
+          items = items.concat(this.$resources.activities.data)
+        }
       }
-      if (this.$resources.polls.data?.length) {
-        items = items.concat(this.$resources.polls.data)
-      }
-      return items.sort((a, b) => {
-        return new Date(a.creation) - new Date(b.creation)
-      })
+      return items.sort((a, b) => new Date(a.creation) - new Date(b.creation))
     },
     commentEmpty() {
       return !this.newComment || this.newComment === '<p></p>'

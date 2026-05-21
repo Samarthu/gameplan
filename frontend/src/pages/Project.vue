@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col" :class="{ 'h-screen min-h-0': $route.name === 'ProjectTaskDetail' }">
     <router-view v-slot="{ Component, route }">
       <header
         class="sticky top-0 z-10 flex items-center justify-between border-b bg-surface-white px-5 py-2.5"
@@ -278,7 +278,10 @@
       <component
         v-if="project"
         :is="Component"
-        :class="{ 'mx-auto w-full max-w-4xl px-5': !route.meta?.fullWidth }"
+        :class="[
+          { 'mx-auto w-full max-w-4xl px-5': !route.meta?.fullWidth },
+          $route.name === 'ProjectTaskDetail' ? 'flex-1 min-h-0' : '',
+        ]"
         :project="project"
         :team="team"
       />

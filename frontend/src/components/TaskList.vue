@@ -75,7 +75,7 @@
     />
 
     <div
-      class="flex flex-col items-center rounded-lg border-2 border-dashed py-8 text-base text-ink-gray-5"
+      class="flex flex-col items-center py-8 text-base border-2 border-dashed rounded-lg text-ink-gray-5"
       v-else
     >
       No tasks
@@ -84,21 +84,21 @@
     <!-- Bulk action bar -->
     <Teleport to="body">
       <Transition
-        enter-active-class="transition ease-out duration-150"
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition ease-in duration-100"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-2"
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="translate-y-2 opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="translate-y-0 opacity-100"
+        leave-to-class="translate-y-2 opacity-0"
       >
         <div
           v-if="selectedTasks.length > 0"
           class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-outline-gray-2 bg-surface-white px-4 py-2.5 shadow-2xl"
         >
-          <span class="mr-1 whitespace-nowrap text-sm font-medium text-ink-gray-7">
+          <span class="mr-1 text-sm font-medium whitespace-nowrap text-ink-gray-7">
             {{ selectedTasks.length }} selected
           </span>
-          <div class="h-4 w-px bg-outline-gray-2"></div>
+          <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Status -->
           <Dropdown :options="bulkStatusOptions">
@@ -135,11 +135,11 @@
             </button>
             <div
               v-if="activePopover === 'date'"
-              class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+              class="absolute p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
             >
               <input
                 type="date"
-                class="block rounded-md border border-outline-gray-2 px-2 py-1 text-sm text-ink-gray-9 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+                class="block px-2 py-1 text-sm border rounded-md border-outline-gray-2 text-ink-gray-9 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
                 @change="bulkSetDueDate($event.target.value)"
               />
             </div>
@@ -156,7 +156,7 @@
             </button>
             <div
               v-if="activePopover === 'project'"
-              class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+              class="absolute w-56 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
             >
               <Autocomplete
                 :options="projectOptions"
@@ -166,7 +166,7 @@
             </div>
           </div>
 
-          <div class="h-4 w-px bg-outline-gray-2"></div>
+          <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Delete -->
           <button
@@ -201,7 +201,21 @@ import { activeProjects } from '@/data/projects'
 import { activeUsers } from '@/data/users'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
-const TASK_TYPES = ['Task', 'Milestone', 'Bug', 'Event', 'Form Response', 'Meeting Note', 'Request']
+const TASK_TYPES = [
+  'Task',
+  'Feature',
+  'Milestone',
+  'Improvement',
+  'Bug',
+  'Event',
+  'Form Response',
+  'Meeting Note',
+  'Request',
+  'Approval',
+  'Follow-up',
+  'Documentation',
+  'Support',
+]
 
 export default {
   name: 'TaskList',
@@ -253,6 +267,7 @@ export default {
         status:     { label: 'Status',      visible: saved.status     ?? false },
         modified:   { label: 'Modified',    visible: saved.modified   ?? true },
         created_by: { label: 'Created By',  visible: saved.created_by ?? false },
+        tags:       { label: 'Tags',        visible: saved.tags       ?? true },
       },
     }
   },
@@ -277,7 +292,7 @@ export default {
         url: 'gameplan.gameplan.doctype.gp_task.gp_task.get_list',
         cache: ['Tasks', this.listOptions],
         doctype: 'GP Task',
-        fields: ['*', 'project.title as project_title', 'team.title as team_title'],
+        fields: ['*', '_user_tags', 'project.title as project_title', 'team.title as team_title'],
         filters: this.listOptions.filters,
         orderBy: this.listOptions.orderBy || 'creation desc',
         pageLength: this.listOptions.pageLength || 1000,
