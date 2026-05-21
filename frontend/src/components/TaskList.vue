@@ -21,6 +21,8 @@
       :taskRoute="taskRoute"
       :assigneeIds="assigneeIds"
       :visibleAssigneeIds="visibleAssigneeIds"
+      :assigneeHeatClass="assigneeHeatClass"
+      :assigneeHeatStyle="assigneeHeatStyle"
       :isTaskOverdue="isTaskOverdue"
       :priorityIconClass="priorityIconClass"
       :statusOptions="statusOptions"
@@ -73,6 +75,8 @@
       :assigneeIds="assigneeIds"
       :assigneeStackSpacingClass="assigneeStackSpacingClass"
       :visibleAssigneeIds="visibleAssigneeIds"
+      :assigneeHeatClass="assigneeHeatClass"
+      :assigneeHeatStyle="assigneeHeatStyle"
       :extraAssigneeCount="extraAssigneeCount"
       :extraAssigneeNames="extraAssigneeNames"
       :toggleInlinePopover="toggleInlinePopover"
@@ -636,6 +640,20 @@ export default {
     visibleAssigneeIds(task) {
       return this.assigneeIds(task).slice(0, 3)
     },
+    assigneeHeatClass(user) {
+      const score = this.assigneeHeatScores[user] || 0
+      if (score >= 7) return 'text-white ring-red-500 shadow-sm'
+      if (score >= 4) return 'text-white ring-orange-500 shadow-sm'
+      if (score >= 2) return 'text-white ring-indigo-500 shadow-sm'
+      return 'text-ink-gray-7 ring-outline-gray-3'
+    },
+    assigneeHeatStyle(user) {
+      const score = this.assigneeHeatScores[user] || 0
+      if (score >= 7) return { backgroundColor: '#d94b4b' }
+      if (score >= 4) return { backgroundColor: '#f47b20' }
+      if (score >= 2) return { backgroundColor: '#5b45e6' }
+      return { backgroundColor: '#f3f4f6' }
+    },
     extraAssigneeCount(task) {
       const n = this.assigneeIds(task).length
       return n > 3 ? n - 3 : 0
@@ -736,6 +754,27 @@ export default {
         tasksByStatus[task.status].push(task)
       })
       return tasksByStatus
+    },
+    assigneeHeatScores() {
+      const scores = {}
+      const activeTasks = (this.tasks.data || []).filter(
+        (task) => !['Done', 'Cancelled'].includes(task.status),
+      )
+      for (const task of activeTasks) {
+        let weight = 1
+        if (task.priority === 'Urgent') weight += 2
+        else if (task.priority === 'High') weight += 1
+        if (this.isTaskOverdue(task)) weight += 2
+        else if (task.due_date) {
+          const due = this.$dayjs(task.due_date).startOf('day')
+          const today = this.$dayjs().startOf('day')
+          if (due.diff(today, 'day') <= 2) weight += 1
+        }
+        for (const user of this.assigneeIds(task)) {
+          scores[user] = (scores[user] || 0) + weight
+        }
+      }
+      return scores
     },
     childTasksByParent() {
       return (this.tasks.data || []).reduce((childrenByParent, task) => {

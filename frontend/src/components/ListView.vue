@@ -205,10 +205,11 @@
                         :text="$user(uid).full_name"
                       >
                         <span
-                          class="relative inline-flex rounded-full ring-2 ring-surface-white"
-                          :style="{ zIndex: idx + 1 }"
+                          class="relative inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
+                          :class="assigneeHeatClass(uid)"
+                          :style="{ ...assigneeHeatStyle(uid), zIndex: idx + 1 }"
                         >
-                          <UserAvatar class="shrink-0" :user="uid" size="sm" />
+                          {{ userInitial(uid) }}
                         </span>
                       </Tooltip>
                       <Tooltip v-if="extraAssigneeCount(d) > 0" :text="extraAssigneeNames(d)">
@@ -444,6 +445,8 @@ export default {
     assigneeIds: { type: Function, required: true },
     assigneeStackSpacingClass: { type: Function, required: true },
     visibleAssigneeIds: { type: Function, required: true },
+    assigneeHeatClass: { type: Function, required: true },
+    assigneeHeatStyle: { type: Function, required: true },
     extraAssigneeCount: { type: Function, required: true },
     extraAssigneeNames: { type: Function, required: true },
     toggleInlinePopover: { type: Function, required: true },
@@ -456,6 +459,10 @@ export default {
     toggleColumnsPicker: { type: Function, required: true },
   },
   methods: {
+    userInitial(user) {
+      const fullName = this.$user(user).full_name || user || ''
+      return fullName.trim().charAt(0).toUpperCase()
+    },
     parseTags(raw) {
       if (!raw) return []
       return raw.split(',').map((t) => t.trim()).filter(Boolean)

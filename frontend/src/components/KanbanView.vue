@@ -85,7 +85,13 @@
                         :key="uid + '-' + idx"
                         :text="$user(uid).full_name"
                       >
-                        <UserAvatar class="shrink-0" :user="uid" size="sm" />
+                        <span
+                          class="inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
+                          :class="assigneeHeatClass(uid)"
+                          :style="assigneeHeatStyle(uid)"
+                        >
+                          {{ userInitial(uid) }}
+                        </span>
                       </Tooltip>
                     </template>
                     <span v-else class="text-sm text-ink-gray-4">Unassigned</span>
@@ -252,6 +258,8 @@ export default {
     taskRoute: { type: Function, required: true },
     assigneeIds: { type: Function, required: true },
     visibleAssigneeIds: { type: Function, required: true },
+    assigneeHeatClass: { type: Function, required: true },
+    assigneeHeatStyle: { type: Function, required: true },
     isTaskOverdue: { type: Function, required: true },
     priorityIconClass: { type: Function, required: true },
     statusOptions: { type: Function, required: true },
@@ -273,6 +281,10 @@ export default {
     }
   },
   methods: {
+    userInitial(user) {
+      const fullName = this.$user(user).full_name || user || ''
+      return fullName.trim().charAt(0).toUpperCase()
+    },
     childTasks(task) {
       return this.childTasksByParent[task.name] || []
     },
