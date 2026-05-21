@@ -83,6 +83,7 @@ declare module 'vue' {
     LucideSave: typeof import('~icons/lucide/save')['default']
     LucideSearch: typeof import('~icons/lucide/search')['default']
     LucideSlidersHorizontal: typeof import('~icons/lucide/sliders-horizontal')['default']
+    LucideTag: typeof import('~icons/lucide/tag')['default']
     LucideTrash2: typeof import('~icons/lucide/trash2')['default']
     LucideUnfoldVertical: typeof import('~icons/lucide/unfold-vertical')['default']
     LucideUnlock: typeof import('~icons/lucide/unlock')['default']

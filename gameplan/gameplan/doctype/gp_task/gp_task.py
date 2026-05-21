@@ -454,6 +454,28 @@ def get_linked_projects(team=None):
 	return [project for project in projects if can_access_team(project.linked_team)]
 
 
+@frappe.whitelist()
+def get_task_tags_for_doc(task_id):
+	raw = frappe.db.get_value("GP Task", task_id, "_user_tags") or ""
+	return [t.strip() for t in raw.split(",") if t.strip()]
+
+
+@frappe.whitelist()
+def get_task_tags(txt=""):
+	rows = frappe.db.sql(
+		"SELECT DISTINCT `_user_tags` FROM `tabGP Task` WHERE `_user_tags` IS NOT NULL AND `_user_tags` != ''",
+		as_dict=False,
+	)
+	all_tags = set()
+	for (raw,) in rows:
+		for tag in raw.split(","):
+			tag = tag.strip()
+			if tag:
+				all_tags.add(tag)
+	txt = (txt or "").casefold()
+	return sorted(t for t in all_tags if txt in t.casefold())
+
+
 def can_access_team(team):
 	if not team:
 		return True

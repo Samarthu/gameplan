@@ -140,6 +140,28 @@
                 {{ $resources.task.doc.priority || 'Set priority' }}
               </Button>
             </Dropdown>
+            <div class="text-ink-gray-6">Tags</div>
+            <div class="space-y-1">
+              <div
+                v-for="tag in taskTags"
+                :key="tag"
+                class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
+              >
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <LucideTag class="h-3.5 w-3.5 shrink-0 text-ink-gray-5" />
+                  <span class="truncate text-sm text-ink-gray-8">{{ tag }}</span>
+                </div>
+                <Button variant="ghost" @click="removeTag(tag)" :aria-label="`Remove ${tag}`">
+                  <template #icon><LucideTrash2 class="h-3.5 w-3.5" /></template>
+                </Button>
+              </div>
+              <Autocomplete
+                placeholder="Add tag"
+                :options="tagOptions"
+                v-model="tagSelection"
+                @update:modelValue="onTagPicked"
+                @update:query="fetchTagSuggestions"
+              /></div>
             <div class="text-ink-gray-6">Linked Teams</div>
             <div class="space-y-2">
               <div v-if="linkedTeams.length" class="space-y-1">
@@ -221,7 +243,7 @@ import TextEditor from '@/components/TextEditor.vue'
 import ReadmeEditor from '@/components/ReadmeEditor.vue'
 import CommentsArea from '@/components/CommentsArea.vue'
 import { focus } from '@/directives'
-import { Autocomplete, Dropdown, LoadingText, DatePicker } from 'frappe-ui'
+import { Autocomplete, Dropdown, LoadingText, DatePicker, call } from 'frappe-ui'
 import CommentsList from '@/components/CommentsList.vue'
 import TaskStatusIcon from '@/components/icons/TaskStatusIcon.vue'
 import TaskPriorityIcon from '@/components/icons/TaskPriorityIcon.vue'
@@ -275,6 +297,7 @@ export default {
             this.$resources.task.trackVisit.submit()
           }
           this.$resources.task.getLinkedTeams.submit()
+          this.loadDocTags()
         },
       }
     },
@@ -284,7 +307,14 @@ export default {
       linkedTeam: null,
       assigneeAddSelection: null,
       activityFilter: 'all',
+      docTags: [],
+      tagSelection: null,
+      allTagSuggestions: [],
+      tagSearchQuery: '',
     }
+  },
+  mounted() {
+    this.fetchTagSuggestions('')
   },
   methods: {
     onAssigneePicked(option) {
@@ -337,6 +367,47 @@ export default {
           },
         },
       )
+    },
+    loadDocTags() {
+      call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags_for_doc', {
+        task_id: this.taskId,
+      }).then((tags) => {
+        this.docTags = tags || []
+      })
+    },
+    fetchTagSuggestions(txt = '') {
+      this.tagSearchQuery = txt
+      call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags', {
+        txt,
+      }).then((tags) => {
+        this.allTagSuggestions = tags || []
+      })
+    },
+    onTagPicked(option) {
+      this.tagSelection = null
+      if (!option?.value) return
+      this.addTag(option.value)
+    },
+    addTag(tag) {
+      tag = tag?.trim()
+      if (!tag || this.taskTags.includes(tag)) return
+      call('frappe.desk.doctype.tag.tag.add_tag', {
+        dt: 'GP Task',
+        dn: this.taskId,
+        tag,
+      }).then(() => {
+        this.loadDocTags()
+        this.fetchTagSuggestions('')
+      })
+    },
+    removeTag(tag) {
+      call('frappe.desk.doctype.tag.tag.remove_tag', {
+        dt: 'GP Task',
+        dn: this.taskId,
+        tag,
+      }).then(() => {
+        this.loadDocTags()
+      })
     },
     openParentTask() {
       const parent = this.$resources.parentTask?.doc
@@ -459,6 +530,22 @@ export default {
           label: team.title,
           value: team.name,
         }))
+    },
+    taskTags() {
+      return this.docTags
+    },
+    tagOptions() {
+      const query = (this.tagSearchQuery || '').trim().toLowerCase()
+      const available = this.allTagSuggestions.filter((t) => !this.docTags.includes(t))
+      const filtered = query
+        ? available.filter((t) => t.toLowerCase().includes(query))
+        : available
+      const options = filtered.map((t) => ({ label: t, value: t }))
+      const alreadyExists = this.allTagSuggestions.some((t) => t.toLowerCase() === query)
+      if (query && !alreadyExists && !this.docTags.includes(this.tagSearchQuery.trim())) {
+        options.push({ label: `Create "${this.tagSearchQuery.trim()}"`, value: this.tagSearchQuery.trim() })
+      }
+      return options
     },
     canDeleteTask() {
       const task = this.$resources.task.doc

@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_tags": 1,
  "autoname": "autoincrement",
  "creation": "2022-02-01 01:30:15.103103",
  "doctype": "DocType",
