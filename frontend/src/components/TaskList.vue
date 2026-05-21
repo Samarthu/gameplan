@@ -267,6 +267,7 @@ export default {
         status:     { label: 'Status',      visible: saved.status     ?? false },
         modified:   { label: 'Modified',    visible: saved.modified   ?? true },
         created_by: { label: 'Created By',  visible: saved.created_by ?? false },
+        tags:       { label: 'Tags',        visible: saved.tags       ?? true },
       },
     }
   },
@@ -291,7 +292,7 @@ export default {
         url: 'gameplan.gameplan.doctype.gp_task.gp_task.get_list',
         cache: ['Tasks', this.listOptions],
         doctype: 'GP Task',
-        fields: ['*', 'project.title as project_title', 'team.title as team_title'],
+        fields: ['*', '_user_tags', 'project.title as project_title', 'team.title as team_title'],
         filters: this.listOptions.filters,
         orderBy: this.listOptions.orderBy || 'creation desc',
         pageLength: this.listOptions.pageLength || 1000,
