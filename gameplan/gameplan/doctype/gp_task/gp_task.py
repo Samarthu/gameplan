@@ -66,6 +66,10 @@ def enrich_task_rows_with_assignees(rows: list):
 		row["assignee_users"] = users
 
 
+def parse_task_tags(raw: str | None) -> list[str]:
+	return [tag.strip() for tag in (raw or "").split(",") if tag.strip()]
+
+
 def append_descendant_task_rows(rows: list, fields):
 	if not rows:
 		return rows
@@ -294,6 +298,7 @@ def get_list(
 	assigned_to_filter = filters.pop("assigned_to", None)
 	linked_team = filters.pop("linked_team", None)
 	linked_project = filters.pop("linked_project", None)
+	tag_filter = filters.pop("tag", None)
 	task_order_by = order_by
 	if linked_team:
 		order_by = None
@@ -341,7 +346,11 @@ def get_list(
 			.where(Assignee.user == assigned_to_filter)
 		)
 		query = query.where((Task.assigned_to == assigned_to_filter) | (Task.name.isin(sub)))
+	if tag_filter:
+		query = query.where(Task._user_tags.like(f"%{tag_filter}%"))
 	rows = query.run(as_dict=True, debug=debug)
+	if tag_filter:
+		rows = [row for row in rows if tag_filter in parse_task_tags(row.get("_user_tags"))]
 	enrich_task_rows_with_assignees(rows)
 	return append_descendant_task_rows(rows, fields)
 
@@ -457,7 +466,7 @@ def get_linked_projects(team=None):
 @frappe.whitelist()
 def get_task_tags_for_doc(task_id):
 	raw = frappe.db.get_value("GP Task", task_id, "_user_tags") or ""
-	return [t.strip() for t in raw.split(",") if t.strip()]
+	return parse_task_tags(raw)
 
 
 @frappe.whitelist()

@@ -1,5 +1,16 @@
 <template>
   <div>
+    <div v-if="selectedTag" class="mb-3 flex flex-wrap items-center gap-2">
+      <button
+        class="inline-flex items-center gap-1 rounded-full bg-surface-blue-1 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+        @click="selectedTag = null"
+      >
+        <LucideTag class="h-3.5 w-3.5 shrink-0" />
+        {{ selectedTag }}
+        <LucideX class="h-3.5 w-3.5" />
+      </button>
+    </div>
+
     <KanbanView
       v-if="tasks.data?.length && viewMode === 'kanban'"
       :tasksResource="tasks"
@@ -192,7 +203,7 @@
 </template>
 <script>
 import { h } from 'vue'
-import { Dropdown, Autocomplete } from 'frappe-ui'
+import { Dropdown, Autocomplete, call } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
@@ -260,6 +271,8 @@ export default {
       showColumnsPicker: false,
       columnsPickerStyle: {},
       inlinePopover: { name: null, field: null },
+      selectedTag: null,
+      allTags: [],
       columns: {
         assignee:   { label: 'Assignee',    visible: saved.assignee   ?? true },
         priority:   { label: 'Priority',    visible: saved.priority   ?? true },
@@ -271,8 +284,16 @@ export default {
       },
     }
   },
+  watch: {
+    selectedTag() {
+      this.$resources.tasks.reload()
+    },
+  },
   mounted() {
     document.addEventListener('click', this.handleOutsideClick)
+    call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags', { txt: '' }).then((tags) => {
+      this.allTags = tags || []
+    })
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleOutsideClick)
@@ -293,7 +314,7 @@ export default {
         cache: ['Tasks', this.listOptions],
         doctype: 'GP Task',
         fields: ['*', '_user_tags', 'project.title as project_title', 'team.title as team_title'],
-        filters: this.listOptions.filters,
+        filters: { ...this.listOptions.filters, ...(this.selectedTag ? { tag: this.selectedTag } : {}) },
         orderBy: this.listOptions.orderBy || 'creation desc',
         pageLength: this.listOptions.pageLength || 1000,
         auto: true,
@@ -661,6 +682,23 @@ export default {
         { label: 'Medium', onClick: () => this.bulkUpdate('priority', 'Medium') },
         { label: 'Low',    onClick: () => this.bulkUpdate('priority', 'Low') },
       ]
+    },
+    filterOptions() {
+      const tagOptions = this.allTags.map((tag) => ({
+        label: this.selectedTag === tag ? `${tag} selected` : tag,
+        onClick: () => {
+          this.selectedTag = this.selectedTag === tag ? null : tag
+        },
+      }))
+
+      if (this.selectedTag) {
+        return [
+          { label: 'Clear tag filter', onClick: () => (this.selectedTag = null) },
+          ...tagOptions,
+        ]
+      }
+
+      return tagOptions
     },
     groupedTasks() {
       if (!this.groupByStatus) {

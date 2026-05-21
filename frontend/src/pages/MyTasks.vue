@@ -22,17 +22,28 @@
           ]"
           v-model="currentTab"
         />
-        <TabButtons
-          :buttons="[
-            { label: 'List', value: 'list' },
-            { label: 'Kanban', value: 'kanban' },
-            { label: 'Team', value: 'team' },
-          ]"
-          v-model="viewMode"
-        />
+        <div class="flex items-center gap-2">
+          <Dropdown :options="taskListRef?.filterOptions || []">
+            <button
+              class="inline-flex items-center gap-1.5 rounded-lg border border-outline-gray-2 bg-surface-white px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-1"
+            >
+              <LucideFilter class="h-4 w-4" />
+              Filter
+            </button>
+          </Dropdown>
+          <TabButtons
+            :buttons="[
+              { label: 'List', value: 'list' },
+              { label: 'Kanban', value: 'kanban' },
+              { label: 'Team', value: 'team' },
+            ]"
+            v-model="viewMode"
+          />
+        </div>
       </div>
       <div class="pb-6 mt-3 sm:mt-4">
         <TaskList
+          ref="taskListRef"
           :listOptions="listOptions"
           :groupByStatus="true"
           :viewMode="viewMode"
@@ -45,11 +56,13 @@
 </template>
 <script setup>
 import { ref, computed } from 'vue'
-import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons } from 'frappe-ui'
+import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons, Dropdown } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import { getUser } from '@/data/users'
+import LucideFilter from '~icons/lucide/filter'
 
 let newTaskDialog = ref(null)
+let taskListRef = ref(null)
 let currentTab = ref('all')
 const route = useRoute()
 const router = useRouter()
