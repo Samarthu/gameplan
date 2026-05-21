@@ -23,6 +23,7 @@
       :visibleAssigneeIds="visibleAssigneeIds"
       :assigneeHeatClass="assigneeHeatClass"
       :assigneeHeatStyle="assigneeHeatStyle"
+      :removeAssignee="removeAssignee"
       :isTaskOverdue="isTaskOverdue"
       :priorityIconClass="priorityIconClass"
       :statusOptions="statusOptions"
@@ -81,6 +82,7 @@
       :extraAssigneeNames="extraAssigneeNames"
       :toggleInlinePopover="toggleInlinePopover"
       :setAssignee="setAssignee"
+      :removeAssignee="removeAssignee"
       :priorityOptions="priorityOptions"
       :setDueDate="setDueDate"
       :canDeleteTask="canDeleteTask"
@@ -445,6 +447,14 @@ export default {
         assignees: merged.map((user) => ({ user })),
       })
     },
+    removeAssignee(task, user) {
+      const remaining = this.assigneeIds(task).filter((id) => id !== user)
+      this.inlinePopover = { name: null, field: null }
+      this.tasks.setValue.submit({
+        name: task.name,
+        assignees: remaining.map((user) => ({ user })),
+      })
+    },
     priorityOptions(task) {
       return ['Urgent', 'High', 'Medium', 'Low'].map((p) => ({
         label: p,
@@ -641,18 +651,36 @@ export default {
       return this.assigneeIds(task).slice(0, 3)
     },
     assigneeHeatClass(user) {
-      const score = this.assigneeHeatScores[user] || 0
-      if (score >= 7) return 'text-white ring-red-500 shadow-sm'
-      if (score >= 4) return 'text-white ring-orange-500 shadow-sm'
-      if (score >= 2) return 'text-white ring-indigo-500 shadow-sm'
-      return 'text-ink-gray-7 ring-outline-gray-3'
+      return 'text-white shadow-sm'
     },
     assigneeHeatStyle(user) {
-      const score = this.assigneeHeatScores[user] || 0
-      if (score >= 7) return { backgroundColor: '#d94b4b' }
-      if (score >= 4) return { backgroundColor: '#f47b20' }
-      if (score >= 2) return { backgroundColor: '#5b45e6' }
-      return { backgroundColor: '#f3f4f6' }
+      const seed = `${this.$user(user).full_name || ''}:${user || ''}`
+      const palette = [
+        { bg: '#b91c1c', ring: '#7f1d1d' },
+        { bg: '#c2410c', ring: '#7c2d12' },
+        { bg: '#a16207', ring: '#713f12' },
+        { bg: '#15803d', ring: '#14532d' },
+        { bg: '#047857', ring: '#064e3b' },
+        { bg: '#0369a1', ring: '#0c4a6e' },
+        { bg: '#1d4ed8', ring: '#1e3a8a' },
+        { bg: '#4338ca', ring: '#312e81' },
+        { bg: '#7e22ce', ring: '#581c87' },
+        { bg: '#be185d', ring: '#831843' },
+      ]
+      const color = palette[this.hashStringToIndex(seed, palette.length)]
+      return {
+        backgroundColor: color.bg,
+        borderColor: '#fff',
+        '--tw-ring-color': color.ring,
+      }
+    },
+    hashStringToIndex(value, length) {
+      let hash = 0
+      for (let i = 0; i < value.length; i++) {
+        hash = (hash << 5) - hash + value.charCodeAt(i)
+        hash |= 0
+      }
+      return Math.abs(hash) % length
     },
     extraAssigneeCount(task) {
       const n = this.assigneeIds(task).length
@@ -754,27 +782,6 @@ export default {
         tasksByStatus[task.status].push(task)
       })
       return tasksByStatus
-    },
-    assigneeHeatScores() {
-      const scores = {}
-      const activeTasks = (this.tasks.data || []).filter(
-        (task) => !['Done', 'Cancelled'].includes(task.status),
-      )
-      for (const task of activeTasks) {
-        let weight = 1
-        if (task.priority === 'Urgent') weight += 2
-        else if (task.priority === 'High') weight += 1
-        if (this.isTaskOverdue(task)) weight += 2
-        else if (task.due_date) {
-          const due = this.$dayjs(task.due_date).startOf('day')
-          const today = this.$dayjs().startOf('day')
-          if (due.diff(today, 'day') <= 2) weight += 1
-        }
-        for (const user of this.assigneeIds(task)) {
-          scores[user] = (scores[user] || 0) + weight
-        }
-      }
-      return scores
     },
     childTasksByParent() {
       return (this.tasks.data || []).reduce((childrenByParent, task) => {

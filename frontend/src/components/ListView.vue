@@ -205,15 +205,23 @@
                         :text="$user(uid).full_name"
                       >
                         <span
-                          class="relative inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
+                          class="group/assignee relative inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
                           :class="assigneeHeatClass(uid)"
                           :style="{ ...assigneeHeatStyle(uid), zIndex: idx + 1 }"
                         >
                           {{ userInitial(uid) }}
+                          <button
+                            type="button"
+                            class="absolute -right-1 -top-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-ink-gray-8 text-white shadow-sm transition hover:bg-red-600 group-hover/assignee:flex"
+                            :aria-label="`Remove ${$user(uid).full_name}`"
+                            @click.stop="removeAssignee(d, uid)"
+                          >
+                            <LucideX class="h-2.5 w-2.5" />
+                          </button>
                         </span>
                       </Tooltip>
                       <Tooltip v-if="extraAssigneeCount(d) > 0" :text="extraAssigneeNames(d)">
-                        <span class="relative inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-surface-gray-3 px-1 text-xs font-medium text-ink-gray-8 ring-2 ring-surface-white">
+                        <span class="relative inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-ink-gray-8 px-1 text-xs font-semibold text-white shadow-sm ring-1 ring-ink-gray-6">
                           +{{ extraAssigneeCount(d) }}
                         </span>
                       </Tooltip>
@@ -405,6 +413,7 @@
 import { LoadingIndicator, Dropdown, Tooltip, Autocomplete } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
+import LucideX from '~icons/lucide/x'
 
 export default {
   name: 'ListView',
@@ -415,6 +424,7 @@ export default {
     Autocomplete,
     TaskStatusIcon,
     UserAvatar,
+    LucideX,
   },
   props: {
     tasksResource: { type: Object, required: true },
@@ -451,6 +461,7 @@ export default {
     extraAssigneeNames: { type: Function, required: true },
     toggleInlinePopover: { type: Function, required: true },
     setAssignee: { type: Function, required: true },
+    removeAssignee: { type: Function, required: true },
     priorityOptions: { type: Function, required: true },
     setDueDate: { type: Function, required: true },
     canDeleteTask: { type: Function, required: true },

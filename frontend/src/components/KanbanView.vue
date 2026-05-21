@@ -86,11 +86,19 @@
                         :text="$user(uid).full_name"
                       >
                         <span
-                          class="inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
+                          class="group/assignee relative inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
                           :class="assigneeHeatClass(uid)"
                           :style="assigneeHeatStyle(uid)"
                         >
                           {{ userInitial(uid) }}
+                          <button
+                            type="button"
+                            class="absolute -right-1 -top-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-ink-gray-8 text-white shadow-sm transition hover:bg-red-600 group-hover/assignee:flex"
+                            :aria-label="`Remove ${$user(uid).full_name}`"
+                            @click.stop="removeAssignee(d, uid)"
+                          >
+                            <LucideX class="h-2.5 w-2.5" />
+                          </button>
                         </span>
                       </Tooltip>
                     </template>
@@ -239,6 +247,7 @@
 import { Autocomplete, Dropdown, Tooltip } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
+import LucideX from '~icons/lucide/x'
 
 export default {
   name: 'KanbanView',
@@ -248,6 +257,7 @@ export default {
     Tooltip,
     TaskStatusIcon,
     UserAvatar,
+    LucideX,
   },
   props: {
     tasksResource: { type: Object, required: true },
@@ -267,6 +277,7 @@ export default {
     kanbanColumnClass: { type: Function, required: true },
     userOptions: { type: Array, required: true },
     setAssignee: { type: Function, required: true },
+    removeAssignee: { type: Function, required: true },
     priorityOptions: { type: Function, required: true },
     setDueDate: { type: Function, required: true },
     canDeleteTask: { type: Function, required: true },
