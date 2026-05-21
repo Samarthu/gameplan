@@ -194,9 +194,23 @@
       </div>
     </div>
     <div class="hidden w-[28rem] shrink-0 bg-surface-white xl:flex xl:flex-col">
-      <div class="border-b border-outline-gray-2 px-6 py-4 text-base font-semibold text-ink-gray-9">Activity</div>
+      <div class="border-b border-outline-gray-2 px-6 py-3 flex items-center justify-between">
+        <span class="text-base font-semibold text-ink-gray-9">Activity</span>
+        <Dropdown
+          :options="[
+            { label: 'All', onClick: () => activityFilter = 'all' },
+            { label: 'Comments', onClick: () => activityFilter = 'comments' },
+            { label: 'Activity', onClick: () => activityFilter = 'activity' },
+          ]"
+          :button="{
+            label: activityFilterLabel,
+            variant: 'ghost',
+            iconRight: 'chevron-down',
+          }"
+        />
+      </div>
       <div class="min-h-0 flex-1 flex flex-col">
-        <CommentsList doctype="GP Task" :name="taskId" class="flex-1 min-h-0" />
+        <CommentsList doctype="GP Task" :name="taskId" class="flex-1 min-h-0" :filter="activityFilter" />
       </div>
     </div>
   </div>
@@ -269,6 +283,7 @@ export default {
     return {
       linkedTeam: null,
       assigneeAddSelection: null,
+      activityFilter: 'all',
     }
   },
   methods: {
@@ -346,6 +361,9 @@ export default {
     },
   },
   computed: {
+    activityFilterLabel() {
+      return { all: 'All', comments: 'Comments', activity: 'Activity' }[this.activityFilter] || 'All'
+    },
     parentTaskTitle() {
       return this.$resources.parentTask?.doc?.title || null
     },

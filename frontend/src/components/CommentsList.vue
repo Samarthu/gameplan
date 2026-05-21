@@ -148,7 +148,7 @@ import { Tooltip } from 'frappe-ui'
 
 export default {
   name: 'CommentsArea',
-  props: ['doctype', 'name', 'newCommentsFrom', 'readOnlyMode', 'disableNewComment'],
+  props: ['doctype', 'name', 'newCommentsFrom', 'readOnlyMode', 'disableNewComment', 'filter'],
   components: {
     CommentEditor,
     Comment,
@@ -446,18 +446,21 @@ export default {
   computed: {
     timelineItems() {
       let items = []
-      if (this.$resources.comments.data?.length) {
-        items = items.concat(this.$resources.comments.data)
+      const f = this.filter || 'all'
+      if (f === 'all' || f === 'comments') {
+        if (this.$resources.comments.data?.length) {
+          items = items.concat(this.$resources.comments.data)
+        }
+        if (this.$resources.polls.data?.length) {
+          items = items.concat(this.$resources.polls.data)
+        }
       }
-      if (this.$resources.activities.data?.length) {
-        items = items.concat(this.$resources.activities.data)
+      if (f === 'all' || f === 'activity') {
+        if (this.$resources.activities.data?.length) {
+          items = items.concat(this.$resources.activities.data)
+        }
       }
-      if (this.$resources.polls.data?.length) {
-        items = items.concat(this.$resources.polls.data)
-      }
-      return items.sort((a, b) => {
-        return new Date(a.creation) - new Date(b.creation)
-      })
+      return items.sort((a, b) => new Date(a.creation) - new Date(b.creation))
     },
     commentEmpty() {
       return !this.newComment || this.newComment === '<p></p>'
