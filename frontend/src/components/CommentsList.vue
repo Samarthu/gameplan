@@ -34,16 +34,16 @@
           </span>
         </div>
         <Comment
-          class="border-t border-outline-gray-2 first:border-t-0"
           v-if="item.doctype == 'GP Comment'"
           :ref="($comment) => setItemRef($comment, item)"
           :comment="item"
           :highlight="highlightedItem == item"
           :readOnlyMode="readOnlyMode"
           :comments="$resources.comments"
+          @reply="replyToComment"
         />
         <template v-else-if="item.doctype == 'GP Activity'">
-          <div class="ml-10 border-t border-outline-gray-2"></div>
+          <div class="mx-2 border-t border-outline-gray-2"></div>
           <Activity class="py-5" :activity="item" />
         </template>
         <Poll
@@ -406,6 +406,18 @@ export default {
         // set timeout to move it off main thread
         localStorage.setItem(this.draftCommentKey(), content)
       }, 0)
+    },
+    replyToComment(fullName) {
+      let mention = fullName ? `@${fullName} ` : ''
+      if (!this.showCommentBox) {
+        this.showCommentBox = true
+      }
+      if (!this.newComment || this.newComment === '<p></p>') {
+        this.newComment = `<p>${mention}</p>`
+      }
+      nextTick(() => {
+        this.$refs.newCommentEditor?.editor.commands.focus('end')
+      })
     },
     resetCommentState() {
       localStorage.removeItem(this.draftCommentKey())
