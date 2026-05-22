@@ -345,6 +345,7 @@ export default {
   },
   mounted() {
     this.restoreActivityPanelWidth()
+    this.loadDocTags()
     this.fetchTagSuggestions('')
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
