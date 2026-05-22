@@ -343,6 +343,12 @@ export default {
       tagSearchQuery: '',
     }
   },
+  watch: {
+    taskId() {
+      this.docTags = []
+      this.loadDocTags()
+    },
+  },
   mounted() {
     this.restoreActivityPanelWidth()
     this.loadDocTags()
