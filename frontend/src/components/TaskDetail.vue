@@ -215,24 +215,49 @@
         <CommentsList class="mt-8 xl:hidden" doctype="GP Task" :name="taskId" />
       </div>
     </div>
-    <div class="hidden w-[28rem] shrink-0 bg-surface-white xl:flex xl:flex-col">
+    <div
+      class="group/resize relative hidden shrink-0 bg-surface-white xl:flex xl:flex-col"
+      :style="{ width: `${activityPanelWidth}px` }"
+    >
+      <button
+        type="button"
+        class="absolute -left-1.5 top-0 z-20 hidden h-full w-3 cursor-col-resize items-center justify-center focus:outline-none xl:flex"
+        aria-label="Resize activity panel"
+        @mousedown.prevent="startActivityResize"
+      >
+        <span
+          class="h-full w-px bg-outline-gray-2 transition group-hover/resize:bg-blue-400"
+          :class="isResizingActivity ? 'bg-blue-500' : ''"
+        ></span>
+      </button>
       <div class="border-b border-outline-gray-2 px-6 py-3 flex items-center justify-between">
         <span class="text-base font-semibold text-ink-gray-9">Activity</span>
-        <Dropdown
-          :options="[
-            { label: 'All', onClick: () => activityFilter = 'all' },
-            { label: 'Comments', onClick: () => activityFilter = 'comments' },
-            { label: 'Activity', onClick: () => activityFilter = 'activity' },
-          ]"
-          :button="{
-            label: activityFilterLabel,
-            variant: 'ghost',
-            iconRight: 'chevron-down',
-          }"
-        />
+        <div class="flex items-center gap-2">
+          <Dropdown :options="activityFilterOptions">
+            <button class="inline-flex items-center gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-2 text-base font-semibold text-ink-gray-8 shadow-sm hover:bg-surface-gray-1">
+              {{ activityFilterLabel }}
+              <LucideChevronDown class="h-4 w-4 text-ink-gray-6" />
+            </button>
+          </Dropdown>
+          <Dropdown :options="activitySortOptions">
+            <button class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-ink-gray-8 hover:bg-surface-gray-1">
+              {{ activitySortLabel }}
+              <LucideChevronDown class="h-4 w-4 text-ink-gray-6" />
+            </button>
+          </Dropdown>
+        </div>
       </div>
       <div class="min-h-0 flex-1 flex flex-col">
-        <CommentsList doctype="GP Task" :name="taskId" class="flex-1 min-h-0" :filter="activityFilter" />
+        <CommentsList
+          doctype="GP Task"
+          :name="taskId"
+          class="flex-1 min-h-0"
+          :filter="activityFilter"
+          :sort="activitySort"
+          :show-toolbar="false"
+          @update:filter="activityFilter = $event"
+          @update:sort="activitySort = $event"
+        />
       </div>
     </div>
   </div>
@@ -307,6 +332,11 @@ export default {
       linkedTeam: null,
       assigneeAddSelection: null,
       activityFilter: 'all',
+      activitySort: 'desc',
+      activityPanelWidth: 448,
+      isResizingActivity: false,
+      resizeStartX: 0,
+      resizeStartWidth: 448,
       docTags: [],
       tagSelection: null,
       allTagSuggestions: [],
@@ -314,9 +344,44 @@ export default {
     }
   },
   mounted() {
+    this.restoreActivityPanelWidth()
     this.fetchTagSuggestions('')
+    window.addEventListener('mousemove', this.onActivityResize)
+    window.addEventListener('mouseup', this.stopActivityResize)
+  },
+  beforeUnmount() {
+    window.removeEventListener('mousemove', this.onActivityResize)
+    window.removeEventListener('mouseup', this.stopActivityResize)
+    document.body.classList.remove('select-none', 'cursor-col-resize')
   },
   methods: {
+    restoreActivityPanelWidth() {
+      const savedWidth = Number(localStorage.getItem('gameplan_task_activity_width'))
+      if (savedWidth) {
+        this.activityPanelWidth = this.clampActivityPanelWidth(savedWidth)
+      }
+    },
+    clampActivityPanelWidth(width) {
+      const maxWidth = Math.max(420, Math.floor(window.innerWidth * 0.55))
+      return Math.min(Math.max(width, 360), maxWidth)
+    },
+    startActivityResize(event) {
+      this.isResizingActivity = true
+      this.resizeStartX = event.clientX
+      this.resizeStartWidth = this.activityPanelWidth
+      document.body.classList.add('select-none', 'cursor-col-resize')
+    },
+    onActivityResize(event) {
+      if (!this.isResizingActivity) return
+      const delta = this.resizeStartX - event.clientX
+      this.activityPanelWidth = this.clampActivityPanelWidth(this.resizeStartWidth + delta)
+    },
+    stopActivityResize() {
+      if (!this.isResizingActivity) return
+      this.isResizingActivity = false
+      document.body.classList.remove('select-none', 'cursor-col-resize')
+      localStorage.setItem('gameplan_task_activity_width', String(this.activityPanelWidth))
+    },
     onAssigneePicked(option) {
       this.assigneeAddSelection = null
       if (!option?.value) return
@@ -433,7 +498,27 @@ export default {
   },
   computed: {
     activityFilterLabel() {
-      return { all: 'All', comments: 'Comments', activity: 'Activity' }[this.activityFilter] || 'All'
+      return {
+        all: 'Show everything',
+        comments: 'Show comments',
+        activity: 'Show activity',
+      }[this.activityFilter] || 'Show everything'
+    },
+    activityFilterOptions() {
+      return [
+        { label: 'Show everything', onClick: () => (this.activityFilter = 'all') },
+        { label: 'Show comments', onClick: () => (this.activityFilter = 'comments') },
+        { label: 'Show activity', onClick: () => (this.activityFilter = 'activity') },
+      ]
+    },
+    activitySortLabel() {
+      return this.activitySort === 'desc' ? 'Newest on top' : 'Oldest on top'
+    },
+    activitySortOptions() {
+      return [
+        { label: 'Newest on top', onClick: () => (this.activitySort = 'desc') },
+        { label: 'Oldest on top', onClick: () => (this.activitySort = 'asc') },
+      ]
     },
     parentTaskTitle() {
       return this.$resources.parentTask?.doc?.title || null
