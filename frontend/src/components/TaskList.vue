@@ -905,7 +905,7 @@ export default {
       if (!option) return
       this.activePopover = null
       for (const task of this.selectedTaskDocs) {
-        await call('frappe.client.insert', {
+        const newTask = await call('frappe.client.insert', {
           doc: {
             doctype: 'GP Task',
             title: task.title,
@@ -918,8 +918,17 @@ export default {
             project: option.value,
             team: this.copyTargetTeam,
             assignees: this.assigneeIds(task).map((user) => ({ user })),
+            _user_tags: task._user_tags || null,
           },
         })
+        const tags = this.parseTags(task._user_tags)
+        for (const tag of tags) {
+          await call('frappe.desk.doctype.tag.tag.add_tag', {
+            tag,
+            dt: 'GP Task',
+            dn: newTask.name,
+          })
+        }
       }
       this.clearSelection()
       this.tasks.reload()
