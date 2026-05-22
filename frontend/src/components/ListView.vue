@@ -205,14 +205,20 @@
                         :text="$user(uid).full_name"
                       >
                         <span
-                          class="group/assignee relative inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
+                          class="group/assignee relative inline-grid h-6 w-6 place-items-center overflow-hidden rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
                           :class="assigneeHeatClass(uid)"
                           :style="{ ...assigneeHeatStyle(uid), zIndex: idx + 1 }"
                         >
-                          {{ userInitial(uid) }}
+                          <img
+                            v-if="$user(uid).user_image"
+                            :src="$user(uid).user_image"
+                            :alt="$user(uid).full_name"
+                            class="absolute inset-0 h-full w-full rounded-full object-cover"
+                          />
+                          <template v-else>{{ userInitial(uid) }}</template>
                           <button
                             type="button"
-                            class="absolute -right-1 -top-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-ink-gray-8 text-white shadow-sm transition hover:bg-red-600 group-hover/assignee:flex"
+                            class="absolute -right-1 -top-1 z-10 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-ink-gray-8 text-white shadow-sm transition hover:bg-red-600 group-hover/assignee:flex"
                             :aria-label="`Remove ${$user(uid).full_name}`"
                             @click.stop="removeAssignee(d, uid)"
                           >
