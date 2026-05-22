@@ -359,10 +359,13 @@ export default {
       const savedWidth = Number(localStorage.getItem('gameplan_task_activity_width'))
       if (savedWidth) {
         this.activityPanelWidth = this.clampActivityPanelWidth(savedWidth)
+        localStorage.setItem('gameplan_task_activity_width', String(this.activityPanelWidth))
       }
     },
     clampActivityPanelWidth(width) {
-      const maxWidth = Math.max(420, Math.floor(window.innerWidth * 0.55))
+      const minTaskDetailWidth = 760
+      const maxPanelWidth = 720
+      const maxWidth = Math.max(420, Math.min(maxPanelWidth, window.innerWidth - minTaskDetailWidth))
       return Math.min(Math.max(width, 360), maxWidth)
     },
     startActivityResize(event) {
