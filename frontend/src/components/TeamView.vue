@@ -22,6 +22,14 @@
             </div>
             <h3 class="truncate text-sm font-semibold text-ink-gray-8">{{ member.label }}</h3>
           </div>
+          <button
+            type="button"
+            class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-8"
+            :aria-label="`Add task for ${member.label}`"
+            @click="onAddTask(member)"
+          >
+            <LucidePlus class="h-4 w-4" />
+          </button>
         </div>
 
         <div class="mt-5 grid grid-cols-[1fr_1fr_auto] items-center gap-3 text-sm">
@@ -137,9 +145,17 @@ export default {
     taskRoute: { type: Function, required: true },
     isTaskOverdue: { type: Function, required: true },
   },
+  emits: ['request-new-task'],
   methods: {
     statusMeta(status) {
       return STATUS_META[status] || { dotClass: 'bg-gray-300', barClass: 'bg-gray-300' }
+    },
+    onAddTask(member) {
+      const payload = {}
+      if (member.id && member.id !== 'unassigned') {
+        payload.assigned_to = member.id
+      }
+      this.$emit('request-new-task', payload)
     },
   },
   computed: {

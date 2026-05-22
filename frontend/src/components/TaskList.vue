@@ -189,6 +189,7 @@
       :assigneeIds="assigneeIds"
       :taskRoute="taskRoute"
       :isTaskOverdue="isTaskOverdue"
+      @request-new-task="$emit('request-new-task', $event)"
     />
 
     <ListView

@@ -94,7 +94,7 @@ function showNewTaskDialog(options = {}) {
     defaults: {
       team: props.team.name,
       assigned_to: getUser('sessionUser').name,
-      status: options.status,
+      ...options,
     },
     onSuccess: () => {
       let tasks = getCachedListResource(['Tasks', listOptions.value])

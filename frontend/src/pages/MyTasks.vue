@@ -103,7 +103,7 @@ function showNewTaskDialog(options = {}) {
   newTaskDialog.value.show({
     defaults: {
       assigned_to: getUser('sessionUser').name,
-      status: options.status,
+      ...options,
     },
     onSuccess: () => {
       let tasks = getCachedListResource(['Tasks', listOptions.value])
