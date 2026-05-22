@@ -189,6 +189,7 @@
       :assigneeIds="assigneeIds"
       :taskRoute="taskRoute"
       :isTaskOverdue="isTaskOverdue"
+      :updateTask="updateTaskField"
       @request-new-task="$emit('request-new-task', $event)"
     />
 
@@ -788,6 +789,9 @@ export default {
     setDueDate(task, date) {
       this.inlinePopover = { name: null, field: null }
       this.tasks.setValue.submit({ name: task.name, due_date: date || null })
+    },
+    updateTaskField(task, field, value) {
+      this.tasks.setValue.submit({ name: task.name, [field]: value })
     },
     setAssignee(task, option) {
       if (!option) return

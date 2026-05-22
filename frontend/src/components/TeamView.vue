@@ -1,5 +1,77 @@
 <template>
   <div class="w-full overflow-x-hidden pb-3">
+    <Teleport to="body">
+      <div
+        v-if="picker.task"
+        class="fixed z-50 w-64 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-xl"
+        :style="picker.style"
+        @click.stop
+      >
+        <div class="mb-2 grid grid-cols-2 gap-1 rounded-md bg-surface-gray-2 p-0.5">
+          <button
+            type="button"
+            class="rounded px-2 py-1 text-xs font-medium"
+            :class="picker.tab === 'status' ? 'bg-surface-white text-ink-gray-9 shadow-sm' : 'text-ink-gray-6 hover:text-ink-gray-8'"
+            @click="picker.tab = 'status'"
+          >
+            Status
+          </button>
+          <button
+            type="button"
+            class="rounded px-2 py-1 text-xs font-medium"
+            :class="picker.tab === 'type' ? 'bg-surface-white text-ink-gray-9 shadow-sm' : 'text-ink-gray-6 hover:text-ink-gray-8'"
+            @click="picker.tab = 'type'"
+          >
+            Task Type
+          </button>
+        </div>
+        <input
+          v-model="pickerSearch"
+          type="text"
+          placeholder="Search..."
+          class="mb-2 w-full rounded-md border border-outline-gray-2 px-2 py-1 text-xs text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+        />
+        <div class="max-h-64 overflow-y-auto">
+          <template v-if="picker.tab === 'status'">
+            <template v-for="group in filteredStatusGroups" :key="group.label">
+              <div v-if="group.statuses.length" class="px-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-ink-gray-5">
+                {{ group.label }}
+              </div>
+              <button
+                v-for="status in group.statuses"
+                :key="status"
+                type="button"
+                class="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-xs text-ink-gray-8 hover:bg-surface-gray-2"
+                @click="selectStatus(status)"
+              >
+                <TaskStatusIcon :status="status" />
+                <span class="min-w-0 flex-1 truncate">{{ status }}</span>
+                <LucideCheck v-if="picker.task.status === status" class="h-3.5 w-3.5 text-ink-gray-6" />
+              </button>
+            </template>
+            <div v-if="!filteredStatusGroups.some((g) => g.statuses.length)" class="px-2 py-3 text-center text-xs text-ink-gray-5">
+              No matches
+            </div>
+          </template>
+          <template v-else>
+            <button
+              v-for="type in filteredTaskTypes"
+              :key="type"
+              type="button"
+              class="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left text-xs text-ink-gray-8 hover:bg-surface-gray-2"
+              @click="selectTaskType(type)"
+            >
+              <span class="min-w-0 flex-1 truncate">{{ type }}</span>
+              <LucideCheck v-if="picker.task.task_type === type" class="h-3.5 w-3.5 text-ink-gray-6" />
+            </button>
+            <div v-if="!filteredTaskTypes.length" class="px-2 py-3 text-center text-xs text-ink-gray-5">
+              No matches
+            </div>
+          </template>
+        </div>
+      </div>
+    </Teleport>
+
     <div class="grid w-full grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] gap-3">
       <section
         v-for="member in memberProgress"
@@ -86,18 +158,27 @@
               <span class="text-xs font-medium text-ink-gray-5">({{ group.tasks.length }})</span>
             </summary>
             <div class="mt-1 divide-y divide-outline-gray-1">
-              <button
+              <div
                 v-for="task in group.tasks"
                 :key="task.name"
-                class="flex w-full items-start gap-2 rounded px-1 py-2 text-left hover:bg-surface-gray-2"
-                @click="$router.push(taskRoute(task))"
+                class="flex w-full items-start gap-2 rounded px-1 py-2 hover:bg-surface-gray-2"
               >
-                <TaskStatusIcon
-                  :status="task.status"
-                  :overdue="isTaskOverdue(task)"
-                  class="mt-0.5 shrink-0"
-                />
-                <div class="min-w-0 flex-1">
+                <button
+                  type="button"
+                  class="mt-0.5 shrink-0 rounded p-0.5 hover:bg-surface-gray-3"
+                  aria-label="Change status or type"
+                  @click.stop="openPicker($event, task)"
+                >
+                  <TaskStatusIcon
+                    :status="task.status"
+                    :overdue="isTaskOverdue(task)"
+                  />
+                </button>
+                <button
+                  type="button"
+                  class="min-w-0 flex-1 text-left"
+                  @click="$router.push(taskRoute(task))"
+                >
                   <div class="line-clamp-2 text-sm font-semibold leading-5 text-ink-gray-8">{{ task.title }}</div>
                   <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-gray-5">
                     <span>#{{ task.name }}</span>
@@ -106,8 +187,8 @@
                       {{ $dayjs(task.due_date).format('D MMM') }}
                     </span>
                   </div>
-                </div>
-              </button>
+                </button>
+              </div>
             </div>
           </details>
         </div>
@@ -132,6 +213,26 @@ const STATUS_META = {
   Cancelled: { dotClass: 'bg-red-500', barClass: 'bg-red-500' },
   Reopen: { dotClass: 'bg-orange-500', barClass: 'bg-orange-500' },
 }
+const STATUS_GROUPS = [
+  { label: 'Not started', statuses: ['Backlog', 'Todo'] },
+  { label: 'Active', statuses: ['In Progress', 'Under Testing', 'Ready to Merge', 'Reopen'] },
+  { label: 'Closed', statuses: ['Done', 'Cancelled'] },
+]
+const TASK_TYPES = [
+  'Task',
+  'Feature',
+  'Milestone',
+  'Improvement',
+  'Bug',
+  'Event',
+  'Form Response',
+  'Meeting Note',
+  'Request',
+  'Approval',
+  'Follow-up',
+  'Documentation',
+  'Support',
+]
 
 export default {
   name: 'TeamView',
@@ -144,8 +245,23 @@ export default {
     assigneeIds: { type: Function, required: true },
     taskRoute: { type: Function, required: true },
     isTaskOverdue: { type: Function, required: true },
+    updateTask: { type: Function, default: null },
   },
   emits: ['request-new-task'],
+  data() {
+    return {
+      picker: { task: null, tab: 'status', style: {} },
+      pickerSearch: '',
+    }
+  },
+  mounted() {
+    document.addEventListener('click', this.handleOutsideClick)
+    document.addEventListener('keydown', this.handleKeydown)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleOutsideClick)
+    document.removeEventListener('keydown', this.handleKeydown)
+  },
   methods: {
     statusMeta(status) {
       return STATUS_META[status] || { dotClass: 'bg-gray-300', barClass: 'bg-gray-300' }
@@ -157,8 +273,59 @@ export default {
       }
       this.$emit('request-new-task', payload)
     },
+    openPicker(event, task) {
+      if (this.picker.task && this.picker.task.name === task.name) {
+        this.closePicker()
+        return
+      }
+      const rect = event.currentTarget.getBoundingClientRect()
+      const panelWidth = 256
+      const left = Math.min(rect.left, window.innerWidth - panelWidth - 8)
+      this.picker = {
+        task,
+        tab: 'status',
+        style: {
+          top: `${rect.bottom + 4}px`,
+          left: `${Math.max(left, 8)}px`,
+        },
+      }
+      this.pickerSearch = ''
+    },
+    closePicker() {
+      this.picker = { task: null, tab: 'status', style: {} }
+      this.pickerSearch = ''
+    },
+    selectStatus(status) {
+      if (this.picker.task && this.updateTask && this.picker.task.status !== status) {
+        this.updateTask(this.picker.task, 'status', status)
+      }
+      this.closePicker()
+    },
+    selectTaskType(type) {
+      if (this.picker.task && this.updateTask && this.picker.task.task_type !== type) {
+        this.updateTask(this.picker.task, 'task_type', type)
+      }
+      this.closePicker()
+    },
+    handleOutsideClick() {
+      if (this.picker.task) this.closePicker()
+    },
+    handleKeydown(event) {
+      if (event.key === 'Escape' && this.picker.task) this.closePicker()
+    },
   },
   computed: {
+    filteredStatusGroups() {
+      const query = this.pickerSearch.trim().toLowerCase()
+      return STATUS_GROUPS.map((group) => ({
+        label: group.label,
+        statuses: group.statuses.filter((status) => !query || status.toLowerCase().includes(query)),
+      }))
+    },
+    filteredTaskTypes() {
+      const query = this.pickerSearch.trim().toLowerCase()
+      return TASK_TYPES.filter((type) => !query || type.toLowerCase().includes(query))
+    },
     memberProgress() {
       const membersById = new Map()
       const ensureMember = (id) => {
