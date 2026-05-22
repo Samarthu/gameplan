@@ -19,45 +19,68 @@
         </div>
       </div>
     </div>
+    <div
+      v-if="timelineItems.length"
+      class="mb-4 flex flex-wrap items-center justify-between gap-2"
+    >
+      <select
+        v-model="feedFilter"
+        class="h-8 rounded-lg border border-outline-gray-2 bg-surface-white pl-3 pr-7 text-sm font-medium text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+      >
+        <option value="all">Show everything</option>
+        <option value="comments">Comments only</option>
+        <option value="activity">Activity only</option>
+        <option v-if="hasPolls" value="polls">Polls only</option>
+      </select>
+      <select
+        v-model="sortDir"
+        class="h-8 rounded-lg border-0 bg-transparent pl-2 pr-7 text-sm font-medium text-ink-gray-7 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+      >
+        <option value="desc">Newest on top</option>
+        <option value="asc">Oldest on top</option>
+      </select>
+    </div>
     <div :style="{ paddingBottom: `${addCommentHeight + 80}px` }">
-      <template v-for="item in timelineItems" :key="item.doctype + item.name">
-        <div
-          v-if="newMessagesFrom && newMessagesFrom == item.name"
-          class="relative my-4"
-          role="separator"
-        >
-          <div class="border-b border-blue-600"></div>
-          <span
-            class="absolute -top-2 left-1/2 -translate-x-1/2 bg-surface-white px-2 text-sm font-medium text-ink-blue-3"
-          >
-            New comments
-          </span>
+      <div v-if="displayedItems.length" class="relative">
+        <div class="pointer-events-none absolute bottom-0 left-4 top-0 w-px bg-outline-gray-2"></div>
+        <div class="relative space-y-3">
+          <template v-for="item in displayedItems" :key="item.doctype + item.name">
+            <div
+              v-if="newMessagesFrom && newMessagesFrom == item.name"
+              class="relative my-4"
+              role="separator"
+            >
+              <div class="border-b border-blue-600"></div>
+              <span
+                class="absolute -top-2 left-1/2 -translate-x-1/2 bg-surface-white px-2 text-sm font-medium text-ink-blue-3"
+              >
+                New comments
+              </span>
+            </div>
+            <Comment
+              v-if="item.doctype == 'GP Comment'"
+              :ref="($comment) => setItemRef($comment, item)"
+              :comment="item"
+              :number="item._num"
+              :highlight="highlightedItem == item"
+              :readOnlyMode="readOnlyMode"
+              :comments="$resources.comments"
+            />
+            <Activity
+              v-else-if="item.doctype == 'GP Activity'"
+              :activity="item"
+              :number="item._num"
+            />
+            <Poll
+              v-else-if="item.doctype == 'GP Poll'"
+              :ref="($poll) => setItemRef($poll, item)"
+              :highlight="highlightedItem == item"
+              :poll="item"
+              :readOnlyMode="readOnlyMode"
+            />
+          </template>
         </div>
-        <Comment
-          :class="{
-            'border-t': item.name != newMessagesFrom,
-          }"
-          v-if="item.doctype == 'GP Comment'"
-          :ref="($comment) => setItemRef($comment, item)"
-          :comment="item"
-          :highlight="highlightedItem == item"
-          :readOnlyMode="readOnlyMode"
-          :comments="$resources.comments"
-        />
-        <Activity
-          class="border-t py-5"
-          v-else-if="item.doctype == 'GP Activity'"
-          :activity="item"
-        />
-        <Poll
-          class="border-t"
-          v-else-if="item.doctype == 'GP Poll'"
-          :ref="($poll) => setItemRef($poll, item)"
-          :highlight="highlightedItem == item"
-          :poll="item"
-          :readOnlyMode="readOnlyMode"
-        />
-      </template>
+      </div>
     </div>
 
     <div
@@ -162,6 +185,8 @@ export default {
       newMessagesFrom: this.newCommentsFrom,
       highlightedItem: null,
       addCommentHeight: 0,
+      feedFilter: 'all',
+      sortDir: 'desc',
     }
   },
   watch: {
@@ -444,9 +469,30 @@ export default {
       if (this.$resources.polls.data?.length) {
         items = items.concat(this.$resources.polls.data)
       }
-      return items.sort((a, b) => {
+      let chronological = items.sort((a, b) => {
         return new Date(a.creation) - new Date(b.creation)
       })
+      chronological.forEach((item, index) => {
+        item._num = index + 1
+      })
+      return chronological
+    },
+    displayedItems() {
+      let items = this.timelineItems
+      if (this.feedFilter === 'comments') {
+        items = items.filter((item) => item.doctype === 'GP Comment')
+      } else if (this.feedFilter === 'activity') {
+        items = items.filter((item) => item.doctype === 'GP Activity')
+      } else if (this.feedFilter === 'polls') {
+        items = items.filter((item) => item.doctype === 'GP Poll')
+      }
+      if (this.sortDir === 'desc') {
+        items = [...items].reverse()
+      }
+      return items
+    },
+    hasPolls() {
+      return Boolean(this.$resources.polls.data?.length)
     },
     commentEmpty() {
       return !this.newComment || this.newComment === '<p></p>'

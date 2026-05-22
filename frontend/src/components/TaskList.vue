@@ -1,7 +1,160 @@
 <template>
   <div>
+    <Teleport to="body">
+      <div
+        v-if="showFiltersPanel"
+        class="fixed z-50 w-[min(56rem,calc(100vw-2rem))] rounded-xl border border-outline-gray-2 bg-surface-white p-4 shadow-2xl"
+        :style="filtersPanelStyle"
+        @click.stop
+      >
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-semibold text-ink-gray-9">Filters</h3>
+            <LucideInfo class="h-3.5 w-3.5 text-ink-gray-4" />
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-outline-gray-2 px-2.5 py-1.5 text-sm font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+            @click="clearAllFilters"
+          >
+            Clear
+          </button>
+        </div>
+
+        <div v-if="taskFilters.length" class="space-y-2">
+          <div
+            v-for="filter in taskFilters"
+            :key="filter.id"
+            class="relative grid grid-cols-[minmax(8rem,1fr)_minmax(7rem,0.7fr)_minmax(10rem,1.8fr)_2rem] items-center gap-2 rounded-lg bg-surface-gray-1 p-2"
+          >
+            <select
+              v-model="filter.field"
+              class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+              @change="resetFilterValue(filter)"
+            >
+              <option v-for="field in filterFields" :key="field.value" :value="field.value">
+                {{ field.label }}
+              </option>
+            </select>
+            <select
+              v-model="filter.operator"
+              class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+              @change="resetFilterValue(filter)"
+            >
+              <option v-for="operator in operatorsForFilter(filter)" :key="operator.value" :value="operator.value">
+                {{ operator.label }}
+              </option>
+            </select>
+            <template v-if="filterNeedsValue(filter)">
+              <div v-if="isMultiValueFilter(filter) && !isLikeFilter(filter) && valueOptionsForFilter(filter).length" class="relative">
+                <button
+                  type="button"
+                  class="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-left text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+                  @click.stop="toggleFilterValueMenu(filter.id)"
+                >
+                  <span class="min-w-0 truncate">
+                    {{ selectedFilterValueLabel(filter) || 'Select values' }}
+                  </span>
+                  <LucideChevronDown class="h-4 w-4 shrink-0 text-ink-gray-5" />
+                </button>
+                <div
+                  v-if="openFilterValueMenu === filter.id"
+                  class="absolute left-0 top-full z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-outline-gray-2 bg-surface-white p-1 shadow-lg"
+                  @click.stop
+                >
+                  <button
+                    v-for="option in valueOptionsForFilter(filter)"
+                    :key="option.value"
+                    type="button"
+                    class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-ink-gray-8 hover:bg-surface-gray-2"
+                    @click="toggleFilterValue(filter, option.value)"
+                  >
+                    <span
+                      class="grid h-4 w-4 shrink-0 place-items-center rounded-full border"
+                      :class="filter.values.includes(option.value) ? 'border-blue-500 bg-blue-500' : 'border-outline-gray-3 bg-surface-white'"
+                    >
+                      <LucideCheck v-if="filter.values.includes(option.value)" class="h-3 w-3 text-white" />
+                    </span>
+                    <span class="min-w-0 truncate">{{ option.label }}</span>
+                  </button>
+                </div>
+              </div>
+              <select
+                v-else-if="!isLikeFilter(filter) && valueOptionsForFilter(filter).length"
+                v-model="filter.value"
+                class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+              >
+                <option value="">Select value</option>
+                <option v-for="option in valueOptionsForFilter(filter)" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <input
+                v-else
+                v-model="filter.value"
+                :type="dateFilterFields.includes(filter.field) ? 'date' : 'text'"
+                class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+                placeholder="Value"
+              />
+            </template>
+            <div v-else class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-4"></div>
+            <Tooltip text="Remove filter">
+              <button
+                type="button"
+                class="grid h-8 w-8 place-items-center rounded-lg text-ink-gray-5 hover:bg-surface-red-1 hover:text-red-500"
+                aria-label="Remove filter"
+                @click="removeTaskFilter(filter.id)"
+              >
+                <LucideTrash2 class="h-4 w-4" />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+        <div v-else class="rounded-lg bg-surface-gray-1 px-3 py-4 text-sm text-ink-gray-5">
+          No filters applied
+        </div>
+
+        <div class="relative mt-4 inline-block">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-2 text-sm font-medium text-ink-gray-7 shadow-sm hover:bg-surface-gray-2"
+            @click.stop="toggleAddFilterMenu"
+          >
+            <LucidePlus class="h-4 w-4" />
+            Add filter
+          </button>
+          <div
+            v-if="showAddFilterMenu"
+            class="absolute left-0 top-full z-50 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-outline-gray-2 bg-surface-white p-1 shadow-lg"
+            @click.stop
+          >
+            <button
+              v-for="field in filterFields"
+              :key="field.value"
+              type="button"
+              class="flex w-full items-center rounded px-2 py-1.5 text-left text-sm text-ink-gray-8 hover:bg-surface-gray-2"
+              @click="addTaskFilterForField(field.value)"
+            >
+              {{ field.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <div v-if="selectedTag" class="mb-3 flex flex-wrap items-center gap-2">
+      <button
+        class="inline-flex items-center gap-1 rounded-full bg-surface-blue-1 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+        @click="selectedTag = null"
+      >
+        <LucideTag class="h-3.5 w-3.5 shrink-0" />
+        {{ selectedTag }}
+        <LucideX class="h-3.5 w-3.5" />
+      </button>
+    </div>
+
     <KanbanView
-      v-if="tasks.data?.length && viewMode === 'kanban'"
+      v-if="filteredTasks.length && viewMode === 'kanban'"
       :tasksResource="tasks"
       :kanbanGroups="kanbanGroups"
       :childTasksByParent="childTasksByParent"
@@ -10,6 +163,12 @@
       :taskRoute="taskRoute"
       :assigneeIds="assigneeIds"
       :visibleAssigneeIds="visibleAssigneeIds"
+      :assigneeStackSpacingClass="assigneeStackSpacingClass"
+      :assigneeHeatClass="assigneeHeatClass"
+      :assigneeHeatStyle="assigneeHeatStyle"
+      :extraAssigneeCount="extraAssigneeCount"
+      :extraAssigneeNames="extraAssigneeNames"
+      :removeAssignee="removeAssignee"
       :isTaskOverdue="isTaskOverdue"
       :priorityIconClass="priorityIconClass"
       :statusOptions="statusOptions"
@@ -25,15 +184,17 @@
     />
 
     <TeamView
-      v-else-if="tasks.data?.length && viewMode === 'team'"
+      v-else-if="filteredTasks.length && viewMode === 'team'"
       :tasks="topLevelTasks"
       :assigneeIds="assigneeIds"
       :taskRoute="taskRoute"
       :isTaskOverdue="isTaskOverdue"
+      :updateTask="updateTaskField"
+      @request-new-task="$emit('request-new-task', $event)"
     />
 
     <ListView
-      v-else-if="tasks.data?.length"
+      v-else-if="filteredTasks.length"
       :tasksResource="tasks"
       :groupedTasks="groupedTasks"
       :compact="compact"
@@ -62,10 +223,13 @@
       :assigneeIds="assigneeIds"
       :assigneeStackSpacingClass="assigneeStackSpacingClass"
       :visibleAssigneeIds="visibleAssigneeIds"
+      :assigneeHeatClass="assigneeHeatClass"
+      :assigneeHeatStyle="assigneeHeatStyle"
       :extraAssigneeCount="extraAssigneeCount"
       :extraAssigneeNames="extraAssigneeNames"
       :toggleInlinePopover="toggleInlinePopover"
       :setAssignee="setAssignee"
+      :removeAssignee="removeAssignee"
       :priorityOptions="priorityOptions"
       :setDueDate="setDueDate"
       :canDeleteTask="canDeleteTask"
@@ -78,7 +242,7 @@
       class="flex flex-col items-center py-8 text-base border-2 border-dashed rounded-lg text-ink-gray-5"
       v-else
     >
-      No tasks
+      {{ tasks.data?.length ? 'No tasks match the selected filters' : 'No tasks' }}
     </div>
 
     <!-- Bulk action bar -->
@@ -93,16 +257,16 @@
       >
         <div
           v-if="selectedTasks.length > 0"
-          class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-outline-gray-2 bg-surface-white px-4 py-2.5 shadow-2xl"
+          class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-xl border border-outline-gray-2 bg-surface-white px-3 py-2 shadow-2xl"
         >
-          <span class="mr-1 text-sm font-medium whitespace-nowrap text-ink-gray-7">
+          <span class="mr-1 whitespace-nowrap text-sm font-medium text-ink-gray-7">
             {{ selectedTasks.length }} selected
           </span>
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Status -->
           <Dropdown :options="bulkStatusOptions">
-            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+            <button class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideCircleDot class="h-3.5 w-3.5" />
               Status
             </button>
@@ -110,7 +274,7 @@
 
           <!-- Type -->
           <Dropdown :options="bulkTaskTypeOptions">
-            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+            <button class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideCircle class="h-3.5 w-3.5" />
               Type
             </button>
@@ -118,7 +282,7 @@
 
           <!-- Priority -->
           <Dropdown :options="bulkPriorityOptions">
-            <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
+            <button class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2">
               <LucideFlag class="h-3.5 w-3.5" />
               Priority
             </button>
@@ -127,11 +291,11 @@
           <!-- Due Date -->
           <div class="relative">
             <button
-              class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
               @click="togglePopover('date')"
             >
               <LucideCalendar class="h-3.5 w-3.5" />
-              Due Date
+              Due
             </button>
             <div
               v-if="activePopover === 'date'"
@@ -148,7 +312,7 @@
           <!-- Project -->
           <div class="relative">
             <button
-              class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
               @click="togglePopover('project')"
             >
               <LucideFolderOpen class="h-3.5 w-3.5" />
@@ -166,25 +330,59 @@
             </div>
           </div>
 
+          <!-- Copy to project -->
+          <div class="relative">
+            <Tooltip text="Copy to another project in the same team">
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-ink-gray-7 transition hover:bg-surface-gray-2 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Copy selected tasks to project"
+                :disabled="!canCopySelectionToProject"
+                @click.stop="togglePopover('copy-project')"
+              >
+                <LucideCopy class="h-4 w-4" />
+              </button>
+            </Tooltip>
+            <div
+              v-if="activePopover === 'copy-project'"
+              class="absolute w-64 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="copyProjectOptions"
+                placeholder="Copy to project..."
+                @update:modelValue="bulkCopyToProject"
+              />
+              <div v-if="!copyProjectOptions.length" class="px-2 py-1 text-sm text-ink-gray-5">
+                No other project in this team
+              </div>
+            </div>
+          </div>
+
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Delete -->
-          <button
-            class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-red-500 transition hover:bg-surface-red-1"
-            @click="confirmBulkDelete"
-          >
-            <LucideTrash2 class="h-3.5 w-3.5" />
-            Delete
-          </button>
+          <Tooltip text="Delete selected tasks">
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-surface-red-1"
+              aria-label="Delete selected tasks"
+              @click="confirmBulkDelete"
+            >
+              <LucideTrash2 class="h-4 w-4" />
+            </button>
+          </Tooltip>
 
           <!-- Clear -->
-          <button
-            class="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-gray-5 transition hover:bg-surface-gray-2 hover:text-ink-gray-7"
-            @click="clearSelection"
-          >
-            <LucideX class="h-3.5 w-3.5" />
-            Clear
-          </button>
+          <Tooltip text="Clear selection">
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-ink-gray-5 transition hover:bg-surface-gray-2 hover:text-ink-gray-7"
+              aria-label="Clear selection"
+              @click="clearSelection"
+            >
+              <LucideX class="h-4 w-4" />
+            </button>
+          </Tooltip>
         </div>
       </Transition>
     </Teleport>
@@ -192,7 +390,7 @@
 </template>
 <script>
 import { h } from 'vue'
-import { Dropdown, Autocomplete } from 'frappe-ui'
+import { Dropdown, Autocomplete, Tooltip, call } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
@@ -259,7 +457,36 @@ export default {
       activePopover: null,
       showColumnsPicker: false,
       columnsPickerStyle: {},
+      showFiltersPanel: false,
+      filtersPanelStyle: {},
+      openFilterValueMenu: null,
+      showAddFilterMenu: false,
       inlinePopover: { name: null, field: null },
+      selectedTag: null,
+      allTags: [],
+      taskFilters: [],
+      nextFilterId: 1,
+      dateFilterFields: ['due_date', 'creation'],
+      filterFields: [
+        { label: 'Status', value: 'status' },
+        { label: 'Tags', value: 'tag' },
+        { label: 'Due Date', value: 'due_date' },
+        { label: 'Priority', value: 'priority' },
+        { label: 'Assignee', value: 'assignee' },
+        { label: 'Type', value: 'task_type' },
+        { label: 'Project', value: 'project' },
+        { label: 'Created By', value: 'owner' },
+        { label: 'Date Created', value: 'creation' },
+      ],
+      filterOperators: [
+        { label: 'Equals', value: 'equals' },
+        { label: 'Not Equals', value: 'not_equals' },
+        { label: 'Like', value: 'like' },
+        { label: 'Not Like', value: 'not_like' },
+        { label: 'In', value: 'in' },
+        { label: 'Not In', value: 'not_in' },
+        { label: 'Is', value: 'is' },
+      ],
       columns: {
         assignee:   { label: 'Assignee',    visible: saved.assignee   ?? true },
         priority:   { label: 'Priority',    visible: saved.priority   ?? true },
@@ -271,8 +498,16 @@ export default {
       },
     }
   },
+  watch: {
+    selectedTag() {
+      this.$resources.tasks.reload()
+    },
+  },
   mounted() {
     document.addEventListener('click', this.handleOutsideClick)
+    call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags', { txt: '' }).then((tags) => {
+      this.allTags = tags || []
+    })
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleOutsideClick)
@@ -293,7 +528,7 @@ export default {
         cache: ['Tasks', this.listOptions],
         doctype: 'GP Task',
         fields: ['*', '_user_tags', 'project.title as project_title', 'team.title as team_title'],
-        filters: this.listOptions.filters,
+        filters: { ...this.listOptions.filters, ...(this.selectedTag ? { tag: this.selectedTag } : {}) },
         orderBy: this.listOptions.orderBy || 'creation desc',
         pageLength: this.listOptions.pageLength || 1000,
         auto: true,
@@ -388,9 +623,161 @@ export default {
       if (this.showColumnsPicker) {
         this.showColumnsPicker = false
       }
+      if (this.showFiltersPanel) {
+        this.showFiltersPanel = false
+      }
+      if (this.openFilterValueMenu) {
+        this.openFilterValueMenu = null
+      }
+      if (this.showAddFilterMenu) {
+        this.showAddFilterMenu = false
+      }
       if (this.inlinePopover.name) {
         this.inlinePopover = { name: null, field: null }
       }
+    },
+    toggleFiltersPanel(event) {
+      if (!this.showFiltersPanel && event?.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect()
+        this.filtersPanelStyle = {
+          top: `${rect.bottom + 8}px`,
+          right: `${Math.max(window.innerWidth - rect.right, 16)}px`,
+        }
+      }
+      this.showFiltersPanel = !this.showFiltersPanel
+      if (!this.showFiltersPanel) {
+        this.openFilterValueMenu = null
+      }
+    },
+    toggleAddFilterMenu() {
+      this.showAddFilterMenu = !this.showAddFilterMenu
+    },
+    addTaskFilterForField(field) {
+      this.taskFilters.push({
+        id: this.nextFilterId++,
+        field,
+        operator: 'equals',
+        value: '',
+        values: [],
+      })
+      this.showAddFilterMenu = false
+    },
+    removeTaskFilter(id) {
+      this.taskFilters = this.taskFilters.filter((filter) => filter.id !== id)
+      if (this.openFilterValueMenu === id) {
+        this.openFilterValueMenu = null
+      }
+    },
+    clearAllFilters() {
+      this.taskFilters = []
+      this.selectedTag = null
+      this.openFilterValueMenu = null
+      this.showAddFilterMenu = false
+    },
+    resetFilterValue(filter) {
+      if (!this.operatorsForFilter(filter).some((operator) => operator.value === filter.operator)) {
+        filter.operator = 'equals'
+      }
+      filter.value = ''
+      filter.values = []
+      if (!this.filterNeedsValue(filter)) {
+        filter.value = ''
+      }
+    },
+    operatorsForFilter(filter) {
+      if (this.dateFilterFields.includes(filter.field)) {
+        return this.filterOperators.filter((operator) => ['equals', 'not_equals', 'in', 'not_in', 'is'].includes(operator.value))
+      }
+      return this.filterOperators
+    },
+    filterNeedsValue(filter) {
+      return filter.operator !== 'is'
+    },
+    isMultiValueFilter(filter) {
+      return ['in', 'not_in'].includes(filter.operator)
+    },
+    isLikeFilter(filter) {
+      return ['like', 'not_like'].includes(filter.operator)
+    },
+    toggleFilterValueMenu(id) {
+      this.openFilterValueMenu = this.openFilterValueMenu === id ? null : id
+    },
+    toggleFilterValue(filter, value) {
+      if (!Array.isArray(filter.values)) {
+        filter.values = []
+      }
+      if (filter.values.includes(value)) {
+        filter.values = filter.values.filter((item) => item !== value)
+      } else {
+        filter.values = [...filter.values, value]
+      }
+    },
+    selectedFilterValueLabel(filter) {
+      if (!Array.isArray(filter.values) || !filter.values.length) return ''
+      const labelsByValue = new Map(this.valueOptionsForFilter(filter).map((option) => [option.value, option.label]))
+      const labels = filter.values.map((value) => labelsByValue.get(value) || value)
+      if (labels.length <= 2) return labels.join(', ')
+      return `${labels.slice(0, 2).join(', ')} +${labels.length - 2}`
+    },
+    valueOptionsForFilter(filter) {
+      const options = {
+        status: ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((value) => ({ label: value, value })),
+        priority: ['Urgent', 'High', 'Medium', 'Low'].map((value) => ({ label: value, value })),
+        task_type: TASK_TYPES.map((value) => ({ label: value, value })),
+        tag: this.allTags.map((value) => ({ label: value, value })),
+        assignee: this.userOptions,
+        owner: this.userOptions,
+        project: this.projectOptions,
+      }
+      return options[filter.field] || []
+    },
+    taskValueForFilter(task, field) {
+      if (field === 'assignee') return this.assigneeIds(task)
+      if (field === 'tag') return this.parseTags(task._user_tags)
+      return task[field]
+    },
+    taskMatchesFilter(task, filter) {
+      if (!filter.field || !filter.operator) return true
+      const rawValue = this.taskValueForFilter(task, filter.field)
+      const hasValue = Array.isArray(rawValue)
+        ? rawValue.length > 0
+        : rawValue !== null && rawValue !== undefined && String(rawValue).trim() !== ''
+
+      if (filter.operator === 'is') return hasValue
+      const expectedList = this.expectedValuesForFilter(filter)
+      if (!this.filterNeedsValue(filter) || !expectedList.length) return true
+
+      const expected = expectedList[0] || ''
+      const values = Array.isArray(rawValue)
+        ? rawValue.map((value) => String(value).toLowerCase())
+        : [String(rawValue || '').toLowerCase()]
+
+      if (this.dateFilterFields.includes(filter.field)) {
+        const actualDate = rawValue ? this.$dayjs(rawValue).startOf('day') : null
+        const expectedDate = this.$dayjs(filter.value).startOf('day')
+        if (!actualDate?.isValid?.() || !expectedDate.isValid()) return true
+        if (filter.operator === 'equals') return actualDate.isSame(expectedDate)
+        if (filter.operator === 'not_equals') return !actualDate.isSame(expectedDate)
+        if (filter.operator === 'in') return expectedList.some((value) => actualDate.isSame(this.$dayjs(value).startOf('day')))
+        if (filter.operator === 'not_in') return expectedList.every((value) => !actualDate.isSame(this.$dayjs(value).startOf('day')))
+      }
+
+      if (filter.operator === 'equals') return values.includes(expected)
+      if (filter.operator === 'not_equals') return !values.includes(expected)
+      if (filter.operator === 'like') return values.some((value) => value.includes(expected))
+      if (filter.operator === 'not_like') return values.every((value) => !value.includes(expected))
+      if (filter.operator === 'in') return values.some((value) => expectedList.includes(value))
+      if (filter.operator === 'not_in') return values.every((value) => !expectedList.includes(value))
+      return true
+    },
+    expectedValuesForFilter(filter) {
+      if (this.isMultiValueFilter(filter) && Array.isArray(filter.values) && filter.values.length) {
+        return filter.values.map((value) => String(value).trim().toLowerCase()).filter(Boolean)
+      }
+      return String(filter.value || '')
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean)
     },
     toggleInlinePopover(taskName, field) {
       if (this.inlinePopover.name === taskName && this.inlinePopover.field === field) {
@@ -403,6 +790,9 @@ export default {
       this.inlinePopover = { name: null, field: null }
       this.tasks.setValue.submit({ name: task.name, due_date: date || null })
     },
+    updateTaskField(task, field, value) {
+      this.tasks.setValue.submit({ name: task.name, [field]: value })
+    },
     setAssignee(task, option) {
       if (!option) return
       this.inlinePopover = { name: null, field: null }
@@ -412,6 +802,14 @@ export default {
       this.tasks.setValue.submit({
         name: task.name,
         assignees: merged.map((user) => ({ user })),
+      })
+    },
+    removeAssignee(task, user) {
+      const remaining = this.assigneeIds(task).filter((id) => id !== user)
+      this.inlinePopover = { name: null, field: null }
+      this.tasks.setValue.submit({
+        name: task.name,
+        assignees: remaining.map((user) => ({ user })),
       })
     },
     priorityOptions(task) {
@@ -476,6 +874,13 @@ export default {
       this.activePopover = null
     },
     togglePopover(name) {
+      if (name === 'copy-project' && !this.canCopySelectionToProject) {
+        this.$dialog({
+          title: 'Cannot copy selection',
+          message: 'Select tasks from one team to copy them to another project in that same team.',
+        })
+        return
+      }
       this.activePopover = this.activePopover === name ? null : name
     },
 
@@ -495,6 +900,29 @@ export default {
       if (!option) return
       this.activePopover = null
       this.bulkUpdate('project', option.value)
+    },
+    async bulkCopyToProject(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const task of this.selectedTaskDocs) {
+        await call('frappe.client.insert', {
+          doc: {
+            doctype: 'GP Task',
+            title: task.title,
+            description: task.description,
+            start_date: task.start_date || null,
+            due_date: task.due_date || null,
+            task_type: task.task_type || 'Task',
+            status: task.status || 'Backlog',
+            priority: task.priority || null,
+            project: option.value,
+            team: this.copyTargetTeam,
+            assignees: this.assigneeIds(task).map((user) => ({ user })),
+          },
+        })
+      }
+      this.clearSelection()
+      this.tasks.reload()
     },
     canDeleteTask(task) {
       const user = this.$user('sessionUser')
@@ -609,6 +1037,38 @@ export default {
     visibleAssigneeIds(task) {
       return this.assigneeIds(task).slice(0, 3)
     },
+    assigneeHeatClass(user) {
+      return 'text-white shadow-sm'
+    },
+    assigneeHeatStyle(user) {
+      const seed = `${this.$user(user).full_name || ''}:${user || ''}`
+      const palette = [
+        { bg: '#b91c1c', ring: '#7f1d1d' },
+        { bg: '#c2410c', ring: '#7c2d12' },
+        { bg: '#a16207', ring: '#713f12' },
+        { bg: '#15803d', ring: '#14532d' },
+        { bg: '#047857', ring: '#064e3b' },
+        { bg: '#0369a1', ring: '#0c4a6e' },
+        { bg: '#1d4ed8', ring: '#1e3a8a' },
+        { bg: '#4338ca', ring: '#312e81' },
+        { bg: '#7e22ce', ring: '#581c87' },
+        { bg: '#be185d', ring: '#831843' },
+      ]
+      const color = palette[this.hashStringToIndex(seed, palette.length)]
+      return {
+        backgroundColor: color.bg,
+        borderColor: '#fff',
+        '--tw-ring-color': color.ring,
+      }
+    },
+    hashStringToIndex(value, length) {
+      let hash = 0
+      for (let i = 0; i < value.length; i++) {
+        hash = (hash << 5) - hash + value.charCodeAt(i)
+        hash |= 0
+      }
+      return Math.abs(hash) % length
+    },
     extraAssigneeCount(task) {
       const n = this.assigneeIds(task).length
       return n > 3 ? n - 3 : 0
@@ -619,6 +1079,13 @@ export default {
         .map((id) => this.$user(id).full_name)
         .filter(Boolean)
         .join(', ')
+    },
+    parseTags(tags) {
+      if (!tags) return []
+      return String(tags)
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
     },
     isTaskOverdue(task) {
       if (!task.due_date) return false
@@ -632,11 +1099,53 @@ export default {
     tasks() {
       return this.$resources.tasks
     },
+    activeFilterCount() {
+      return this.taskFilters.filter((filter) => {
+        return !this.filterNeedsValue(filter) || this.expectedValuesForFilter(filter).length
+      }).length + (this.selectedTag ? 1 : 0)
+    },
+    filteredTasks() {
+      return (this.tasks.data || []).filter((task) => {
+        return this.taskFilters.every((filter) => this.taskMatchesFilter(task, filter))
+      })
+    },
     projectOptions() {
       return activeProjects.value.map((p) => ({
         label: p.title,
         value: p.name,
       }))
+    },
+    selectedTaskTeams() {
+      const teams = new Set()
+      for (const task of this.selectedTaskDocs) {
+        const project = activeProjects.value.find((p) => p.name === task.project)
+        const team = task.team || project?.team
+        if (team) teams.add(team)
+      }
+      return [...teams]
+    },
+    selectedTaskProjectNames() {
+      return new Set(this.selectedTaskDocs.map((task) => task.project).filter(Boolean))
+    },
+    canCopySelectionToProject() {
+      return this.selectedTaskDocs.length > 0 && this.selectedTaskTeams.length === 1
+    },
+    copyTargetTeam() {
+      return this.selectedTaskTeams[0] || null
+    },
+    copyProjectOptions() {
+      if (!this.canCopySelectionToProject) return []
+      return activeProjects.value
+        .filter((project) => {
+          return (
+            project.team === this.copyTargetTeam &&
+            !this.selectedTaskProjectNames.has(project.name)
+          )
+        })
+        .map((project) => ({
+          label: project.title,
+          value: project.name,
+        }))
     },
     userOptions() {
       return activeUsers.value.map((u) => ({
@@ -661,6 +1170,23 @@ export default {
         { label: 'Medium', onClick: () => this.bulkUpdate('priority', 'Medium') },
         { label: 'Low',    onClick: () => this.bulkUpdate('priority', 'Low') },
       ]
+    },
+    filterOptions() {
+      const tagOptions = this.allTags.map((tag) => ({
+        label: this.selectedTag === tag ? `${tag} selected` : tag,
+        onClick: () => {
+          this.selectedTag = this.selectedTag === tag ? null : tag
+        },
+      }))
+
+      if (this.selectedTag) {
+        return [
+          { label: 'Clear tag filter', onClick: () => (this.selectedTag = null) },
+          ...tagOptions,
+        ]
+      }
+
+      return tagOptions
     },
     groupedTasks() {
       if (!this.groupByStatus) {
@@ -694,7 +1220,7 @@ export default {
       return tasksByStatus
     },
     childTasksByParent() {
-      return (this.tasks.data || []).reduce((childrenByParent, task) => {
+      return this.filteredTasks.reduce((childrenByParent, task) => {
         if (!task.parent_task) return childrenByParent
         if (!childrenByParent[task.parent_task]) {
           childrenByParent[task.parent_task] = []
@@ -704,7 +1230,7 @@ export default {
       }, {})
     },
     topLevelTasks() {
-      return (this.tasks.data || []).filter((task) => !task.parent_task)
+      return this.filteredTasks.filter((task) => !task.parent_task)
     },
   },
 }

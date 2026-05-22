@@ -20,7 +20,32 @@
       </div>
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 xl:px-6 py-2" ref="scrollContainer">
-      <template v-for="item in timelineItems" :key="item.doctype + item.name">
+      <div v-if="showToolbar" class="mb-4 flex items-center justify-between gap-3">
+        <Dropdown :options="timelineFilterOptions">
+          <button
+            class="inline-flex items-center gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-2 text-base font-semibold text-ink-gray-8 shadow-sm hover:bg-surface-gray-1"
+          >
+            {{ timelineFilterLabel }}
+            <LucideChevronDown class="h-4 w-4 text-ink-gray-6" />
+          </button>
+        </Dropdown>
+        <Dropdown :options="timelineSortOptions">
+          <button
+            class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-ink-gray-8 hover:bg-surface-gray-1"
+          >
+            {{ timelineSortLabel }}
+            <LucideChevronDown class="h-4 w-4 text-ink-gray-6" />
+          </button>
+        </Dropdown>
+      </div>
+
+      <div class="relative">
+        <div
+          v-if="timelineItems.length"
+          class="absolute bottom-0 left-[1.375rem] top-0 w-px bg-outline-gray-2"
+          aria-hidden="true"
+        ></div>
+      <template v-for="(item, index) in timelineItems" :key="item.doctype + item.name">
         <div
           v-if="newMessagesFrom && newMessagesFrom == item.name"
           class="relative my-4"
@@ -34,20 +59,25 @@
           </span>
         </div>
         <Comment
-          class="border-t border-outline-gray-2 first:border-t-0"
           v-if="item.doctype == 'GP Comment'"
+          class="relative mb-4 ml-8"
           :ref="($comment) => setItemRef($comment, item)"
           :comment="item"
           :highlight="highlightedItem == item"
           :readOnlyMode="readOnlyMode"
           :comments="$resources.comments"
+          :number="timelineNumber(index)"
+          @reply="replyToComment"
         />
         <template v-else-if="item.doctype == 'GP Activity'">
-          <div class="ml-10 border-t border-outline-gray-2"></div>
-          <Activity class="py-5" :activity="item" />
+          <Activity
+            class="relative mb-4"
+            :activity="item"
+            :number="timelineNumber(index)"
+          />
         </template>
         <Poll
-          class="border-t border-outline-gray-2 first:border-t-0"
+          class="relative mb-4 ml-8 rounded-lg border border-outline-gray-2 bg-surface-white"
           v-else-if="item.doctype == 'GP Poll'"
           :ref="($poll) => setItemRef($poll, item)"
           :highlight="highlightedItem == item"
@@ -55,6 +85,7 @@
           :readOnlyMode="readOnlyMode"
         />
       </template>
+      </div>
     </div>
 
     <div v-if="!readOnlyMode && !disableNewComment" class="px-1 xl:px-6 py-4 xl:border-t xl:border-outline-gray-2 bg-surface-white z-[1]" ref="addComment">
@@ -137,7 +168,7 @@
 </template>
 <script>
 import { nextTick } from 'vue'
-import { TabButtons } from 'frappe-ui'
+import { Dropdown, TabButtons } from 'frappe-ui'
 import CommentEditor from '@/components/CommentEditor.vue'
 import Comment from './Comment.vue'
 import Activity from './Activity.vue'
@@ -148,12 +179,29 @@ import { Tooltip } from 'frappe-ui'
 
 export default {
   name: 'CommentsArea',
-  props: ['doctype', 'name', 'newCommentsFrom', 'readOnlyMode', 'disableNewComment', 'filter'],
+  props: {
+    doctype: String,
+    name: String,
+    newCommentsFrom: String,
+    readOnlyMode: Boolean,
+    disableNewComment: Boolean,
+    filter: String,
+    sort: {
+      type: String,
+      default: 'desc',
+    },
+    showToolbar: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  emits: ['update:filter', 'update:sort'],
   components: {
     CommentEditor,
     Comment,
     Activity,
     TabButtons,
+    Dropdown,
     PollEditor,
     Poll,
     Tooltip,
@@ -175,9 +223,17 @@ export default {
       },
       newMessagesFrom: this.newCommentsFrom,
       highlightedItem: null,
+      timelineFilter: this.filter || 'all',
+      timelineSort: this.sort || 'desc',
     }
   },
   watch: {
+    filter(val) {
+      this.timelineFilter = val || 'all'
+    },
+    sort(val) {
+      this.timelineSort = val || 'desc'
+    },
     showCommentBox(val) {
       if (val) {
         nextTick(() => {
@@ -407,6 +463,18 @@ export default {
         localStorage.setItem(this.draftCommentKey(), content)
       }, 0)
     },
+    replyToComment(fullName) {
+      let mention = fullName ? `@${fullName} ` : ''
+      if (!this.showCommentBox) {
+        this.showCommentBox = true
+      }
+      if (!this.newComment || this.newComment === '<p></p>') {
+        this.newComment = `<p>${mention}</p>`
+      }
+      nextTick(() => {
+        this.$refs.newCommentEditor?.editor.commands.focus('end')
+      })
+    },
     resetCommentState() {
       localStorage.removeItem(this.draftCommentKey())
       this.$resetData([
@@ -442,11 +510,48 @@ export default {
         item.$el = $component.$el
       }
     },
+    setTimelineFilter(filter) {
+      this.timelineFilter = filter
+      this.$emit('update:filter', filter)
+    },
+    setTimelineSort(sort) {
+      this.timelineSort = sort
+      this.$emit('update:sort', sort)
+    },
+    timelineNumber(index) {
+      if (this.timelineSort === 'desc') {
+        return this.timelineItems.length - index
+      }
+      return index + 1
+    },
   },
   computed: {
+    timelineFilterOptions() {
+      return [
+        { label: 'Show everything', onClick: () => this.setTimelineFilter('all') },
+        { label: 'Show comments', onClick: () => this.setTimelineFilter('comments') },
+        { label: 'Show activity', onClick: () => this.setTimelineFilter('activity') },
+      ]
+    },
+    timelineFilterLabel() {
+      return {
+        all: 'Show everything',
+        comments: 'Show comments',
+        activity: 'Show activity',
+      }[this.timelineFilter] || 'Show everything'
+    },
+    timelineSortOptions() {
+      return [
+        { label: 'Newest on top', onClick: () => this.setTimelineSort('desc') },
+        { label: 'Oldest on top', onClick: () => this.setTimelineSort('asc') },
+      ]
+    },
+    timelineSortLabel() {
+      return this.timelineSort === 'desc' ? 'Newest on top' : 'Oldest on top'
+    },
     timelineItems() {
       let items = []
-      const f = this.filter || 'all'
+      const f = this.timelineFilter || 'all'
       if (f === 'all' || f === 'comments') {
         if (this.$resources.comments.data?.length) {
           items = items.concat(this.$resources.comments.data)
@@ -460,7 +565,10 @@ export default {
           items = items.concat(this.$resources.activities.data)
         }
       }
-      return items.sort((a, b) => new Date(a.creation) - new Date(b.creation))
+      return items.sort((a, b) => {
+        const diff = new Date(a.creation) - new Date(b.creation)
+        return this.timelineSort === 'desc' ? -diff : diff
+      })
     },
     commentEmpty() {
       return !this.newComment || this.newComment === '<p></p>'

@@ -1,111 +1,120 @@
 <template>
-  <!-- gp-activity-vue: valid template (vite); keep in sync across deploy contexts -->
-  <div class="relative flex items-center text-p-base">
-    <div
-      class="mr-3 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-gray-2 text-ink-gray-9"
-    >
-      <LucideLock class="h-4 w-4" v-if="activity.action === 'Discussion Closed'" />
-      <LucideUnlock class="h-4 w-4" v-else-if="activity.action === 'Discussion Reopened'" />
-      <LucideEdit3 class="h-4 w-4" v-else-if="activity.action === 'Discussion Title Changed'" />
-      <LucideArrowUpLeft class="h-4 w-4" v-else-if="activity.action === 'Discussion Pinned'" />
-      <LucideArrowDownLeft class="h-4 w-4" v-else-if="activity.action === 'Discussion Unpinned'" />
-      <LucideEdit3 class="h-4 w-4" v-else-if="activity.action === 'Task Value Changed'" />
-    </div>
-    <p>
-      <UserInfo :email="activity.user" v-slot="{ user }">
-        <UserProfileLink
-          class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
-          :user="user.name"
-        >
-          {{ user.full_name }}
+  <div class="relative py-1 pl-10 pr-1 text-sm">
+    <span
+      class="absolute left-[17px] top-3 h-2.5 w-2.5 rounded-full border-2 border-surface-white bg-ink-gray-4 ring-1 ring-outline-gray-3"
+      aria-hidden="true"
+    ></span>
+    <UserInfo :email="activity.user" v-slot="{ user }">
+      <div class="flex min-w-0 items-start gap-2">
+        <UserProfileLink :user="user.name" class="shrink-0">
+          <UserAvatar :user="user.name" size="sm" />
         </UserProfileLink>
-      </UserInfo>
-      <span class="text-ink-gray-9" v-if="activity.action == 'Discussion Closed'">
-        closed this discussion
-      </span>
-      <span class="text-ink-gray-9" v-if="activity.action == 'Discussion Reopened'">
-        reopened this discussion
-      </span>
-      <span class="text-ink-gray-9" v-if="activity.action == 'Discussion Pinned'">
-        pinned this discussion
-      </span>
-      <span class="text-ink-gray-9" v-if="activity.action == 'Discussion Unpinned'">
-        unpinned this discussion
-      </span>
-      <span class="text-ink-gray-9" v-if="activity.action == 'Discussion Title Changed'">
-        changed the title from
-        <span class="text-ink-gray-8">“{{ activity.data.old_title }}”</span>
-        to
-        <span class="text-ink-gray-8">“{{ activity.data.new_title }}”</span>
-      </span>
-      <span class="text-ink-gray-5" v-if="activity.action == 'Task Value Changed'">
-        <template v-if="activity.data.field === 'assigned_to'">
-          assigned this to
-          <UserProfileLink
-            class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
-            :user="$user(activity.data.new_value).name"
-          >
-            {{ $user(activity.data.new_value).full_name }}
-          </UserProfileLink>
-        </template>
-        <template v-else-if="activity.data.field === 'assignees'">
-          changed assignees
-          <template v-if="assigneeIdList(activity.data.old_value).length">
-            from
-            <template v-for="(uid, i) in assigneeIdList(activity.data.old_value)" :key="uid">
-              <template v-if="i > 0">,&nbsp;</template>
-              <UserProfileLink
-                class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
-                :user="$user(uid).name"
-              >
-                {{ $user(uid).full_name }}
-              </UserProfileLink>
-            </template>
-          </template>
-          &nbsp;to
-          <template v-for="(uid, i) in assigneeIdList(activity.data.new_value)" :key="'n' + uid">
-            <template v-if="i > 0">,&nbsp;</template>
+        <div class="min-w-0 flex-1">
+          <div class="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 pr-10">
             <UserProfileLink
-              class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
-              :user="$user(uid).name"
+              class="text-base font-semibold leading-5 text-ink-gray-9 hover:text-ink-blue-3"
+              :user="user.name"
             >
-              {{ $user(uid).full_name }}
+              {{ user.full_name }}
             </UserProfileLink>
-          </template>
-        </template>
-        <template v-else-if="activity.data.field === 'description'">
-          updated the description
-        </template>
-        <template v-else-if="activity.data.field === 'project'">
-          changed project
-          <span v-if="activity.data.old_value">from&nbsp;</span>
-          <span class="text-ink-gray-8">
-            {{ projectTitle(activity.data.old_value) }}
-          </span>
-          to
-          <span class="text-ink-gray-8">
-            {{ projectTitle(activity.data.new_value) }}
-          </span>
-        </template>
-        <template v-else>
-          changed {{ activity.data.field_label }}
-          <span v-if="activity.data.old_value">from&nbsp;</span>
-          <span class="text-ink-gray-8">{{ activity.data.old_value }}</span> to
-          <span class="text-ink-gray-8">{{ activity.data.new_value }}</span>
-        </template>
-      </span>
-      &nbsp;<time
-        class="text-ink-gray-5"
-        :datetime="activity.creation"
-        :title="$dayjs(activity.creation)"
-      >
-        {{ $dayjs(activity.creation).fromNow() }}
-      </time>
-    </p>
+            <time
+              class="shrink-0 whitespace-nowrap text-sm text-ink-gray-5"
+              :datetime="activity.creation"
+              :title="$dayjs(activity.creation)"
+            >
+              {{ $dayjs(activity.creation).format('DD/MM/YYYY hh:mm A') }}
+            </time>
+          </div>
+          <div class="mt-2 flex min-w-0 items-start gap-2">
+            <span class="mt-2 h-px w-4 shrink-0 bg-outline-gray-2" aria-hidden="true"></span>
+            <p class="min-w-0 text-sm leading-5 text-ink-gray-7">
+              <span v-if="activity.action == 'Discussion Closed'">
+                <span class="font-medium text-ink-gray-9">Closed</span> this discussion
+              </span>
+              <span v-else-if="activity.action == 'Discussion Reopened'">
+                <span class="font-medium text-ink-gray-9">Reopened</span> this discussion
+              </span>
+              <span v-else-if="activity.action == 'Discussion Pinned'">
+                <span class="font-medium text-ink-gray-9">Pinned</span> this discussion
+              </span>
+              <span v-else-if="activity.action == 'Discussion Unpinned'">
+                <span class="font-medium text-ink-gray-9">Unpinned</span> this discussion
+              </span>
+              <span v-else-if="activity.action == 'Discussion Title Changed'">
+                <span class="font-medium text-ink-gray-9">Title</span> changed from
+                <span class="text-ink-gray-8">“{{ activity.data.old_title }}”</span> to
+                <span class="text-ink-gray-8">“{{ activity.data.new_title }}”</span>
+              </span>
+              <span v-else-if="activity.action == 'Task Value Changed'">
+                <template v-if="activity.data.field === 'assigned_to'">
+                  <span class="font-medium text-ink-gray-9">Assignee</span> set to
+                  <UserProfileLink
+                    class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
+                    :user="$user(activity.data.new_value).name"
+                  >
+                    {{ $user(activity.data.new_value).full_name }}
+                  </UserProfileLink>
+                </template>
+                <template v-else-if="activity.data.field === 'assignees'">
+                  <span class="font-medium text-ink-gray-9">Assignees</span> changed
+                  <template v-if="assigneeIdList(activity.data.old_value).length">
+                    from
+                    <template v-for="(uid, i) in assigneeIdList(activity.data.old_value)" :key="uid">
+                      <template v-if="i > 0">,&nbsp;</template>
+                      <UserProfileLink
+                        class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
+                        :user="$user(uid).name"
+                      >
+                        {{ $user(uid).full_name }}
+                      </UserProfileLink>
+                    </template>
+                  </template>
+                  &nbsp;to
+                  <template v-for="(uid, i) in assigneeIdList(activity.data.new_value)" :key="'n' + uid">
+                    <template v-if="i > 0">,&nbsp;</template>
+                    <UserProfileLink
+                      class="font-medium text-ink-gray-8 hover:text-ink-gray-5"
+                      :user="$user(uid).name"
+                    >
+                      {{ $user(uid).full_name }}
+                    </UserProfileLink>
+                  </template>
+                </template>
+                <template v-else-if="activity.data.field === 'description'">
+                  <span class="font-medium text-ink-gray-9">Description</span> updated
+                </template>
+                <template v-else-if="activity.data.field === 'project'">
+                  <span class="font-medium text-ink-gray-9">Project</span>
+                  <template v-if="activity.data.old_value">
+                    changed from
+                    <span class="text-ink-gray-8">{{ projectTitle(activity.data.old_value) }}</span> to
+                  </template>
+                  <template v-else> set to </template>
+                  <span class="text-ink-gray-8">{{ projectTitle(activity.data.new_value) }}</span>
+                </template>
+                <template v-else>
+                  <span class="font-medium text-ink-gray-9">{{ activity.data.field_label }}</span>
+                  changed
+                  <template v-if="activity.data.old_value">
+                    from
+                    <span class="text-ink-gray-8">{{ activity.data.old_value }}</span>
+                    to
+                  </template>
+                  <template v-else> to </template>
+                  <span class="text-ink-gray-8">{{ activity.data.new_value }}</span>
+                </template>
+              </span>
+            </p>
+          </div>
+        </div>
+        <span v-if="number" class="absolute right-1 top-2 text-sm text-ink-gray-5">#{{ number }}</span>
+      </div>
+    </UserInfo>
   </div>
 </template>
 <script>
 import UserProfileLink from './UserProfileLink.vue'
+import UserAvatar from './UserAvatar.vue'
 import { projectTitle } from '@/utils/formatters'
 
 export default {
@@ -115,8 +124,12 @@ export default {
       type: Object,
       required: true,
     },
+    number: {
+      type: Number,
+      default: null,
+    },
   },
-  components: { UserProfileLink },
+  components: { UserProfileLink, UserAvatar },
   methods: {
     projectTitle,
     assigneeIdList(val) {

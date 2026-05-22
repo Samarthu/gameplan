@@ -22,17 +22,36 @@
           ]"
           v-model="currentTab"
         />
-        <TabButtons
-          :buttons="[
-            { label: 'List', value: 'list' },
-            { label: 'Kanban', value: 'kanban' },
-            { label: 'Team', value: 'team' },
-          ]"
-          v-model="viewMode"
-        />
+        <div class="flex items-center gap-2">
+          <Tooltip :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'">
+            <button
+              type="button"
+              class="relative grid h-8 w-8 place-items-center rounded-lg border border-outline-gray-2 bg-surface-white text-ink-gray-6 shadow-sm transition hover:bg-surface-gray-2 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+              aria-label="Open filters"
+              @click.stop="taskListRef?.toggleFiltersPanel($event)"
+            >
+              <LucideListFilter class="h-4 w-4" />
+              <span
+                v-if="taskListRef?.activeFilterCount"
+                class="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-ink-gray-9 px-1 text-[10px] font-semibold leading-none text-white"
+              >
+                {{ taskListRef.activeFilterCount }}
+              </span>
+            </button>
+          </Tooltip>
+          <TabButtons
+            :buttons="[
+              { label: 'List', value: 'list' },
+              { label: 'Kanban', value: 'kanban' },
+              { label: 'Team', value: 'team' },
+            ]"
+            v-model="viewMode"
+          />
+        </div>
       </div>
       <div class="pb-6 mt-3 sm:mt-4">
         <TaskList
+          ref="taskListRef"
           :listOptions="listOptions"
           :groupByStatus="true"
           :viewMode="viewMode"
@@ -45,11 +64,13 @@
 </template>
 <script setup>
 import { ref, computed } from 'vue'
-import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons } from 'frappe-ui'
+import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons, Tooltip } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import { getUser } from '@/data/users'
+import LucideListFilter from '~icons/lucide/list-filter'
 
 let newTaskDialog = ref(null)
+let taskListRef = ref(null)
 let currentTab = ref('all')
 const route = useRoute()
 const router = useRouter()
@@ -82,7 +103,7 @@ function showNewTaskDialog(options = {}) {
   newTaskDialog.value.show({
     defaults: {
       assigned_to: getUser('sessionUser').name,
-      status: options.status,
+      ...options,
     },
     onSuccess: () => {
       let tasks = getCachedListResource(['Tasks', listOptions.value])
