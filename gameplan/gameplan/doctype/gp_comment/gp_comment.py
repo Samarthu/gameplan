@@ -45,6 +45,14 @@ class GPComment(HasMentions, HasReactions, Document):
 		if reference_doc.meta.has_field("comments_count"):
 			reference_doc.db_set("comments_count", reference_doc.comments_count - 1)
 
+	def _get_missing_mandatory_fields(self):
+		missing = super()._get_missing_mandatory_fields()
+		if not missing or not self.content:
+			return missing
+		if not any(tag in self.content for tag in ("<video", "<iframe", "<audio")):
+			return missing
+		return [(fieldname, msg) for fieldname, msg in missing if fieldname != "content"]
+
 	def validate(self):
 		self.content = remove_empty_trailing_paragraphs(self.content)
 		self.de_duplicate_reactions()
