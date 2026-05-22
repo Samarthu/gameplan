@@ -42,7 +42,7 @@
       <div class="relative">
         <div
           v-if="timelineItems.length"
-          class="absolute bottom-0 left-5 top-0 w-px bg-outline-gray-2"
+          class="absolute bottom-0 left-[1.375rem] top-0 w-px bg-outline-gray-2"
           aria-hidden="true"
         ></div>
       <template v-for="(item, index) in timelineItems" :key="item.doctype + item.name">

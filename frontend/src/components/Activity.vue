@@ -1,11 +1,9 @@
 <template>
-  <div class="relative py-1 pl-12 pr-1 text-sm">
+  <div class="relative py-1 pl-10 pr-1 text-sm">
     <span
-      class="absolute left-[13px] top-2 grid h-4 w-4 place-items-center rounded-sm border border-outline-gray-2 bg-surface-white"
+      class="absolute left-[17px] top-3 h-2.5 w-2.5 rounded-full border-2 border-surface-white bg-ink-gray-4 ring-1 ring-outline-gray-3"
       aria-hidden="true"
-    >
-      <span class="h-1.5 w-1.5 rounded-sm bg-ink-gray-5"></span>
-    </span>
+    ></span>
     <UserInfo :email="activity.user" v-slot="{ user }">
       <div class="flex min-w-0 items-start gap-2">
         <UserProfileLink :user="user.name" class="shrink-0">
