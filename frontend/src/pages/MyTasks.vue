@@ -23,14 +23,22 @@
           v-model="currentTab"
         />
         <div class="flex items-center gap-2">
-          <Dropdown :options="taskListRef?.filterOptions || []">
+          <Tooltip :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'">
             <button
-              class="inline-flex items-center gap-1.5 rounded-lg border border-outline-gray-2 bg-surface-white px-2.5 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-1"
+              type="button"
+              class="relative grid h-8 w-8 place-items-center rounded-lg border border-outline-gray-2 bg-surface-white text-ink-gray-6 shadow-sm transition hover:bg-surface-gray-2 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+              aria-label="Open filters"
+              @click.stop="taskListRef?.toggleFiltersPanel($event)"
             >
-              <LucideFilter class="h-4 w-4" />
-              Filter
+              <LucideListFilter class="h-4 w-4" />
+              <span
+                v-if="taskListRef?.activeFilterCount"
+                class="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-ink-gray-9 px-1 text-[10px] font-semibold leading-none text-white"
+              >
+                {{ taskListRef.activeFilterCount }}
+              </span>
             </button>
-          </Dropdown>
+          </Tooltip>
           <TabButtons
             :buttons="[
               { label: 'List', value: 'list' },
@@ -56,10 +64,10 @@
 </template>
 <script setup>
 import { ref, computed } from 'vue'
-import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons, Dropdown } from 'frappe-ui'
+import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons, Tooltip } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import { getUser } from '@/data/users'
-import LucideFilter from '~icons/lucide/filter'
+import LucideListFilter from '~icons/lucide/list-filter'
 
 let newTaskDialog = ref(null)
 let taskListRef = ref(null)

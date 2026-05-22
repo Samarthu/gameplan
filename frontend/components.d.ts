@@ -75,6 +75,7 @@ declare module 'vue' {
     LucideFolderOpen: typeof import('~icons/lucide/folder-open')['default']
     LucideHeart: typeof import('~icons/lucide/heart')['default']
     LucideHome: typeof import('~icons/lucide/home')['default']
+    LucideInfo: typeof import('~icons/lucide/info')['default']
     LucideLock: typeof import('~icons/lucide/lock')['default']
     LucideMessageSquare: typeof import('~icons/lucide/message-square')['default']
     LucideMinusCircle: typeof import('~icons/lucide/minus-circle')['default']

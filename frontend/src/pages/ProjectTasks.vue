@@ -3,6 +3,22 @@
     <div class="mb-4.5 flex flex-wrap items-center justify-between gap-3">
       <h2 class="text-xl font-semibold text-ink-gray-9">Tasks</h2>
       <div class="flex items-center gap-2">
+        <Tooltip :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'">
+          <button
+            type="button"
+            class="relative grid h-8 w-8 place-items-center rounded-lg border border-outline-gray-2 bg-surface-white text-ink-gray-6 shadow-sm transition hover:bg-surface-gray-2 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+            aria-label="Open filters"
+            @click.stop="taskListRef?.toggleFiltersPanel($event)"
+          >
+            <LucideListFilter class="h-4 w-4" />
+            <span
+              v-if="taskListRef?.activeFilterCount"
+              class="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-ink-gray-9 px-1 text-[10px] font-semibold leading-none text-white"
+            >
+              {{ taskListRef.activeFilterCount }}
+            </span>
+          </button>
+        </Tooltip>
         <TabButtons
           :buttons="[
             { label: 'List', value: 'list' },
@@ -20,6 +36,7 @@
       </div>
     </div>
     <TaskList
+      ref="taskListRef"
       :listOptions="listOptions"
       :groupByStatus="true"
       :viewMode="viewMode"
@@ -30,9 +47,10 @@
 </template>
 <script setup>
 import { computed, ref } from 'vue'
-import { getCachedListResource, TabButtons } from 'frappe-ui'
+import { getCachedListResource, TabButtons, Tooltip } from 'frappe-ui'
 import { getUser } from '@/data/users'
 import { useRoute, useRouter } from 'vue-router'
+import LucideListFilter from '~icons/lucide/list-filter'
 
 const props = defineProps({
   project: {
@@ -42,6 +60,7 @@ const props = defineProps({
 })
 
 let newTaskDialog = ref(null)
+let taskListRef = ref(null)
 const route = useRoute()
 const router = useRouter()
 let viewMode = computed({

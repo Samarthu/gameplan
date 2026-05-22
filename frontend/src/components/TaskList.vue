@@ -1,5 +1,147 @@
 <template>
   <div>
+    <Teleport to="body">
+      <div
+        v-if="showFiltersPanel"
+        class="fixed z-50 w-[min(56rem,calc(100vw-2rem))] rounded-xl border border-outline-gray-2 bg-surface-white p-4 shadow-2xl"
+        :style="filtersPanelStyle"
+        @click.stop
+      >
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-semibold text-ink-gray-9">Filters</h3>
+            <LucideInfo class="h-3.5 w-3.5 text-ink-gray-4" />
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-outline-gray-2 px-2.5 py-1.5 text-sm font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+            @click="clearAllFilters"
+          >
+            Clear
+          </button>
+        </div>
+
+        <div v-if="taskFilters.length" class="space-y-2">
+          <div
+            v-for="filter in taskFilters"
+            :key="filter.id"
+            class="relative grid grid-cols-[minmax(8rem,1fr)_minmax(7rem,0.7fr)_minmax(10rem,1.8fr)_2rem] items-center gap-2 rounded-lg bg-surface-gray-1 p-2"
+          >
+            <select
+              v-model="filter.field"
+              class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+              @change="resetFilterValue(filter)"
+            >
+              <option v-for="field in filterFields" :key="field.value" :value="field.value">
+                {{ field.label }}
+              </option>
+            </select>
+            <select
+              v-model="filter.operator"
+              class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+              @change="resetFilterValue(filter)"
+            >
+              <option v-for="operator in operatorsForFilter(filter)" :key="operator.value" :value="operator.value">
+                {{ operator.label }}
+              </option>
+            </select>
+            <template v-if="filterNeedsValue(filter)">
+              <div v-if="isMultiValueFilter(filter) && valueOptionsForFilter(filter).length" class="relative">
+                <button
+                  type="button"
+                  class="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-left text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+                  @click.stop="toggleFilterValueMenu(filter.id)"
+                >
+                  <span class="min-w-0 truncate">
+                    {{ selectedFilterValueLabel(filter) || 'Select values' }}
+                  </span>
+                  <LucideChevronDown class="h-4 w-4 shrink-0 text-ink-gray-5" />
+                </button>
+                <div
+                  v-if="openFilterValueMenu === filter.id"
+                  class="absolute left-0 top-full z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-outline-gray-2 bg-surface-white p-1 shadow-lg"
+                  @click.stop
+                >
+                  <button
+                    v-for="option in valueOptionsForFilter(filter)"
+                    :key="option.value"
+                    type="button"
+                    class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-ink-gray-8 hover:bg-surface-gray-2"
+                    @click="toggleFilterValue(filter, option.value)"
+                  >
+                    <span
+                      class="grid h-4 w-4 shrink-0 place-items-center rounded-full border"
+                      :class="filter.values.includes(option.value) ? 'border-blue-500 bg-blue-500' : 'border-outline-gray-3 bg-surface-white'"
+                    >
+                      <LucideCheck v-if="filter.values.includes(option.value)" class="h-3 w-3 text-white" />
+                    </span>
+                    <span class="min-w-0 truncate">{{ option.label }}</span>
+                  </button>
+                </div>
+              </div>
+              <select
+                v-else-if="valueOptionsForFilter(filter).length"
+                v-model="filter.value"
+                class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+              >
+                <option value="">Select value</option>
+                <option v-for="option in valueOptionsForFilter(filter)" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <input
+                v-else
+                v-model="filter.value"
+                :type="dateFilterFields.includes(filter.field) ? 'date' : 'text'"
+                class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+                placeholder="Value"
+              />
+            </template>
+            <div v-else class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-4"></div>
+            <Tooltip text="Remove filter">
+              <button
+                type="button"
+                class="grid h-8 w-8 place-items-center rounded-lg text-ink-gray-5 hover:bg-surface-red-1 hover:text-red-500"
+                aria-label="Remove filter"
+                @click="removeTaskFilter(filter.id)"
+              >
+                <LucideTrash2 class="h-4 w-4" />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+        <div v-else class="rounded-lg bg-surface-gray-1 px-3 py-4 text-sm text-ink-gray-5">
+          No filters applied
+        </div>
+
+        <div class="relative mt-4 inline-block">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-2 text-sm font-medium text-ink-gray-7 shadow-sm hover:bg-surface-gray-2"
+            @click.stop="toggleAddFilterMenu"
+          >
+            <LucidePlus class="h-4 w-4" />
+            Add filter
+          </button>
+          <div
+            v-if="showAddFilterMenu"
+            class="absolute left-0 top-full z-50 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-outline-gray-2 bg-surface-white p-1 shadow-lg"
+            @click.stop
+          >
+            <button
+              v-for="field in filterFields"
+              :key="field.value"
+              type="button"
+              class="flex w-full items-center rounded px-2 py-1.5 text-left text-sm text-ink-gray-8 hover:bg-surface-gray-2"
+              @click="addTaskFilterForField(field.value)"
+            >
+              {{ field.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <div v-if="selectedTag" class="mb-3 flex flex-wrap items-center gap-2">
       <button
         class="inline-flex items-center gap-1 rounded-full bg-surface-blue-1 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
@@ -12,7 +154,7 @@
     </div>
 
     <KanbanView
-      v-if="tasks.data?.length && viewMode === 'kanban'"
+      v-if="filteredTasks.length && viewMode === 'kanban'"
       :tasksResource="tasks"
       :kanbanGroups="kanbanGroups"
       :childTasksByParent="childTasksByParent"
@@ -42,7 +184,7 @@
     />
 
     <TeamView
-      v-else-if="tasks.data?.length && viewMode === 'team'"
+      v-else-if="filteredTasks.length && viewMode === 'team'"
       :tasks="topLevelTasks"
       :assigneeIds="assigneeIds"
       :taskRoute="taskRoute"
@@ -50,7 +192,7 @@
     />
 
     <ListView
-      v-else-if="tasks.data?.length"
+      v-else-if="filteredTasks.length"
       :tasksResource="tasks"
       :groupedTasks="groupedTasks"
       :compact="compact"
@@ -98,7 +240,7 @@
       class="flex flex-col items-center py-8 text-base border-2 border-dashed rounded-lg text-ink-gray-5"
       v-else
     >
-      No tasks
+      {{ tasks.data?.length ? 'No tasks match the selected filters' : 'No tasks' }}
     </div>
 
     <!-- Bulk action bar -->
@@ -313,9 +455,36 @@ export default {
       activePopover: null,
       showColumnsPicker: false,
       columnsPickerStyle: {},
+      showFiltersPanel: false,
+      filtersPanelStyle: {},
+      openFilterValueMenu: null,
+      showAddFilterMenu: false,
       inlinePopover: { name: null, field: null },
       selectedTag: null,
       allTags: [],
+      taskFilters: [],
+      nextFilterId: 1,
+      dateFilterFields: ['due_date', 'creation'],
+      filterFields: [
+        { label: 'Status', value: 'status' },
+        { label: 'Tags', value: 'tag' },
+        { label: 'Due Date', value: 'due_date' },
+        { label: 'Priority', value: 'priority' },
+        { label: 'Assignee', value: 'assignee' },
+        { label: 'Type', value: 'task_type' },
+        { label: 'Project', value: 'project' },
+        { label: 'Created By', value: 'owner' },
+        { label: 'Date Created', value: 'creation' },
+      ],
+      filterOperators: [
+        { label: 'Equals', value: 'equals' },
+        { label: 'Not Equals', value: 'not_equals' },
+        { label: 'Like', value: 'like' },
+        { label: 'Not Like', value: 'not_like' },
+        { label: 'In', value: 'in' },
+        { label: 'Not In', value: 'not_in' },
+        { label: 'Is', value: 'is' },
+      ],
       columns: {
         assignee:   { label: 'Assignee',    visible: saved.assignee   ?? true },
         priority:   { label: 'Priority',    visible: saved.priority   ?? true },
@@ -452,9 +621,158 @@ export default {
       if (this.showColumnsPicker) {
         this.showColumnsPicker = false
       }
+      if (this.showFiltersPanel) {
+        this.showFiltersPanel = false
+      }
+      if (this.openFilterValueMenu) {
+        this.openFilterValueMenu = null
+      }
+      if (this.showAddFilterMenu) {
+        this.showAddFilterMenu = false
+      }
       if (this.inlinePopover.name) {
         this.inlinePopover = { name: null, field: null }
       }
+    },
+    toggleFiltersPanel(event) {
+      if (!this.showFiltersPanel && event?.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect()
+        this.filtersPanelStyle = {
+          top: `${rect.bottom + 8}px`,
+          right: `${Math.max(window.innerWidth - rect.right, 16)}px`,
+        }
+      }
+      this.showFiltersPanel = !this.showFiltersPanel
+      if (!this.showFiltersPanel) {
+        this.openFilterValueMenu = null
+      }
+    },
+    toggleAddFilterMenu() {
+      this.showAddFilterMenu = !this.showAddFilterMenu
+    },
+    addTaskFilterForField(field) {
+      this.taskFilters.push({
+        id: this.nextFilterId++,
+        field,
+        operator: 'equals',
+        value: '',
+        values: [],
+      })
+      this.showAddFilterMenu = false
+    },
+    removeTaskFilter(id) {
+      this.taskFilters = this.taskFilters.filter((filter) => filter.id !== id)
+      if (this.openFilterValueMenu === id) {
+        this.openFilterValueMenu = null
+      }
+    },
+    clearAllFilters() {
+      this.taskFilters = []
+      this.selectedTag = null
+      this.openFilterValueMenu = null
+      this.showAddFilterMenu = false
+    },
+    resetFilterValue(filter) {
+      if (!this.operatorsForFilter(filter).some((operator) => operator.value === filter.operator)) {
+        filter.operator = 'equals'
+      }
+      filter.value = ''
+      filter.values = []
+      if (!this.filterNeedsValue(filter)) {
+        filter.value = ''
+      }
+    },
+    operatorsForFilter(filter) {
+      if (this.dateFilterFields.includes(filter.field)) {
+        return this.filterOperators.filter((operator) => ['equals', 'not_equals', 'in', 'not_in', 'is'].includes(operator.value))
+      }
+      return this.filterOperators
+    },
+    filterNeedsValue(filter) {
+      return filter.operator !== 'is'
+    },
+    isMultiValueFilter(filter) {
+      return ['in', 'not_in'].includes(filter.operator)
+    },
+    toggleFilterValueMenu(id) {
+      this.openFilterValueMenu = this.openFilterValueMenu === id ? null : id
+    },
+    toggleFilterValue(filter, value) {
+      if (!Array.isArray(filter.values)) {
+        filter.values = []
+      }
+      if (filter.values.includes(value)) {
+        filter.values = filter.values.filter((item) => item !== value)
+      } else {
+        filter.values = [...filter.values, value]
+      }
+    },
+    selectedFilterValueLabel(filter) {
+      if (!Array.isArray(filter.values) || !filter.values.length) return ''
+      const labelsByValue = new Map(this.valueOptionsForFilter(filter).map((option) => [option.value, option.label]))
+      const labels = filter.values.map((value) => labelsByValue.get(value) || value)
+      if (labels.length <= 2) return labels.join(', ')
+      return `${labels.slice(0, 2).join(', ')} +${labels.length - 2}`
+    },
+    valueOptionsForFilter(filter) {
+      const options = {
+        status: ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((value) => ({ label: value, value })),
+        priority: ['Urgent', 'High', 'Medium', 'Low'].map((value) => ({ label: value, value })),
+        task_type: TASK_TYPES.map((value) => ({ label: value, value })),
+        tag: this.allTags.map((value) => ({ label: value, value })),
+        assignee: this.userOptions,
+        owner: this.userOptions,
+        project: this.projectOptions,
+      }
+      return options[filter.field] || []
+    },
+    taskValueForFilter(task, field) {
+      if (field === 'assignee') return this.assigneeIds(task)
+      if (field === 'tag') return this.parseTags(task._user_tags)
+      return task[field]
+    },
+    taskMatchesFilter(task, filter) {
+      if (!filter.field || !filter.operator) return true
+      const rawValue = this.taskValueForFilter(task, filter.field)
+      const hasValue = Array.isArray(rawValue)
+        ? rawValue.length > 0
+        : rawValue !== null && rawValue !== undefined && String(rawValue).trim() !== ''
+
+      if (filter.operator === 'is') return hasValue
+      const expectedList = this.expectedValuesForFilter(filter)
+      if (!this.filterNeedsValue(filter) || !expectedList.length) return true
+
+      const expected = expectedList[0] || ''
+      const values = Array.isArray(rawValue)
+        ? rawValue.map((value) => String(value).toLowerCase())
+        : [String(rawValue || '').toLowerCase()]
+
+      if (this.dateFilterFields.includes(filter.field)) {
+        const actualDate = rawValue ? this.$dayjs(rawValue).startOf('day') : null
+        const expectedDate = this.$dayjs(filter.value).startOf('day')
+        if (!actualDate?.isValid?.() || !expectedDate.isValid()) return true
+        if (filter.operator === 'equals') return actualDate.isSame(expectedDate)
+        if (filter.operator === 'not_equals') return !actualDate.isSame(expectedDate)
+        if (filter.operator === 'in') return expectedList.some((value) => actualDate.isSame(this.$dayjs(value).startOf('day')))
+        if (filter.operator === 'not_in') return expectedList.every((value) => !actualDate.isSame(this.$dayjs(value).startOf('day')))
+      }
+
+      if (filter.operator === 'equals') return values.includes(expected)
+      if (filter.operator === 'not_equals') return !values.includes(expected)
+      if (filter.operator === 'like') return values.some((value) => value.includes(expected))
+      if (filter.operator === 'not_like') return values.every((value) => !value.includes(expected))
+      if (filter.operator === 'in') return values.some((value) => expectedList.includes(value))
+      if (filter.operator === 'not_in') return values.every((value) => !expectedList.includes(value))
+      return true
+    },
+    expectedValuesForFilter(filter) {
+      if (this.isMultiValueFilter(filter) && Array.isArray(filter.values) && filter.values.length) {
+        return filter.values.map((value) => String(value).trim().toLowerCase()).filter(Boolean)
+      }
+      return String(filter.value || '')
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean)
     },
     toggleInlinePopover(taskName, field) {
       if (this.inlinePopover.name === taskName && this.inlinePopover.field === field) {
@@ -754,6 +1072,13 @@ export default {
         .filter(Boolean)
         .join(', ')
     },
+    parseTags(tags) {
+      if (!tags) return []
+      return String(tags)
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    },
     isTaskOverdue(task) {
       if (!task.due_date) return false
       if (task.status === 'Done' || task.status === 'Cancelled') return false
@@ -765,6 +1090,16 @@ export default {
   computed: {
     tasks() {
       return this.$resources.tasks
+    },
+    activeFilterCount() {
+      return this.taskFilters.filter((filter) => {
+        return !this.filterNeedsValue(filter) || this.expectedValuesForFilter(filter).length
+      }).length + (this.selectedTag ? 1 : 0)
+    },
+    filteredTasks() {
+      return (this.tasks.data || []).filter((task) => {
+        return this.taskFilters.every((filter) => this.taskMatchesFilter(task, filter))
+      })
     },
     projectOptions() {
       return activeProjects.value.map((p) => ({
@@ -877,7 +1212,7 @@ export default {
       return tasksByStatus
     },
     childTasksByParent() {
-      return (this.tasks.data || []).reduce((childrenByParent, task) => {
+      return this.filteredTasks.reduce((childrenByParent, task) => {
         if (!task.parent_task) return childrenByParent
         if (!childrenByParent[task.parent_task]) {
           childrenByParent[task.parent_task] = []
@@ -887,7 +1222,7 @@ export default {
       }, {})
     },
     topLevelTasks() {
-      return (this.tasks.data || []).filter((task) => !task.parent_task)
+      return this.filteredTasks.filter((task) => !task.parent_task)
     },
   },
 }
