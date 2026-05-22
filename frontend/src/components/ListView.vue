@@ -221,7 +221,14 @@
                         </span>
                       </Tooltip>
                       <Tooltip v-if="extraAssigneeCount(d) > 0" :text="extraAssigneeNames(d)">
-                        <span class="relative inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-ink-gray-8 px-1 text-xs font-semibold text-white shadow-sm ring-1 ring-ink-gray-6">
+                        <span
+                          class="relative inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full border-2 border-white px-1 text-xs font-semibold text-white shadow-sm ring-1"
+                          :style="{
+                            backgroundColor: '#1f2937',
+                            '--tw-ring-color': '#111827',
+                            zIndex: visibleAssigneeIds(d).length + 1,
+                          }"
+                        >
                           +{{ extraAssigneeCount(d) }}
                         </span>
                       </Tooltip>

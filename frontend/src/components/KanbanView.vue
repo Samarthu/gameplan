@@ -80,27 +80,41 @@
                     @click="toggleCardPopover(d.name, 'assignee')"
                   >
                     <template v-if="assigneeIds(d).length">
-                      <Tooltip
-                        v-for="(uid, idx) in visibleAssigneeIds(d)"
-                        :key="uid + '-' + idx"
-                        :text="$user(uid).full_name"
-                      >
-                        <span
-                          class="group/assignee relative inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
-                          :class="assigneeHeatClass(uid)"
-                          :style="assigneeHeatStyle(uid)"
+                      <div class="isolate flex items-center" :class="assigneeStackSpacingClass(d)">
+                        <Tooltip
+                          v-for="(uid, idx) in visibleAssigneeIds(d)"
+                          :key="uid + '-' + idx"
+                          :text="$user(uid).full_name"
                         >
-                          {{ userInitial(uid) }}
-                          <button
-                            type="button"
-                            class="absolute -right-1 -top-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-ink-gray-8 text-white shadow-sm transition hover:bg-red-600 group-hover/assignee:flex"
-                            :aria-label="`Remove ${$user(uid).full_name}`"
-                            @click.stop="removeAssignee(d, uid)"
+                          <span
+                            class="group/assignee relative inline-grid h-6 w-6 place-items-center rounded-full border-2 border-white text-sm font-medium shadow-sm ring-1"
+                            :class="assigneeHeatClass(uid)"
+                            :style="{ ...assigneeHeatStyle(uid), zIndex: idx + 1 }"
                           >
-                            <LucideX class="h-2.5 w-2.5" />
-                          </button>
-                        </span>
-                      </Tooltip>
+                            {{ userInitial(uid) }}
+                            <button
+                              type="button"
+                              class="absolute -right-1 -top-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-ink-gray-8 text-white shadow-sm transition hover:bg-red-600 group-hover/assignee:flex"
+                              :aria-label="`Remove ${$user(uid).full_name}`"
+                              @click.stop="removeAssignee(d, uid)"
+                            >
+                              <LucideX class="h-2.5 w-2.5" />
+                            </button>
+                          </span>
+                        </Tooltip>
+                        <Tooltip v-if="extraAssigneeCount(d) > 0" :text="extraAssigneeNames(d)">
+                          <span
+                            class="relative inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full border-2 border-white px-1 text-xs font-semibold text-white shadow-sm ring-1"
+                            :style="{
+                              backgroundColor: '#1f2937',
+                              '--tw-ring-color': '#111827',
+                              zIndex: visibleAssigneeIds(d).length + 1,
+                            }"
+                          >
+                            +{{ extraAssigneeCount(d) }}
+                          </span>
+                        </Tooltip>
+                      </div>
                     </template>
                     <span v-else class="text-sm text-ink-gray-4">Unassigned</span>
                   </button>
@@ -268,8 +282,11 @@ export default {
     taskRoute: { type: Function, required: true },
     assigneeIds: { type: Function, required: true },
     visibleAssigneeIds: { type: Function, required: true },
+    assigneeStackSpacingClass: { type: Function, required: true },
     assigneeHeatClass: { type: Function, required: true },
     assigneeHeatStyle: { type: Function, required: true },
+    extraAssigneeCount: { type: Function, required: true },
+    extraAssigneeNames: { type: Function, required: true },
     isTaskOverdue: { type: Function, required: true },
     priorityIconClass: { type: Function, required: true },
     statusOptions: { type: Function, required: true },
