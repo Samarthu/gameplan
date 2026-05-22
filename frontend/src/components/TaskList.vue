@@ -46,7 +46,7 @@
               </option>
             </select>
             <template v-if="filterNeedsValue(filter)">
-              <div v-if="isMultiValueFilter(filter) && valueOptionsForFilter(filter).length" class="relative">
+              <div v-if="isMultiValueFilter(filter) && !isLikeFilter(filter) && valueOptionsForFilter(filter).length" class="relative">
                 <button
                   type="button"
                   class="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-left text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
@@ -80,7 +80,7 @@
                 </div>
               </div>
               <select
-                v-else-if="valueOptionsForFilter(filter).length"
+                v-else-if="!isLikeFilter(filter) && valueOptionsForFilter(filter).length"
                 v-model="filter.value"
                 class="h-9 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
               >
@@ -693,6 +693,9 @@ export default {
     },
     isMultiValueFilter(filter) {
       return ['in', 'not_in'].includes(filter.operator)
+    },
+    isLikeFilter(filter) {
+      return ['like', 'not_like'].includes(filter.operator)
     },
     toggleFilterValueMenu(id) {
       this.openFilterValueMenu = this.openFilterValueMenu === id ? null : id
