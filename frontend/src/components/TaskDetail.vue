@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-full flex-1" v-if="$resources.task.doc">
-    <div class="min-w-0 flex-1 overflow-y-auto border-r border-outline-gray-2">
+    <div class="min-w-[420px] flex-1 overflow-y-auto border-r border-outline-gray-2">
       <div class="relative p-6">
         <div class="absolute right-0 top-0 p-6" v-show="$resources.task.setValueDebounced.loading">
           <LoadingText v-if="!$resources.task.setValueDebounced.error" text="Saving..." />
@@ -234,15 +234,15 @@
         <span class="text-base font-semibold text-ink-gray-9">Activity</span>
         <div class="flex items-center gap-2">
           <Dropdown :options="activityFilterOptions">
-            <button class="inline-flex items-center gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-3 py-2 text-base font-semibold text-ink-gray-8 shadow-sm hover:bg-surface-gray-1">
+            <button class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-outline-gray-2 bg-surface-white px-2.5 py-1.5 text-sm font-semibold text-ink-gray-8 shadow-sm hover:bg-surface-gray-1">
               {{ activityFilterLabel }}
-              <LucideChevronDown class="h-4 w-4 text-ink-gray-6" />
+              <LucideChevronDown class="h-3.5 w-3.5 text-ink-gray-6" />
             </button>
           </Dropdown>
           <Dropdown :options="activitySortOptions">
-            <button class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold text-ink-gray-8 hover:bg-surface-gray-1">
+            <button class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-semibold text-ink-gray-8 hover:bg-surface-gray-1">
               {{ activitySortLabel }}
-              <LucideChevronDown class="h-4 w-4 text-ink-gray-6" />
+              <LucideChevronDown class="h-3.5 w-3.5 text-ink-gray-6" />
             </button>
           </Dropdown>
         </div>
@@ -343,15 +343,24 @@ export default {
       tagSearchQuery: '',
     }
   },
+  watch: {
+    taskId() {
+      this.docTags = []
+      this.loadDocTags()
+    },
+  },
   mounted() {
     this.restoreActivityPanelWidth()
+    this.loadDocTags()
     this.fetchTagSuggestions('')
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
+    window.addEventListener('resize', this.onWindowResize)
   },
   beforeUnmount() {
     window.removeEventListener('mousemove', this.onActivityResize)
     window.removeEventListener('mouseup', this.stopActivityResize)
+    window.removeEventListener('resize', this.onWindowResize)
     document.body.classList.remove('select-none', 'cursor-col-resize')
   },
   methods: {
@@ -361,6 +370,9 @@ export default {
         this.activityPanelWidth = this.clampActivityPanelWidth(savedWidth)
         localStorage.setItem('gameplan_task_activity_width', String(this.activityPanelWidth))
       }
+    },
+    onWindowResize() {
+      this.activityPanelWidth = this.clampActivityPanelWidth(this.activityPanelWidth)
     },
     clampActivityPanelWidth(width) {
       const minTaskDetailWidth = 760
@@ -502,20 +514,20 @@ export default {
   computed: {
     activityFilterLabel() {
       return {
-        all: 'Show everything',
-        comments: 'Show comments',
-        activity: 'Show activity',
-      }[this.activityFilter] || 'Show everything'
+        all: 'All',
+        comments: 'Comments',
+        activity: 'Activity',
+      }[this.activityFilter] || 'All'
     },
     activityFilterOptions() {
       return [
-        { label: 'Show everything', onClick: () => (this.activityFilter = 'all') },
-        { label: 'Show comments', onClick: () => (this.activityFilter = 'comments') },
-        { label: 'Show activity', onClick: () => (this.activityFilter = 'activity') },
+        { label: 'All', onClick: () => (this.activityFilter = 'all') },
+        { label: 'Comments', onClick: () => (this.activityFilter = 'comments') },
+        { label: 'Activity', onClick: () => (this.activityFilter = 'activity') },
       ]
     },
     activitySortLabel() {
-      return this.activitySort === 'desc' ? 'Newest on top' : 'Oldest on top'
+      return this.activitySort === 'desc' ? 'Newest' : 'Oldest'
     },
     activitySortOptions() {
       return [
