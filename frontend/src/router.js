@@ -139,6 +139,13 @@ const routes = [
         ],
       },
       {
+        name: 'SprintTasks',
+        path: 'sprints/:sprintId',
+        component: () => import('@/pages/SprintTasks.vue'),
+        props: true,
+        meta: { fullWidth: true },
+      },
+      {
         name: 'ProjectLayout',
         path: 'projects/:projectId',
         component: () => import('@/pages/ProjectLayout.vue'),

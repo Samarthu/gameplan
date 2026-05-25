@@ -21,6 +21,7 @@
   "idx",
   "project",
   "team",
+  "sprint",
   "assigned_to",
   "assignees",
   "comments_count"
@@ -123,6 +124,13 @@
    "fieldname": "completed_by",
    "fieldtype": "Data",
    "label": "Completed By"
+  },
+  {
+   "fieldname": "sprint",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Sprint",
+   "options": "GP Sprint"
   },
   {
    "fieldname": "comments_count",

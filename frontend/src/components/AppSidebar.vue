@@ -97,6 +97,10 @@
             </div>
           </Link>
           <div class="mb-2 mt-0.5 space-y-1 pl-7" v-show="team.open">
+            <!-- Projects section -->
+            <div class="flex items-center justify-between pr-1">
+              <span class="text-xs font-medium text-ink-gray-4 uppercase tracking-wide">Projects</span>
+            </div>
             <Link
               :key="project.name"
               v-for="project in sidebarProjects(team.name)"
@@ -127,6 +131,45 @@
             >
               No projects
             </div>
+
+            <!-- Sprints section -->
+            <div class="mt-2 flex items-center justify-between pr-1">
+              <span class="text-xs font-medium text-ink-gray-4 uppercase tracking-wide">Sprints</span>
+              <button
+                class="grid h-4 w-4 place-items-center rounded hover:bg-surface-gray-3"
+                @click.prevent="showAddSprintDialog = team.name"
+                title="Create Sprint"
+              >
+                <LucidePlus class="h-3 w-3 text-ink-gray-4" />
+              </button>
+            </div>
+            <Link
+              :key="sprint.name"
+              v-for="sprint in teamSprints(team.name)"
+              :link="sprint"
+              class="flex min-h-7 items-start rounded-md px-2 py-1 text-ink-gray-8 transition"
+              active="bg-surface-selected shadow-sm"
+              inactive="hover:bg-surface-gray-2"
+            >
+              <template v-slot="{ link: sprint }">
+                <span class="inline-flex w-full items-center gap-2">
+                  <LucideZap class="h-3 w-3 shrink-0 text-ink-gray-4" />
+                  <span class="text-sm leading-5 whitespace-normal break-words">{{ sprint.title }}</span>
+                  <span
+                    v-if="sprint.status === 'Active'"
+                    class="ml-auto shrink-0 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700"
+                  >
+                    Active
+                  </span>
+                </span>
+              </template>
+            </Link>
+            <div
+              class="flex h-7 items-center px-2 text-sm text-ink-gray-5"
+              v-if="teamSprints(team.name).length === 0"
+            >
+              No sprints
+            </div>
           </div>
         </div>
       </nav>
@@ -146,6 +189,21 @@
         }
       "
     />
+    <AddSprintDialog
+      v-if="showAddSprintDialog"
+      :show="!!showAddSprintDialog"
+      :team="showAddSprintDialog"
+      @update:show="(v) => { if (!v) showAddSprintDialog = null }"
+      @success="
+        (sprint) => {
+          showAddSprintDialog = null
+          $router.push({
+            name: 'SprintTasks',
+            params: { teamId: sprint.team, sprintId: sprint.name },
+          })
+        }
+      "
+    />
   </div>
 </template>
 <script>
@@ -153,10 +211,12 @@ import { Tooltip } from 'frappe-ui'
 import Links from './Links.vue'
 import Link from './Link.vue'
 import AddTeamDialog from './AddTeamDialog.vue'
+import AddSprintDialog from './AddSprintDialog.vue'
 import UserDropdown from './UserDropdown.vue'
 import ChevronTriangle from './icons/ChevronTriangle.vue'
 import { activeTeams, teams } from '@/data/teams'
 import { getTeamProjects } from '@/data/projects'
+import { getTeamSprints } from '@/data/sprints'
 import { unreadNotifications } from '@/data/notifications'
 import { showCommandPalette } from '@/components/CommandPalette/CommandPalette.vue'
 import LucideUsers2 from '~icons/lucide/users-2'
@@ -164,11 +224,13 @@ import LucideInbox from '~icons/lucide/inbox'
 import LucideListTodo from '~icons/lucide/list-todo'
 import LucideNewspaper from '~icons/lucide/newspaper'
 import LucideFiles from '~icons/lucide/files'
+import LucideZap from '~icons/lucide/zap'
 
 export default {
   name: 'AppSidebar',
   components: {
     AddTeamDialog,
+    AddSprintDialog,
     Links,
     Link,
     UserDropdown,
@@ -182,6 +244,7 @@ export default {
       sidebarResizing: false,
 
       showAddTeamDialog: false,
+      showAddSprintDialog: null,
       teams,
     }
   },
@@ -259,6 +322,9 @@ export default {
     },
   },
   methods: {
+    teamSprints(teamName) {
+      return getTeamSprints(teamName)
+    },
     sidebarProjects(teamName) {
       return [...this.teamProjects(teamName), ...this.linkedProjects(teamName)]
     },
