@@ -19,3 +19,14 @@ class GPSprint(Document):
 			s = getdate(self.start_date)
 			return f"Sprint - {s.strftime('%b')} {s.day}"
 		return "Sprint - 1"
+
+
+@frappe.whitelist()
+def get_sprint_task_counts(team):
+	rows = frappe.db.get_all(
+		"GP Task",
+		filters={"team": team, "sprint": ["is", "set"]},
+		fields=["sprint", "count(*) as count"],
+		group_by="sprint",
+	)
+	return {r.sprint: r.count for r in rows}

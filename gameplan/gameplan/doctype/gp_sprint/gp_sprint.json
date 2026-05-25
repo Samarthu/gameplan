@@ -63,7 +63,7 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"
-  }
+  },
  ],
  "links": [
   {

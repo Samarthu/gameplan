@@ -358,6 +358,60 @@
             </div>
           </div>
 
+          <!-- Sprint (Move / Copy) -->
+          <div class="relative">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('sprint')"
+            >
+              <LucideZap class="h-3.5 w-3.5" />
+              Sprint
+            </button>
+            <div
+              v-if="activePopover === 'sprint'"
+              class="absolute w-64 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white overflow-hidden"
+            >
+              <!-- Mode toggle -->
+              <div class="flex border-b border-outline-gray-2">
+                <button
+                  class="flex-1 py-1.5 text-xs font-medium transition"
+                  :class="sprintPopoverMode === 'move' ? 'bg-surface-gray-2 text-ink-gray-9' : 'text-ink-gray-5 hover:bg-surface-gray-1'"
+                  @click.stop="sprintPopoverMode = 'move'"
+                >
+                  Move to Sprint
+                </button>
+                <button
+                  class="flex-1 py-1.5 text-xs font-medium transition"
+                  :class="sprintPopoverMode === 'copy' ? 'bg-surface-gray-2 text-ink-gray-9' : 'text-ink-gray-5 hover:bg-surface-gray-1'"
+                  @click.stop="sprintPopoverMode = 'copy'"
+                >
+                  Copy to Sprint
+                </button>
+              </div>
+              <div class="p-2">
+                <Autocomplete
+                  v-if="sprintPopoverMode === 'move'"
+                  :options="sprintOptions"
+                  placeholder="Select sprint..."
+                  @update:modelValue="bulkMoveToSprint"
+                />
+                <Autocomplete
+                  v-else
+                  :options="sprintOptionsForTeam"
+                  placeholder="Select sprint..."
+                  @update:modelValue="bulkCopyToSprint"
+                />
+                <div
+                  v-if="(sprintPopoverMode === 'move' ? sprintOptions : sprintOptionsForTeam).length === 0"
+                  class="px-2 py-1 text-sm text-ink-gray-5"
+                >
+                  No sprints available
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
           <!-- Delete -->
@@ -397,6 +451,7 @@ import KanbanView from './KanbanView.vue'
 import TeamView from './TeamView.vue'
 import { activeProjects } from '@/data/projects'
 import { activeUsers } from '@/data/users'
+import { sprints } from '@/data/sprints'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
 const TASK_TYPES = [
@@ -455,6 +510,7 @@ export default {
       openChildTasks: {},
       horizontalScrollLeft: 0,
       activePopover: null,
+      sprintPopoverMode: 'move',
       showColumnsPicker: false,
       columnsPickerStyle: {},
       showFiltersPanel: false,
@@ -881,7 +937,9 @@ export default {
         })
         return
       }
-      this.activePopover = this.activePopover === name ? null : name
+      const closing = this.activePopover === name
+      this.activePopover = closing ? null : name
+      if (closing || name !== 'sprint') this.sprintPopoverMode = 'move'
     },
 
     // Bulk actions
@@ -919,6 +977,43 @@ export default {
             team: this.copyTargetTeam,
             assignees: this.assigneeIds(task).map((user) => ({ user })),
             _user_tags: task._user_tags || null,
+          },
+        })
+        const tags = this.parseTags(task._user_tags)
+        for (const tag of tags) {
+          await call('frappe.desk.doctype.tag.tag.add_tag', {
+            tag,
+            dt: 'GP Task',
+            dn: newTask.name,
+          })
+        }
+      }
+      this.clearSelection()
+      this.tasks.reload()
+    },
+    bulkMoveToSprint(option) {
+      if (!option) return
+      this.activePopover = null
+      this.bulkUpdate('sprint', option.value)
+    },
+    async bulkCopyToSprint(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const task of this.selectedTaskDocs) {
+        const newTask = await call('frappe.client.insert', {
+          doc: {
+            doctype: 'GP Task',
+            title: task.title,
+            description: task.description,
+            start_date: task.start_date || null,
+            due_date: task.due_date || null,
+            task_type: task.task_type || 'Task',
+            status: task.status || 'Backlog',
+            priority: task.priority || null,
+            project: null,
+            team: task.team || null,
+            sprint: option.value,
+            assignees: this.assigneeIds(task).map((user) => ({ user })),
           },
         })
         const tags = this.parseTags(task._user_tags)
@@ -1155,6 +1250,19 @@ export default {
           label: project.title,
           value: project.name,
         }))
+    },
+    sprintOptions() {
+      return (sprints.data || []).map((s) => ({
+        label: s.title,
+        value: s.name,
+        description: s.status,
+      }))
+    },
+    sprintOptionsForTeam() {
+      if (!this.copyTargetTeam) return this.sprintOptions
+      return (sprints.data || [])
+        .filter((s) => s.team === this.copyTargetTeam)
+        .map((s) => ({ label: s.title, value: s.name, description: s.status }))
     },
     userOptions() {
       return activeUsers.value.map((u) => ({
