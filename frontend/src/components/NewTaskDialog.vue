@@ -49,6 +49,26 @@
           </Dropdown>
           <TextInput type="date" placeholder="Set due date" v-model="newTask.due_date" />
         </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-2">
+            <div class="text-sm text-ink-gray-7">Team</div>
+            <Autocomplete
+              placeholder="Select team"
+              :options="teamOptions"
+              v-model="selectedTeam"
+              @update:modelValue="onTeamPicked"
+            />
+          </div>
+          <div class="space-y-2">
+            <div class="text-sm text-ink-gray-7">Project</div>
+            <Autocomplete
+              placeholder="Select project"
+              :options="projectOptions"
+              v-model="selectedProject"
+              @update:modelValue="onProjectPicked"
+            />
+          </div>
+        </div>
         <div class="space-y-2">
           <div class="text-sm text-ink-gray-7">Assignees</div>
           <div class="flex flex-wrap gap-1">
@@ -112,6 +132,8 @@ import { ref, computed, h } from 'vue'
 import { Dialog, FormControl, Autocomplete, Dropdown, TextInput, createResource } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import { activeUsers } from '@/data/users'
+import { activeTeams } from '@/data/teams'
+import { getTeamProjects } from '@/data/projects'
 
 const props = defineProps(['modelValue', 'defaults'])
 const emit = defineEmits(['update:modelValue'])
@@ -197,6 +219,43 @@ const assignableUsersForPicker = computed(() => {
   const ids = new Set(assigneeUserIds.value)
   return assignableUsers.value.filter((o) => !ids.has(o.value))
 })
+
+const teamOptions = computed(() => {
+  return activeTeams.value.map((team) => ({
+    label: team.title,
+    value: team.name,
+  }))
+})
+
+const selectedTeam = computed(() => {
+  if (!newTask.value.team) return null
+  return teamOptions.value.find((o) => o.value == newTask.value.team) || null
+})
+
+const projectOptions = computed(() => {
+  if (!newTask.value.team) return []
+  return getTeamProjects(newTask.value.team).map((project) => ({
+    label: project.title,
+    value: project.name.toString(),
+  }))
+})
+
+const selectedProject = computed(() => {
+  if (!newTask.value.project) return null
+  return projectOptions.value.find((o) => o.value == newTask.value.project) || null
+})
+
+function onTeamPicked(option) {
+  newTask.value.team = option?.value || null
+  // Clear project if it no longer belongs to the selected team
+  if (!projectOptions.value.find((o) => o.value == newTask.value.project)) {
+    newTask.value.project = null
+  }
+}
+
+function onProjectPicked(option) {
+  newTask.value.project = option?.value || null
+}
 
 function onAssigneePicked(option) {
   assigneeAddSelection.value = null
