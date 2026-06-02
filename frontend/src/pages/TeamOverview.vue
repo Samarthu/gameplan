@@ -137,7 +137,8 @@
       </Dialog>
       <div
         v-if="projectMinimized"
-        class="fixed bottom-4 right-4 z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
+        :style="projectPillStyle"
+        class="fixed z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
       >
         <button
           class="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink-gray-8"
@@ -257,6 +258,7 @@ import { Dialog, FormControl, TextInput, TabButtons } from 'frappe-ui'
 import { projects, getTeamProjects, getTeamArchivedProjects } from '@/data/projects'
 import { getTeamSprints } from '@/data/sprints'
 import AddSprintDialog from '@/components/AddSprintDialog.vue'
+import { nextStackId, pushStack, removeStack, pillStyle } from '@/utils/minimizedStack'
 
 export default {
   name: 'TeamOverview',
@@ -272,6 +274,7 @@ export default {
     return {
       createNewProjectDialog: false,
       projectMinimized: false,
+      projectStackId: nextStackId(),
       newProject: { title: '', is_private: 0 },
       activeTab: 'Active',
       showAddSprintDialog: false,
@@ -301,6 +304,9 @@ export default {
     },
   },
   computed: {
+    projectPillStyle() {
+      return pillStyle(this.projectStackId).value
+    },
     projects() {
       return projects
     },
@@ -368,6 +374,7 @@ export default {
             projects.reload()
             this.newProject = this.$options.data().newProject
             this.projectMinimized = false
+            removeStack(this.projectStackId)
             this.createNewProjectDialog = false
             this.$router.push({
               name: 'Project',
@@ -379,18 +386,22 @@ export default {
     },
     minimizeProject() {
       this.projectMinimized = true
+      pushStack(this.projectStackId)
       this.createNewProjectDialog = false
     },
     expandProject() {
       this.projectMinimized = false
+      removeStack(this.projectStackId)
       this.createNewProjectDialog = true
     },
     closeProject() {
       this.projectMinimized = false
+      removeStack(this.projectStackId)
       this.createNewProjectDialog = false
     },
     closeProjectFromPill() {
       this.projectMinimized = false
+      removeStack(this.projectStackId)
       this.newProject = this.$options.data().newProject
     },
   },

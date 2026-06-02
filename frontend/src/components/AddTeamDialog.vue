@@ -52,7 +52,8 @@
   </Dialog>
   <div
     v-if="minimized"
-    class="fixed bottom-4 right-4 z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
+    :style="pillStyle"
+    class="fixed z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
   >
     <button
       class="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink-gray-8"
@@ -80,6 +81,7 @@
 </template>
 <script>
 import { teams } from '@/data/teams'
+import { nextStackId, pushStack, removeStack, pillStyle } from '@/utils/minimizedStack'
 
 export default {
   name: 'AddTeamDialog',
@@ -89,6 +91,7 @@ export default {
     return {
       newTeam: { title: '', is_private: 0 },
       minimized: false,
+      stackId: nextStackId(),
       teams,
     }
   },
@@ -98,6 +101,7 @@ export default {
         onSuccess: (team) => {
           this.$resetData('newTeam')
           this.minimized = false
+          removeStack(this.stackId)
           this.showDialog = false
           this.$emit('success', team)
         },
@@ -105,22 +109,29 @@ export default {
     },
     minimize() {
       this.minimized = true
+      pushStack(this.stackId)
       this.showDialog = false
     },
     expand() {
       this.minimized = false
+      removeStack(this.stackId)
       this.showDialog = true
     },
     closeDialog() {
       this.minimized = false
+      removeStack(this.stackId)
       this.showDialog = false
     },
     closeFromPill() {
       this.minimized = false
+      removeStack(this.stackId)
       this.$resetData('newTeam')
     },
   },
   computed: {
+    pillStyle() {
+      return pillStyle(this.stackId).value
+    },
     showDialog: {
       get() {
         return this.show

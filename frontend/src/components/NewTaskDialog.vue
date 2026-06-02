@@ -145,7 +145,8 @@
   </Dialog>
   <div
     v-if="minimized"
-    class="fixed bottom-4 right-4 z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
+    :style="pillStyle"
+    class="fixed z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
   >
     <button
       class="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink-gray-8"
@@ -178,11 +179,14 @@ import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import { activeUsers } from '@/data/users'
 import { activeTeams } from '@/data/teams'
 import { getTeamProjects } from '@/data/projects'
+import { nextStackId, pushStack, removeStack, pillStyle as makePillStyle } from '@/utils/minimizedStack'
 
 const props = defineProps(['modelValue', 'defaults'])
 const emit = defineEmits(['update:modelValue'])
 const showDialog = ref(false)
 const minimized = ref(false)
+const stackId = nextStackId()
+const pillStyle = makePillStyle(stackId)
 const assigneeUserIds = ref([])
 const assigneeAddSelection = ref(null)
 
@@ -224,21 +228,25 @@ function resetDialog() {
 
 function minimize() {
   minimized.value = true
+  pushStack(stackId)
   showDialog.value = false
 }
 
 function expand() {
   minimized.value = false
+  removeStack(stackId)
   showDialog.value = true
 }
 
 function closeDialog() {
   minimized.value = false
+  removeStack(stackId)
   showDialog.value = false
 }
 
 function closeFromPill() {
   minimized.value = false
+  removeStack(stackId)
   resetDialog()
 }
 
@@ -359,6 +367,7 @@ function show({ defaults, onSuccess } = {}) {
   }
   assigneeAddSelection.value = null
   minimized.value = false
+  removeStack(stackId)
   showDialog.value = true
   _onSuccess = onSuccess
 }
