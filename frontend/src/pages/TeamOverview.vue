@@ -90,20 +90,37 @@
         </button>
       </ul>
       <Dialog :options="{ title: 'Create project' }" v-model="createNewProjectDialog">
-        <template #body-content>
-          <div class="space-y-5">
-            <FormControl label="Title" v-model="newProject.title" @keydown.enter="createProject" />
-            <FormControl
-              v-if="!team.doc.is_private"
-              type="select"
-              label="Visibility"
-              :options="[
-                { label: 'Visible to everyone', value: 0 },
-                { label: 'Visible to team members (Private)', value: 1 },
-              ]"
-              v-model="newProject.is_private"
-            />
-            <ErrorMessage :message="projects.insert.error" />
+        <template #body-main>
+          <div class="bg-surface-modal px-4 pb-6 pt-5 sm:px-6">
+            <div class="mb-6 flex items-center justify-between">
+              <h3 class="text-2xl font-semibold leading-6 text-ink-gray-9">Create project</h3>
+              <div class="flex items-center gap-1">
+                <Button variant="ghost" @click="minimizeProject">
+                  <template #icon>
+                    <LucideMinimize2 class="h-4 w-4 text-ink-gray-9" />
+                  </template>
+                </Button>
+                <Button variant="ghost" @click="closeProject">
+                  <template #icon>
+                    <LucideX class="h-4 w-4 text-ink-gray-9" />
+                  </template>
+                </Button>
+              </div>
+            </div>
+            <div class="space-y-5">
+              <FormControl label="Title" v-model="newProject.title" @keydown.enter="createProject" />
+              <FormControl
+                v-if="!team.doc.is_private"
+                type="select"
+                label="Visibility"
+                :options="[
+                  { label: 'Visible to everyone', value: 0 },
+                  { label: 'Visible to team members (Private)', value: 1 },
+                ]"
+                v-model="newProject.is_private"
+              />
+              <ErrorMessage :message="projects.insert.error" />
+            </div>
           </div>
         </template>
         <template #actions>
@@ -118,6 +135,33 @@
           </Button>
         </template>
       </Dialog>
+      <div
+        v-if="projectMinimized"
+        class="fixed bottom-4 right-4 z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
+      >
+        <button
+          class="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink-gray-8"
+          @click="expandProject"
+        >
+          {{ newProject.title || 'Create project' }}
+        </button>
+        <div class="flex shrink-0 items-center gap-1">
+          <button
+            class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-8"
+            aria-label="Expand"
+            @click="expandProject"
+          >
+            <LucideMaximize2 class="h-4 w-4" />
+          </button>
+          <button
+            class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-8"
+            aria-label="Close"
+            @click="closeProjectFromPill"
+          >
+            <LucideX class="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Sprints Section -->
@@ -195,10 +239,9 @@
         </div>
       </button>
       <AddSprintDialog
-        v-if="showAddSprintDialog"
         :show="showAddSprintDialog"
         :team="team.name"
-        @update:show="(v) => { if (!v) showAddSprintDialog = false }"
+        @update:show="(v) => { showAddSprintDialog = v }"
         @success="
           (sprint) => {
             showAddSprintDialog = false
@@ -228,6 +271,7 @@ export default {
   data() {
     return {
       createNewProjectDialog: false,
+      projectMinimized: false,
       newProject: { title: '', is_private: 0 },
       activeTab: 'Active',
       showAddSprintDialog: false,
@@ -323,6 +367,7 @@ export default {
           onSuccess: (project) => {
             projects.reload()
             this.newProject = this.$options.data().newProject
+            this.projectMinimized = false
             this.createNewProjectDialog = false
             this.$router.push({
               name: 'Project',
@@ -331,6 +376,22 @@ export default {
           },
         },
       )
+    },
+    minimizeProject() {
+      this.projectMinimized = true
+      this.createNewProjectDialog = false
+    },
+    expandProject() {
+      this.projectMinimized = false
+      this.createNewProjectDialog = true
+    },
+    closeProject() {
+      this.projectMinimized = false
+      this.createNewProjectDialog = false
+    },
+    closeProjectFromPill() {
+      this.projectMinimized = false
+      this.newProject = this.$options.data().newProject
     },
   },
 }
