@@ -2,7 +2,7 @@
   <div class="mt-8">
     <div class="mb-3 flex items-center justify-between">
       <h3 class="text-sm font-semibold text-ink-gray-7">
-        Child Tasks
+        Sub Tasks
         <span v-if="childTasks.data?.length" class="ml-1 text-ink-gray-4">
           {{ childTasks.data.length }}
         </span>
@@ -106,7 +106,7 @@
       v-else-if="!showAddForm && !childTasks.loading"
       class="text-xs text-ink-gray-3"
     >
-      No child tasks yet. Click Add to create one.
+      No sub tasks yet. Click Add to create one.
     </div>
   </div>
 </template>
