@@ -18,6 +18,14 @@
           </div>
         </div>
         <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm text-ink-gray-7">Team</div>
+            <Autocomplete
+              placeholder="Select team"
+              :options="teamOptions"
+              v-model="selectedTeam"
+            />
+          </div>
           <FormControl
           label="Sprint Name (optional)"
           type="text"
@@ -92,25 +100,34 @@
   </div>
 </template>
 <script>
+import { Autocomplete } from 'frappe-ui'
 import { sprints } from '@/data/sprints'
+import { activeTeams } from '@/data/teams'
 import { nextStackId, pushStack, removeStack, pillStyle } from '@/utils/minimizedStack'
 
 export default {
   name: 'AddSprintDialog',
+  components: { Autocomplete },
   props: ['show', 'team'],
   emits: ['success', 'update:show'],
   data() {
     return {
       newSprint: { title: '', status: 'Planned', start_date: '', end_date: '' },
+      teamValue: this.team,
       minimized: false,
       stackId: nextStackId(),
       sprints,
     }
   },
+  watch: {
+    team(val) {
+      this.teamValue = val
+    },
+  },
   methods: {
     createSprint() {
       sprints.insert.submit(
-        { ...this.newSprint, team: this.team },
+        { ...this.newSprint, team: this.teamValue },
         {
           onSuccess: (sprint) => {
             this.$resetData('newSprint')
@@ -146,6 +163,21 @@ export default {
   computed: {
     pillStyle() {
       return pillStyle(this.stackId).value
+    },
+    teamOptions() {
+      return activeTeams.value.map((team) => ({
+        label: team.title,
+        value: team.name,
+      }))
+    },
+    selectedTeam: {
+      get() {
+        if (!this.teamValue) return null
+        return this.teamOptions.find((o) => o.value == this.teamValue) || null
+      },
+      set(option) {
+        this.teamValue = option?.value || null
+      },
     },
     showDialog: {
       get() {
