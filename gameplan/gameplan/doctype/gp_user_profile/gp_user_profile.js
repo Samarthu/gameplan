@@ -37,3 +37,24 @@ frappe.ui.form.on("GP User Profile", {
     });
   },
 });
+
+frappe.ui.form.on("GP User Reportee", {
+  user: function (frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    if (!row.user) {
+      frappe.model.set_value(cdt, cdn, "employee", null);
+      return;
+    }
+
+    frappe.db
+      .get_value("Employee", { user_id: row.user }, "name")
+      .then((response) => {
+        frappe.model.set_value(
+          cdt,
+          cdn,
+          "employee",
+          response.message ? response.message.name : null
+        );
+      });
+  },
+});

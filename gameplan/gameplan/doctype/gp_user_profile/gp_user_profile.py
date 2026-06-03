@@ -124,7 +124,7 @@ class GPUserProfile(Document):
 
 		reportee_profiles, skipped_reportees = _get_direct_reportee_profiles(employee_doc.name)
 		for profile in reportee_profiles:
-			self.append("reportees", {"user": profile.user})
+			self.append("reportees", {"user": profile.user, "employee": profile.employee})
 
 		self.is_lead = 1 if self.reportees else 0
 		self.save()
@@ -214,7 +214,7 @@ def _add_reportee(manager_profile, user):
 		return
 	manager = frappe.get_doc("GP User Profile", manager_profile)
 	if not any(row.user == user for row in manager.reportees):
-		manager.append("reportees", {"user": user})
+		manager.append("reportees", {"user": user, "employee": _get_employee_for_user(user)})
 	manager.is_lead = 1
 	manager.save(ignore_permissions=True)
 
@@ -261,15 +261,22 @@ def _get_direct_reportee_profiles(employee):
 		profile = frappe.db.get_value(
 			"GP User Profile",
 			{"user": reportee.user_id},
-			["name", "user"],
+			["name", "user", "employee"],
 			as_dict=True,
 		)
 		if profile:
+			profile.employee = profile.employee or reportee.name
 			profiles.append(profile)
 		else:
 			skipped_employees.append(reportee.name)
 
 	return profiles, skipped_employees
+
+
+def _get_employee_for_user(user):
+	if not user:
+		return None
+	return frappe.db.get_value("Employee", {"user_id": user}, "name")
 
 
 REPORTEE_ALLOWED_ROLES = (
