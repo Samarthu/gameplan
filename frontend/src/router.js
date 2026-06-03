@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { session } from './data/session'
 import { users } from './data/users'
+import { executiveAccess } from './data/executive'
 import { getScrollContainer, scrollTo } from './utils/scrollContainer'
 
 let defaultRoute = window.default_route
@@ -105,6 +106,12 @@ const routes = [
     path: '/notifications',
     name: 'Notifications',
     component: () => import('@/pages/Notifications.vue'),
+  },
+  {
+    path: '/executive',
+    name: 'ExecutiveCockpit',
+    component: () => import('@/pages/ExecutiveCockpit.vue'),
+    meta: { fullWidth: true },
   },
   {
     path: '/:teamId',
@@ -245,6 +252,25 @@ router.beforeEach(async (to, from, next) => {
     next({ name: 'Home' })
   } else if (to.name !== 'Login' && !isLoggedIn) {
     next({ name: 'Login' })
+  } else if (to.name === 'ExecutiveCockpit') {
+    try {
+      if (!executiveAccess.fetched) {
+        await executiveAccess.fetch()
+      }
+    } catch {
+      next({ name: 'Discussions' })
+      return
+    }
+    const user = users.data?.find((u) => u.name === session.user)
+    const allowed =
+      executiveAccess.data ||
+      user?.role === 'Gameplan Admin' ||
+      user?.is_system_manager
+    if (!allowed) {
+      next({ name: 'Discussions' })
+    } else {
+      next()
+    }
   } else {
     next()
   }
