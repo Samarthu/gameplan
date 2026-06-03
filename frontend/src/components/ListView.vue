@@ -3,11 +3,20 @@
     <div class="@container overflow-x-auto" v-if="tasksResource.data?.length" @scroll.passive="syncGroupHeaderScroll">
       <!-- Column header row — scrolls horizontally with columns -->
       <div v-if="!compact" class="sticky top-0 z-[3] flex min-w-full items-center border-b border-outline-gray-2 bg-surface-white px-1 py-1.5 text-xs font-medium text-ink-gray-5">
-        <div class="sticky left-0 z-[1] flex min-w-[21rem] flex-1 items-center bg-surface-white">
+        <div
+          class="sticky left-0 z-[1] box-border flex shrink-0 items-center bg-surface-white"
+          :style="taskColumnStyle"
+        >
           <div class="w-9 shrink-0"></div>
           <div class="w-7 shrink-0"></div>
           <div class="w-4 shrink-0"></div>
           <div class="flex-1 pl-1">Task</div>
+          <div
+            class="task-column-resizer"
+            role="separator"
+            aria-label="Resize task column"
+            @mousedown.stop.prevent="startTaskColumnResize"
+          ></div>
         </div>
         <div class="w-32 shrink-0 pl-2">Type</div>
         <div v-if="columns.assignee.visible" class="w-28 shrink-0 text-center">Assignee</div>
@@ -104,7 +113,7 @@
               @click="$router.push(taskRoute(d))"
             >
               <!-- Sticky Task column: checkbox + status + child indicator + title -->
-              <div class="sticky left-0 z-[1] flex min-w-[21rem] flex-1 items-center"
+              <div class="sticky left-0 z-[1] box-border flex shrink-0 items-center"
                 :class="[
                   isSelected(d.name)
                     ? 'bg-surface-blue-1'
@@ -112,7 +121,7 @@
                       ? 'bg-surface-gray-1 group-hover:bg-surface-gray-2'
                       : 'bg-surface-white group-hover:bg-surface-gray-2',
                 ]"
-                :style="{ paddingLeft: `${taskDepth(d) * 1}rem` }"
+                :style="{ ...taskColumnStyle, paddingLeft: `${taskDepth(d) * 1}rem` }"
               >
                 <!-- Checkbox -->
                 <label class="flex w-9 shrink-0 cursor-pointer items-center justify-center py-2" @click.stop>
@@ -527,12 +536,61 @@ export default {
     toggleColumn: { type: Function, required: true },
     toggleColumnsPicker: { type: Function, required: true },
   },
+  data() {
+    return {
+      taskColumnWidth: 448,
+      taskColumnResize: null,
+    }
+  },
   computed: {
+    taskColumnStyle() {
+      return {
+        width: `${this.taskColumnWidth}px`,
+        minWidth: `${this.taskColumnWidth}px`,
+        maxWidth: `${this.taskColumnWidth}px`,
+      }
+    },
     sprintOptions() {
       return (sprints.data || []).map((s) => ({ label: s.title, value: s.name }))
     },
   },
+  mounted() {
+    const savedWidth = Number(localStorage.getItem('gameplan-task-list-task-column-width'))
+    if (savedWidth) {
+      this.taskColumnWidth = this.clampTaskColumnWidth(savedWidth)
+    }
+  },
+  beforeUnmount() {
+    this.stopTaskColumnResize()
+  },
   methods: {
+    clampTaskColumnWidth(width) {
+      return Math.min(Math.max(width, 336), 760)
+    },
+    startTaskColumnResize(event) {
+      this.taskColumnResize = {
+        startX: event.clientX,
+        startWidth: this.taskColumnWidth,
+      }
+      document.body.classList.add('select-none', 'cursor-col-resize')
+      window.addEventListener('mousemove', this.resizeTaskColumn)
+      window.addEventListener('mouseup', this.stopTaskColumnResize)
+    },
+    resizeTaskColumn(event) {
+      if (!this.taskColumnResize) return
+
+      const nextWidth = this.taskColumnResize.startWidth + event.clientX - this.taskColumnResize.startX
+      this.taskColumnWidth = this.clampTaskColumnWidth(nextWidth)
+    },
+    stopTaskColumnResize() {
+      if (!this.taskColumnResize) return
+
+      localStorage.setItem('gameplan-task-list-task-column-width', String(this.taskColumnWidth))
+      this.taskColumnResize = null
+      document.body.classList.remove('select-none', 'cursor-col-resize')
+      window.removeEventListener('mousemove', this.resizeTaskColumn)
+      window.removeEventListener('mouseup', this.stopTaskColumnResize)
+    },
     userInitial(user) {
       const fullName = this.$user(user).full_name || user || ''
       return fullName.trim().charAt(0).toUpperCase()
@@ -558,5 +616,38 @@ export default {
     min-width: 100cqw;
     max-width: 100cqw;
   }
+}
+
+.task-column-resizer {
+  align-self: stretch;
+  cursor: col-resize;
+  margin-right: -4px;
+  position: relative;
+  width: 12px;
+}
+
+.task-column-resizer::after {
+  background:
+    radial-gradient(circle, #9ca3af 1.2px, transparent 1.4px) center 40% / 4px 6px repeat-y,
+    linear-gradient(#d1d5db, #d1d5db) center / 1px 70% no-repeat;
+  content: '';
+  height: 1.5rem;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+}
+
+.task-column-resizer:hover::after {
+  background:
+    radial-gradient(circle, #4b5563 1.2px, transparent 1.4px) center 40% / 4px 6px repeat-y,
+    linear-gradient(#6b7280, #6b7280) center / 1px 80% no-repeat;
+}
+
+.task-column-resizer:active::after {
+  background:
+    radial-gradient(circle, #2563eb 1.2px, transparent 1.4px) center 40% / 4px 6px repeat-y,
+    linear-gradient(#2563eb, #2563eb) center / 1px 80% no-repeat;
 }
 </style>

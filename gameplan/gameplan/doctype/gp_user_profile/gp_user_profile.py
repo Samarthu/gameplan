@@ -107,6 +107,35 @@ class GPUserProfile(Document):
 
 		return is_rembg_available()
 
+	@frappe.whitelist()
+	def sync_from_employee(self):
+		"""Pull reporting details from the linked Employee record."""
+		employee = frappe.db.get_value("Employee", {"user_id": self.user}, "name") or self.employee
+		if not employee:
+			frappe.throw("No Employee record found for this user.")
+
+		employee_doc = frappe.db.get_value("Employee", employee, ["name", "reports_to"], as_dict=True)
+		if not employee_doc:
+			frappe.throw("Employee record not found.")
+
+		self.employee = employee_doc.name
+		self.reports_to = _get_gp_profile_for_employee(employee_doc.reports_to) if employee_doc.reports_to else None
+		self.reportees = []
+
+		reportee_profiles, skipped_reportees = _get_direct_reportee_profiles(employee_doc.name)
+		for profile in reportee_profiles:
+			self.append("reportees", {"user": profile.user, "employee": profile.employee})
+
+		self.is_lead = 1 if self.reportees else 0
+		self.save()
+
+		return {
+			"employee": self.employee,
+			"reports_to": self.reports_to,
+			"reportees": len(self.reportees),
+			"skipped_reportees": len(skipped_reportees),
+		}
+
 
 def create_user_profile(doc, method=None):
 	if not frappe.db.exists("GP User Profile", {"user": doc.name}):
@@ -127,6 +156,40 @@ def on_user_update(doc, method=None):
 		profile.enabled = doc.enabled
 		profile.full_name = doc.full_name
 		profile.save(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def sync_all_from_employee():
+	profiles = frappe.get_all("GP User Profile", fields=["name", "user", "full_name"])
+	synced = 0
+	skipped = []
+
+	for profile_row in profiles:
+		profile = frappe.get_doc("GP User Profile", profile_row.name)
+		try:
+			profile.sync_from_employee()
+			synced += 1
+		except Exception as error:
+			frappe.clear_messages()
+			skipped.append(
+				{
+					"profile": profile_row.name,
+					"user": profile_row.user,
+					"full_name": profile_row.full_name,
+					"reason": str(error),
+				}
+			)
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"GP User Profile Employee Sync Failed: {profile_row.name}",
+			)
+
+	return {
+		"synced": synced,
+		"skipped": len(skipped),
+		"skipped_profiles": skipped,
+		"total": len(profiles),
+	}
 
 
 @frappe.whitelist()
@@ -185,7 +248,7 @@ def _add_reportee(manager_profile, user):
 		return
 	manager = frappe.get_doc("GP User Profile", manager_profile)
 	if not any(row.user == user for row in manager.reportees):
-		manager.append("reportees", {"user": user})
+		manager.append("reportees", {"user": user, "employee": _get_employee_for_user(user)})
 	manager.is_lead = 1
 	manager.save(ignore_permissions=True)
 
@@ -204,6 +267,50 @@ def _remove_reportee(manager_profile, user):
 	if not manager.reportees:
 		manager.is_lead = 0
 	manager.save(ignore_permissions=True)
+
+
+def _get_gp_profile_for_employee(employee):
+	if not employee:
+		return None
+	user = frappe.db.get_value("Employee", employee, "user_id")
+	if not user:
+		return None
+	return frappe.db.get_value("GP User Profile", {"user": user}, "name")
+
+
+def _get_direct_reportee_profiles(employee):
+	reportees = frappe.db.get_all(
+		"Employee",
+		filters={"reports_to": employee},
+		fields=["name", "user_id"],
+	)
+	profiles = []
+	skipped_employees = []
+
+	for reportee in reportees:
+		if not reportee.user_id:
+			skipped_employees.append(reportee.name)
+			continue
+
+		profile = frappe.db.get_value(
+			"GP User Profile",
+			{"user": reportee.user_id},
+			["name", "user", "employee"],
+			as_dict=True,
+		)
+		if profile:
+			profile.employee = profile.employee or reportee.name
+			profiles.append(profile)
+		else:
+			skipped_employees.append(reportee.name)
+
+	return profiles, skipped_employees
+
+
+def _get_employee_for_user(user):
+	if not user:
+		return None
+	return frappe.db.get_value("Employee", {"user_id": user}, "name")
 
 
 REPORTEE_ALLOWED_ROLES = (
