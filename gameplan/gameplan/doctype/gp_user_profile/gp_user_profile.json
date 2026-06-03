@@ -10,6 +10,10 @@
   "enabled",
   "full_name",
   "bio",
+  "employee",
+  "is_lead",
+  "reports_to",
+  "reportees",
   "readme",
   "cover_image_section",
   "cover_image",
@@ -34,6 +38,30 @@
    "fieldname": "readme",
    "fieldtype": "Text Editor",
    "label": "Readme"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_lead",
+   "fieldtype": "Check",
+   "label": "Is Lead"
+  },
+  {
+   "fieldname": "reports_to",
+   "fieldtype": "Link",
+   "label": "Reports To",
+   "options": "GP User Profile"
+  },
+  {
+   "fieldname": "reportees",
+   "fieldtype": "Table",
+   "label": "Reportees",
+   "options": "GP User Reportee"
   },
   {
    "fetch_from": "user.full_name",

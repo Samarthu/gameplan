@@ -8,6 +8,24 @@
       :editable="!team.doc.archived_at"
     />
 
+    <!-- Team Lead -->
+    <div class="mt-8 flex items-center gap-3">
+      <h2 class="text-sm font-medium text-ink-gray-7">Team Lead</h2>
+      <Autocomplete
+        v-if="canManageLead"
+        class="w-64"
+        :options="memberOptions"
+        :modelValue="team.doc.lead"
+        placeholder="Select team lead"
+        @update:modelValue="setLead"
+      />
+      <div v-else-if="team.doc.lead" class="flex items-center gap-2">
+        <UserAvatar :user="team.doc.lead" />
+        <span class="text-base text-ink-gray-8">{{ leadName }}</span>
+      </div>
+      <span v-else class="text-base text-ink-gray-5">No lead assigned</span>
+    </div>
+
     <div class="mt-8">
       <div class="mb-5 flex items-center justify-between space-x-2">
         <h2 class="text-2xl font-semibold text-ink-gray-9">Projects</h2>
@@ -90,20 +108,37 @@
         </button>
       </ul>
       <Dialog :options="{ title: 'Create project' }" v-model="createNewProjectDialog">
-        <template #body-content>
-          <div class="space-y-5">
-            <FormControl label="Title" v-model="newProject.title" @keydown.enter="createProject" />
-            <FormControl
-              v-if="!team.doc.is_private"
-              type="select"
-              label="Visibility"
-              :options="[
-                { label: 'Visible to everyone', value: 0 },
-                { label: 'Visible to team members (Private)', value: 1 },
-              ]"
-              v-model="newProject.is_private"
-            />
-            <ErrorMessage :message="projects.insert.error" />
+        <template #body-main>
+          <div class="bg-surface-modal px-4 pb-6 pt-5 sm:px-6">
+            <div class="mb-6 flex items-center justify-between">
+              <h3 class="text-2xl font-semibold leading-6 text-ink-gray-9">Create project</h3>
+              <div class="flex items-center gap-1">
+                <Button variant="ghost" @click="minimizeProject">
+                  <template #icon>
+                    <LucideMinimize2 class="h-4 w-4 text-ink-gray-9" />
+                  </template>
+                </Button>
+                <Button variant="ghost" @click="closeProject">
+                  <template #icon>
+                    <LucideX class="h-4 w-4 text-ink-gray-9" />
+                  </template>
+                </Button>
+              </div>
+            </div>
+            <div class="space-y-5">
+              <FormControl label="Title" v-model="newProject.title" @keydown.enter="createProject" />
+              <FormControl
+                v-if="!team.doc.is_private"
+                type="select"
+                label="Visibility"
+                :options="[
+                  { label: 'Visible to everyone', value: 0 },
+                  { label: 'Visible to team members (Private)', value: 1 },
+                ]"
+                v-model="newProject.is_private"
+              />
+              <ErrorMessage :message="projects.insert.error" />
+            </div>
           </div>
         </template>
         <template #actions>
@@ -118,6 +153,34 @@
           </Button>
         </template>
       </Dialog>
+      <div
+        v-if="projectMinimized"
+        :style="projectPillStyle"
+        class="fixed z-20 flex w-72 items-center justify-between gap-3 rounded-lg border border-outline-gray-2 bg-surface-white px-4 py-3 shadow-xl"
+      >
+        <button
+          class="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink-gray-8"
+          @click="expandProject"
+        >
+          {{ newProject.title || 'Create project' }}
+        </button>
+        <div class="flex shrink-0 items-center gap-1">
+          <button
+            class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-8"
+            aria-label="Expand"
+            @click="expandProject"
+          >
+            <LucideMaximize2 class="h-4 w-4" />
+          </button>
+          <button
+            class="rounded p-0.5 text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-8"
+            aria-label="Close"
+            @click="closeProjectFromPill"
+          >
+            <LucideX class="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Sprints Section -->
@@ -195,10 +258,9 @@
         </div>
       </button>
       <AddSprintDialog
-        v-if="showAddSprintDialog"
         :show="showAddSprintDialog"
         :team="team.name"
-        @update:show="(v) => { if (!v) showAddSprintDialog = false }"
+        @update:show="(v) => { showAddSprintDialog = v }"
         @success="
           (sprint) => {
             showAddSprintDialog = false
@@ -210,10 +272,13 @@
   </div>
 </template>
 <script>
-import { Dialog, FormControl, TextInput, TabButtons } from 'frappe-ui'
+import { Dialog, FormControl, TextInput, TabButtons, Autocomplete } from 'frappe-ui'
 import { projects, getTeamProjects, getTeamArchivedProjects } from '@/data/projects'
 import { getTeamSprints } from '@/data/sprints'
 import AddSprintDialog from '@/components/AddSprintDialog.vue'
+import { nextStackId, pushStack, removeStack, pillStyle } from '@/utils/minimizedStack'
+import { getUser } from '@/data/users'
+import { session } from '@/data/session'
 
 export default {
   name: 'TeamOverview',
@@ -224,10 +289,13 @@ export default {
     TextInput,
     FormControl,
     AddSprintDialog,
+    Autocomplete,
   },
   data() {
     return {
       createNewProjectDialog: false,
+      projectMinimized: false,
+      projectStackId: nextStackId(),
       newProject: { title: '', is_private: 0 },
       activeTab: 'Active',
       showAddSprintDialog: false,
@@ -235,6 +303,16 @@ export default {
     }
   },
   resources: {
+    leadUsers() {
+      return {
+        type: 'list',
+        doctype: 'GP User Profile',
+        fields: ['user', 'full_name'],
+        filters: { is_lead: 1 },
+        pageLength: 0,
+        auto: true,
+      }
+    },
     linkedProjects() {
       return {
         url: 'gameplan.gameplan.doctype.gp_task.gp_task.get_linked_projects',
@@ -257,6 +335,23 @@ export default {
     },
   },
   computed: {
+    canManageLead() {
+      if (this.team.doc.archived_at) return false
+      const user = getUser(session.user)
+      return user?.role === 'Gameplan Admin' || user?.is_system_manager
+    },
+    leadName() {
+      return getUser(this.team.doc.lead)?.full_name || this.team.doc.lead
+    },
+    memberOptions() {
+      return (this.$resources.leadUsers.data || []).map((profile) => ({
+        label: profile.full_name || getUser(profile.user)?.full_name || profile.user,
+        value: profile.user,
+      }))
+    },
+    projectPillStyle() {
+      return pillStyle(this.projectStackId).value
+    },
     projects() {
       return projects
     },
@@ -296,6 +391,9 @@ export default {
     },
   },
   methods: {
+    setLead(option) {
+      this.team.setValue.submit({ lead: option?.value || null })
+    },
     projectRoute(project) {
       if (project.is_linked_project) {
         return {
@@ -323,6 +421,8 @@ export default {
           onSuccess: (project) => {
             projects.reload()
             this.newProject = this.$options.data().newProject
+            this.projectMinimized = false
+            removeStack(this.projectStackId)
             this.createNewProjectDialog = false
             this.$router.push({
               name: 'Project',
@@ -331,6 +431,26 @@ export default {
           },
         },
       )
+    },
+    minimizeProject() {
+      this.projectMinimized = true
+      pushStack(this.projectStackId)
+      this.createNewProjectDialog = false
+    },
+    expandProject() {
+      this.projectMinimized = false
+      removeStack(this.projectStackId)
+      this.createNewProjectDialog = true
+    },
+    closeProject() {
+      this.projectMinimized = false
+      removeStack(this.projectStackId)
+      this.createNewProjectDialog = false
+    },
+    closeProjectFromPill() {
+      this.projectMinimized = false
+      removeStack(this.projectStackId)
+      this.newProject = this.$options.data().newProject
     },
   },
 }

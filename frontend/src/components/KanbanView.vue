@@ -217,7 +217,7 @@
                 @click.stop
               >
                 <div class="mb-1.5 text-xs font-medium text-ink-gray-5">
-                  Child tasks
+                  Sub tasks
                 </div>
                 <div class="space-y-1">
                   <button

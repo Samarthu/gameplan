@@ -22,6 +22,38 @@ class GPUserProfile(Document):
 		full_name = frappe.db.get_value("User", self.user, "full_name")
 		return append_number_if_name_exists(self.doctype, cleanup_page_name(full_name))
 
+	def before_save(self):
+		self._resolve_employee()
+
+	def _resolve_employee(self):
+		# Auto-link the Employee for this profile's user when not set manually.
+		if self.employee or not self.user:
+			return
+		employee = frappe.db.get_value("Employee", {"user_id": self.user}, "name")
+		if employee:
+			self.employee = employee
+
+	def on_update(self):
+		self._sync_reporting_relationship()
+
+	def on_trash(self):
+		# Detach this profile from its manager's reportees on delete.
+		if self.reports_to:
+			_remove_reportee(self.reports_to, self.user)
+
+	def _sync_reporting_relationship(self):
+		before = self.get_doc_before_save()
+		old_reports_to = before.reports_to if before else None
+		new_reports_to = self.reports_to
+
+		if old_reports_to == new_reports_to:
+			return
+
+		if old_reports_to:
+			_remove_reportee(old_reports_to, self.user)
+		if new_reports_to and new_reports_to != self.name:
+			_add_reportee(new_reports_to, self.user)
+
 	@frappe.whitelist()
 	def set_image(self, image):
 		self.image = image
@@ -145,6 +177,64 @@ def get_list(
 		user.comments_count = comments_by_user.get(user.user, 0)
 
 	return data
+
+
+def _add_reportee(manager_profile, user):
+	"""Add ``user`` to the manager profile's reportees and mark it as a lead."""
+	if not user or not frappe.db.exists("GP User Profile", manager_profile):
+		return
+	manager = frappe.get_doc("GP User Profile", manager_profile)
+	if not any(row.user == user for row in manager.reportees):
+		manager.append("reportees", {"user": user})
+	manager.is_lead = 1
+	manager.save(ignore_permissions=True)
+
+
+def _remove_reportee(manager_profile, user):
+	"""Remove ``user`` from the manager profile's reportees; clear lead if none left."""
+	if not frappe.db.exists("GP User Profile", manager_profile):
+		return
+	manager = frappe.get_doc("GP User Profile", manager_profile)
+	remaining = [row for row in manager.reportees if row.user != user]
+	if len(remaining) == len(manager.reportees):
+		return
+	manager.reportees = remaining
+	for idx, row in enumerate(manager.reportees, start=1):
+		row.idx = idx
+	if not manager.reportees:
+		manager.is_lead = 0
+	manager.save(ignore_permissions=True)
+
+
+REPORTEE_ALLOWED_ROLES = (
+	"Gameplan Admin",
+	"Gameplan Guest",
+	"Gameplan Member",
+	"General Manager",
+)
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def reportee_user_query(doctype, txt, searchfield, start, page_len, filters):
+	"""Link query: only Users holding one of the allowed Gameplan/GM roles."""
+	user = frappe.qb.DocType("User")
+	has_role = frappe.qb.DocType("Has Role")
+	return (
+		frappe.qb.from_(user)
+		.inner_join(has_role)
+		.on(has_role.parent == user.name)
+		.select(user.name, user.full_name)
+		.distinct()
+		.where(
+			(has_role.role.isin(REPORTEE_ALLOWED_ROLES))
+			& (user.enabled == 1)
+			& ((user.name.like(f"%{txt}%")) | (user.full_name.like(f"%{txt}%")))
+		)
+		.orderby(user.full_name)
+		.limit(page_len)
+		.offset(start)
+	).run()
 
 
 def remove_imgbg_in_background(profile_name, default_color=None):
