@@ -9,5 +9,12 @@ frappe.ui.form.on("GP User Profile", {
     frm.set_query("user", "reportees", () => {
       return { query: REPORTEE_USER_QUERY };
     });
+    frm.set_query("employee", () => {
+      return {
+        filters: {
+          user_id: frm.doc.user,
+        },
+      };
+    });
   },
 });
