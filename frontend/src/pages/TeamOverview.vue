@@ -303,6 +303,16 @@ export default {
     }
   },
   resources: {
+    leadUsers() {
+      return {
+        type: 'list',
+        doctype: 'GP User Profile',
+        fields: ['user', 'full_name'],
+        filters: { is_lead: 1 },
+        pageLength: 0,
+        auto: true,
+      }
+    },
     linkedProjects() {
       return {
         url: 'gameplan.gameplan.doctype.gp_task.gp_task.get_linked_projects',
@@ -334,12 +344,10 @@ export default {
       return getUser(this.team.doc.lead)?.full_name || this.team.doc.lead
     },
     memberOptions() {
-      return (this.team.doc.members || [])
-        .filter((member) => member.status !== 'Invited')
-        .map((member) => ({
-          label: getUser(member.user)?.full_name || member.user,
-          value: member.user,
-        }))
+      return (this.$resources.leadUsers.data || []).map((profile) => ({
+        label: profile.full_name || getUser(profile.user)?.full_name || profile.user,
+        value: profile.user,
+      }))
     },
     projectPillStyle() {
       return pillStyle(this.projectStackId).value
