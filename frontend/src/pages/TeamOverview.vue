@@ -8,6 +8,24 @@
       :editable="!team.doc.archived_at"
     />
 
+    <!-- Team Lead -->
+    <div class="mt-8 flex items-center gap-3">
+      <h2 class="text-sm font-medium text-ink-gray-7">Team Lead</h2>
+      <Autocomplete
+        v-if="canManageLead"
+        class="w-64"
+        :options="memberOptions"
+        :modelValue="team.doc.lead"
+        placeholder="Select team lead"
+        @update:modelValue="setLead"
+      />
+      <div v-else-if="team.doc.lead" class="flex items-center gap-2">
+        <UserAvatar :user="team.doc.lead" />
+        <span class="text-base text-ink-gray-8">{{ leadName }}</span>
+      </div>
+      <span v-else class="text-base text-ink-gray-5">No lead assigned</span>
+    </div>
+
     <div class="mt-8">
       <div class="mb-5 flex items-center justify-between space-x-2">
         <h2 class="text-2xl font-semibold text-ink-gray-9">Projects</h2>
@@ -254,11 +272,13 @@
   </div>
 </template>
 <script>
-import { Dialog, FormControl, TextInput, TabButtons } from 'frappe-ui'
+import { Dialog, FormControl, TextInput, TabButtons, Autocomplete } from 'frappe-ui'
 import { projects, getTeamProjects, getTeamArchivedProjects } from '@/data/projects'
 import { getTeamSprints } from '@/data/sprints'
 import AddSprintDialog from '@/components/AddSprintDialog.vue'
 import { nextStackId, pushStack, removeStack, pillStyle } from '@/utils/minimizedStack'
+import { getUser } from '@/data/users'
+import { session } from '@/data/session'
 
 export default {
   name: 'TeamOverview',
@@ -269,6 +289,7 @@ export default {
     TextInput,
     FormControl,
     AddSprintDialog,
+    Autocomplete,
   },
   data() {
     return {
@@ -304,6 +325,22 @@ export default {
     },
   },
   computed: {
+    canManageLead() {
+      if (this.team.doc.archived_at) return false
+      const user = getUser(session.user)
+      return user?.role === 'Gameplan Admin' || user?.is_system_manager
+    },
+    leadName() {
+      return getUser(this.team.doc.lead)?.full_name || this.team.doc.lead
+    },
+    memberOptions() {
+      return (this.team.doc.members || [])
+        .filter((member) => member.status !== 'Invited')
+        .map((member) => ({
+          label: getUser(member.user)?.full_name || member.user,
+          value: member.user,
+        }))
+    },
     projectPillStyle() {
       return pillStyle(this.projectStackId).value
     },
@@ -346,6 +383,9 @@ export default {
     },
   },
   methods: {
+    setLead(option) {
+      this.team.setValue.submit({ lead: option?.value || null })
+    },
     projectRoute(project) {
       if (project.is_linked_project) {
         return {

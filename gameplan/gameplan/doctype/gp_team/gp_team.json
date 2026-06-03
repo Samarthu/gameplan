@@ -11,6 +11,7 @@
   "column_break_zutb",
   "icon",
   "is_private",
+  "lead",
   "section_break_tczw",
   "members",
   "section_break_jewo",
@@ -72,6 +73,12 @@
    "fieldname": "is_private",
    "fieldtype": "Check",
    "label": "Is Private"
+  },
+  {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "label": "Lead",
+   "options": "User"
   },
   {
    "fieldname": "column_break_zutb",

@@ -10,6 +10,7 @@
   "enabled",
   "full_name",
   "bio",
+  "employee",
   "is_lead",
   "reports_to",
   "reportees",
@@ -37,6 +38,12 @@
    "fieldname": "readme",
    "fieldtype": "Text Editor",
    "label": "Readme"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
   },
   {
    "default": "0",

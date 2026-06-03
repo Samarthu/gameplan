@@ -22,6 +22,17 @@ class GPUserProfile(Document):
 		full_name = frappe.db.get_value("User", self.user, "full_name")
 		return append_number_if_name_exists(self.doctype, cleanup_page_name(full_name))
 
+	def before_save(self):
+		self._resolve_employee()
+
+	def _resolve_employee(self):
+		# Auto-link the Employee for this profile's user when not set manually.
+		if self.employee or not self.user:
+			return
+		employee = frappe.db.get_value("Employee", {"user_id": self.user}, "name")
+		if employee:
+			self.employee = employee
+
 	def on_update(self):
 		self._sync_reporting_relationship()
 
