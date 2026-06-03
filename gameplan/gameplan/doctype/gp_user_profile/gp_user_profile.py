@@ -160,18 +160,29 @@ def on_user_update(doc, method=None):
 
 @frappe.whitelist()
 def sync_all_from_employee():
-	profiles = frappe.get_all("GP User Profile", pluck="name")
+	profiles = frappe.get_all("GP User Profile", fields=["name", "user", "full_name"])
 	synced = 0
 	skipped = []
 
-	for profile_name in profiles:
-		profile = frappe.get_doc("GP User Profile", profile_name)
+	for profile_row in profiles:
+		profile = frappe.get_doc("GP User Profile", profile_row.name)
 		try:
 			profile.sync_from_employee()
 			synced += 1
-		except Exception:
-			skipped.append(profile_name)
-			frappe.log_error(frappe.get_traceback(), f"GP User Profile Employee Sync Failed: {profile_name}")
+		except Exception as error:
+			frappe.clear_messages()
+			skipped.append(
+				{
+					"profile": profile_row.name,
+					"user": profile_row.user,
+					"full_name": profile_row.full_name,
+					"reason": str(error),
+				}
+			)
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"GP User Profile Employee Sync Failed: {profile_row.name}",
+			)
 
 	return {
 		"synced": synced,

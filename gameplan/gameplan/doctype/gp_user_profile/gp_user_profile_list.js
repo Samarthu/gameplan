@@ -19,6 +19,27 @@ frappe.listview_settings["GP User Profile"] = {
 								),
 								indicator: result.skipped ? "orange" : "green",
 							});
+
+							if (result.skipped_profiles && result.skipped_profiles.length) {
+								const skipped = result.skipped_profiles
+									.map((profile) => {
+										const user = profile.user || profile.profile;
+										const fullName = profile.full_name
+											? ` (${frappe.utils.escape_html(profile.full_name)})`
+											: "";
+										const reason = profile.reason
+											? `: ${frappe.utils.escape_html(profile.reason)}`
+											: "";
+										return `<li><strong>${frappe.utils.escape_html(user)}</strong>${fullName}${reason}</li>`;
+									})
+									.join("");
+
+								frappe.msgprint({
+									title: __("Skipped Users"),
+									indicator: "orange",
+									message: `<p>${__("These users were skipped during Employee sync:")}</p><ul>${skipped}</ul>`,
+								});
+							}
 						},
 					});
 				}
