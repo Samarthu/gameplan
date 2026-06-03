@@ -107,6 +107,35 @@ class GPUserProfile(Document):
 
 		return is_rembg_available()
 
+	@frappe.whitelist()
+	def sync_from_employee(self):
+		"""Pull reporting details from the linked Employee record."""
+		employee = frappe.db.get_value("Employee", {"user_id": self.user}, "name") or self.employee
+		if not employee:
+			frappe.throw("No Employee record found for this user.")
+
+		employee_doc = frappe.db.get_value("Employee", employee, ["name", "reports_to"], as_dict=True)
+		if not employee_doc:
+			frappe.throw("Employee record not found.")
+
+		self.employee = employee_doc.name
+		self.reports_to = _get_gp_profile_for_employee(employee_doc.reports_to) if employee_doc.reports_to else None
+		self.reportees = []
+
+		reportee_profiles, skipped_reportees = _get_direct_reportee_profiles(employee_doc.name)
+		for profile in reportee_profiles:
+			self.append("reportees", {"user": profile.user})
+
+		self.is_lead = 1 if self.reportees else 0
+		self.save()
+
+		return {
+			"employee": self.employee,
+			"reports_to": self.reports_to,
+			"reportees": len(self.reportees),
+			"skipped_reportees": len(skipped_reportees),
+		}
+
 
 def create_user_profile(doc, method=None):
 	if not frappe.db.exists("GP User Profile", {"user": doc.name}):
@@ -204,6 +233,43 @@ def _remove_reportee(manager_profile, user):
 	if not manager.reportees:
 		manager.is_lead = 0
 	manager.save(ignore_permissions=True)
+
+
+def _get_gp_profile_for_employee(employee):
+	if not employee:
+		return None
+	user = frappe.db.get_value("Employee", employee, "user_id")
+	if not user:
+		return None
+	return frappe.db.get_value("GP User Profile", {"user": user}, "name")
+
+
+def _get_direct_reportee_profiles(employee):
+	reportees = frappe.db.get_all(
+		"Employee",
+		filters={"reports_to": employee},
+		fields=["name", "user_id"],
+	)
+	profiles = []
+	skipped_employees = []
+
+	for reportee in reportees:
+		if not reportee.user_id:
+			skipped_employees.append(reportee.name)
+			continue
+
+		profile = frappe.db.get_value(
+			"GP User Profile",
+			{"user": reportee.user_id},
+			["name", "user"],
+			as_dict=True,
+		)
+		if profile:
+			profiles.append(profile)
+		else:
+			skipped_employees.append(reportee.name)
+
+	return profiles, skipped_employees
 
 
 REPORTEE_ALLOWED_ROLES = (
