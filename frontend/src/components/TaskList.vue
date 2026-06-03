@@ -552,6 +552,7 @@ export default {
         created_by: { label: 'Created By',  visible: saved.created_by ?? false },
         tags:       { label: 'Tags',        visible: saved.tags       ?? true },
         project:    { label: 'Project',     visible: saved.project    ?? true },
+        team:       { label: 'Team',        visible: saved.team       ?? true },
       },
     }
   },

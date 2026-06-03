@@ -16,6 +16,7 @@
         <div v-if="columns.status.visible" class="w-40 shrink-0 pl-2">Status</div>
         <div v-if="columns.tags.visible" class="w-40 shrink-0 pl-2">Tags</div>
         <div v-if="columns.project.visible" class="w-40 shrink-0 pl-2">Project</div>
+        <div v-if="columns.team.visible" class="w-40 shrink-0 pl-2">Team</div>
         <div v-if="columns.modified.visible" class="w-24 shrink-0 pr-2 text-right">Modified</div>
         <div v-if="columns.created_by.visible" class="w-28 shrink-0 pl-2">Created By</div>
         <div class="relative flex w-8 shrink-0 items-center justify-end pr-1" >
@@ -366,6 +367,12 @@
               <!-- Project column -->
               <div v-if="columns.project.visible" class="flex w-40 shrink-0 items-center py-2 pl-2">
                 <span v-if="d.project_title" class="truncate text-sm text-ink-gray-7">{{ d.project_title }}</span>
+                <span v-else class="text-sm text-ink-gray-3">—</span>
+              </div>
+
+              <!-- Team column -->
+              <div v-if="columns.team.visible" class="flex w-40 shrink-0 items-center py-2 pl-2">
+                <span v-if="d.team_title" class="truncate text-sm text-ink-gray-7">{{ d.team_title }}</span>
                 <span v-else class="text-sm text-ink-gray-3">—</span>
               </div>
 
