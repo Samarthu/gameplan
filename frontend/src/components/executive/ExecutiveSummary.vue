@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
       <button
         v-for="card in cards"
         :key="card.key"
@@ -13,7 +13,10 @@
         :disabled="!card.clickable"
         @click="openDrilldown(card)"
       >
-        <p class="text-xs font-medium uppercase tracking-wide text-ink-gray-5">{{ card.label }}</p>
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-xs font-medium uppercase tracking-wide text-ink-gray-5">{{ card.label }}</p>
+          <InfoTooltip :text="card.info" :label="card.label" />
+        </div>
         <p class="mt-1 text-2xl font-semibold" :class="card.valueClass">{{ card.value }}</p>
         <p v-if="card.hint" class="mt-1 text-xs text-ink-gray-6">{{ card.hint }}</p>
         <p v-if="card.clickable" class="mt-2 text-[10px] font-medium uppercase tracking-wide text-ink-gray-4">
@@ -37,6 +40,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import ExecutiveSummaryDetailDialog from './ExecutiveSummaryDetailDialog.vue'
+import InfoTooltip from './InfoTooltip.vue'
 
 const props = defineProps({
   summary: { type: Object, default: () => ({}) },
@@ -57,6 +61,26 @@ const cards = computed(() => {
   const peopleTotal = (s.people_underperforming ?? 0) + (s.people_struggling ?? 0)
   return [
     {
+      key: 'decisions_pending',
+      label: 'Decisions',
+      value: s.decisions_pending ?? 0,
+      hint: 'Need leadership',
+      valueClass: s.decisions_pending ? 'text-red-700' : 'text-ink-gray-9',
+      borderClass: s.decisions_pending ? 'border-red-200' : '',
+      clickable: false,
+      info: 'Leadership decisions required before review, such as assigning owners, defining outcomes, resolving stale priorities, or unblocking urgent work.',
+    },
+    {
+      key: 'strategic_risk',
+      label: 'Priority risk',
+      value: (s.strategic_priorities_red ?? 0) + (s.strategic_priorities_amber ?? 0),
+      hint: `${s.strategic_priorities_red ?? 0} red`,
+      valueClass: s.strategic_priorities_red ? 'text-red-700' : 'text-amber-800',
+      borderClass: s.strategic_priorities_red ? 'border-red-200' : 'border-amber-200',
+      clickable: false,
+      info: 'Open projects or initiatives that are red or amber because of missing ownership, at-risk goals, stale updates, low progress, overdue work, or missing goals.',
+    },
+    {
       key: 'teams_red',
       label: 'Teams in red',
       value: s.teams_red ?? 0,
@@ -64,6 +88,7 @@ const cards = computed(() => {
       valueClass: s.teams_red ? 'text-red-700' : 'text-ink-gray-9',
       borderClass: s.teams_red ? 'border-red-200' : '',
       clickable: (s.teams_red ?? 0) > 0,
+      info: 'Teams in critical health. A team turns red when overdue work, at-risk goals, or sprint slip crosses the configured thresholds.',
     },
     {
       key: 'leads_at_risk',
@@ -73,6 +98,7 @@ const cards = computed(() => {
       valueClass: s.leads_underperforming ? 'text-red-700' : 'text-ink-gray-9',
       borderClass: s.leads_underperforming ? 'border-red-200' : '',
       clickable: (s.leads_underperforming ?? 0) > 0,
+      info: 'Team leads accountable for red/amber delivery, plus teams where leadership ownership is missing.',
     },
     {
       key: 'no_team_lead',
@@ -82,6 +108,7 @@ const cards = computed(() => {
       valueClass: s.teams_without_lead ? 'text-amber-800' : 'text-ink-gray-9',
       borderClass: s.teams_without_lead ? 'border-amber-200' : '',
       clickable: (s.teams_without_lead ?? 0) > 0,
+      info: 'Teams without an assigned Team Lead. These need ownership before execution accountability is clear.',
     },
     {
       key: 'people_behind',
@@ -91,6 +118,7 @@ const cards = computed(() => {
       valueClass: (s.people_underperforming ?? 0) > 0 ? 'text-red-700' : 'text-ink-gray-9',
       borderClass: (s.people_underperforming ?? 0) > 0 ? 'border-red-200' : '',
       clickable: peopleTotal > 0,
+      info: 'People with the heaviest overdue workload, grouped as critical or struggling based on overdue, stale, and completed work.',
     },
     {
       key: 'overdue_tasks',
@@ -100,6 +128,7 @@ const cards = computed(() => {
       valueClass: 'text-ink-gray-9',
       borderClass: '',
       clickable: (s.total_overdue ?? 0) > 0,
+      info: 'Open tasks past their due date across all teams. The hint calls out overdue tasks that have no assignee.',
     },
     {
       key: 'closed_week',
@@ -109,6 +138,7 @@ const cards = computed(() => {
       valueClass: 'text-green-800',
       borderClass: 'border-green-200',
       clickable: true,
+      info: 'Tasks completed during the selected week across the organization.',
     },
   ]
 })
