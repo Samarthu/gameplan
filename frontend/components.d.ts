@@ -26,6 +26,7 @@ declare module 'vue' {
     CommentsList: typeof import('./src/components/CommentsList.vue')['default']
     Component: typeof import('./src/components/TextEditorEmbedExtension/Component.vue')['default']
     CoverImage: typeof import('./src/components/CoverImage.vue')['default']
+    DecisionQueue: typeof import('./src/components/executive/DecisionQueue.vue')['default']
     DesktopLayout: typeof import('./src/components/DesktopLayout.vue')['default']
     DiscussionBreadcrumbs: typeof import('./src/components/DiscussionBreadcrumbs.vue')['default']
     DiscussionList: typeof import('./src/components/DiscussionList.vue')['default']
@@ -43,6 +44,7 @@ declare module 'vue' {
     HealthBadge: typeof import('./src/components/executive/HealthBadge.vue')['default']
     IconPicker: typeof import('./src/components/IconPicker.vue')['default']
     ImagePreview: typeof import('./src/components/ImagePreview.vue')['default']
+    InfoTooltip: typeof import('./src/components/executive/InfoTooltip.vue')['default']
     InitiativeWatchlist: typeof import('./src/components/executive/InitiativeWatchlist.vue')['default']
     InputWithPills: typeof import('./src/components/InputWithPills.vue')['default']
     InsertEmbed: typeof import('./src/components/TextEditorEmbedExtension/InsertEmbed.vue')['default']
@@ -119,6 +121,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SettingsDialog: typeof import('./src/components/Settings/SettingsDialog.vue')['default']
     SettingsTab: typeof import('./src/components/Settings/SettingsTab.vue')['default']
+    StrategicPriorities: typeof import('./src/components/executive/StrategicPriorities.vue')['default']
     Tabs: typeof import('./src/components/Tabs.vue')['default']
     TaskDetail: typeof import('./src/components/TaskDetail.vue')['default']
     TaskList: typeof import('./src/components/TaskList.vue')['default']
@@ -135,5 +138,6 @@ declare module 'vue' {
     UserImage: typeof import('./src/components/UserImage.vue')['default']
     UserInfo: typeof import('./src/components/UserInfo.vue')['default']
     UserProfileLink: typeof import('./src/components/UserProfileLink.vue')['default']
+    WeeklyMomentum: typeof import('./src/components/executive/WeeklyMomentum.vue')['default']
   }
 }
