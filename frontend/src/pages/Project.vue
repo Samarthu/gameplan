@@ -219,7 +219,6 @@
               <span class="whitespace-nowrap font-semibold">{{ project.doc.title }}</span> project
               to the selected project. This change is irreversible!
             </p>
-            {{ projectMergeDialog.project }}
             <Autocomplete
               :options="mergeProjectsList"
               v-model="projectMergeDialog.project"

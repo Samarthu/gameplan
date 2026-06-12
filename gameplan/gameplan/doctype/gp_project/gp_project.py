@@ -196,10 +196,11 @@ class GPProject(ManageMembersMixin, Archivable, Document):
 
 	@frappe.whitelist()
 	def merge_with_project(self, project=None):
-		if not project or self.name == project:
+		if not project:
 			return
-		if isinstance(project, str):
-			project = int(project)
+		project = str(project)
+		if str(self.name) == project:
+			return
 		if not frappe.db.exists("GP Project", project):
 			frappe.throw(f'Invalid Project "{project}"')
 		return self.rename(project, merge=True, validate_rename=False, force=True)
