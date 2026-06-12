@@ -142,6 +142,23 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.notify_mentions()
 		self.log_value_updates()
 		self.update_search_index()
+		self.clear_schedule_notifications_if_closed()
+
+	def clear_schedule_notifications_if_closed(self):
+		closed_statuses = {"Done", "Cancelled"}
+		is_closed = self.status in closed_statuses or self.is_completed
+		if not is_closed:
+			return
+
+		prev = self.get_doc_before_save()
+		if not prev:
+			return
+
+		was_closed = prev.status in closed_statuses or prev.is_completed
+		if was_closed:
+			return
+
+		GPNotification.clear_task_schedule_notifications(self.name)
 
 	def log_value_updates(self):
 		fields = ["title", "description", "task_type", "status", "priority", "due_date", "project"]

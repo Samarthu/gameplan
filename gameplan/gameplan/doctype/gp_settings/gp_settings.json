@@ -4,7 +4,18 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "max_goals_per_project"
+  "max_goals_per_project",
+  "section_executive",
+  "enable_executive_dashboard",
+  "executive_dashboard_users",
+  "control_dashboard_url",
+  "weekly_scorecard_url",
+  "column_break_thresholds",
+  "health_red_overdue",
+  "health_amber_overdue",
+  "stale_task_days",
+  "stale_project_days",
+  "sprint_min_completion_pct"
  ],
  "fields": [
   {
@@ -14,11 +25,74 @@
    "fieldtype": "Int",
    "label": "Maximum Goals Per Project",
    "reqd": 1
+  },
+  {
+   "fieldname": "section_executive",
+   "fieldtype": "Section Break",
+   "label": "Executive Dashboard"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_executive_dashboard",
+   "fieldtype": "Check",
+   "label": "Enable Executive Dashboard"
+  },
+  {
+   "fieldname": "executive_dashboard_users",
+   "fieldtype": "Table",
+   "label": "Executive Dashboard Users",
+   "options": "GP Executive Dashboard User"
+  },
+  {
+   "description": "Optional link to Dieture Control Dashboard (opens in new tab from CEO Cockpit).",
+   "fieldname": "control_dashboard_url",
+   "fieldtype": "Data",
+   "label": "Control Dashboard URL"
+  },
+  {
+   "description": "Optional link to Weekly Scorecard.",
+   "fieldname": "weekly_scorecard_url",
+   "fieldtype": "Data",
+   "label": "Weekly Scorecard URL"
+  },
+  {
+   "fieldname": "column_break_thresholds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "5",
+   "fieldname": "health_red_overdue",
+   "fieldtype": "Int",
+   "label": "Red Health — Min Overdue Tasks"
+  },
+  {
+   "default": "1",
+   "fieldname": "health_amber_overdue",
+   "fieldtype": "Int",
+   "label": "Amber Health — Min Overdue Tasks"
+  },
+  {
+   "default": "14",
+   "fieldname": "stale_task_days",
+   "fieldtype": "Int",
+   "label": "Stale Task Days"
+  },
+  {
+   "default": "14",
+   "fieldname": "stale_project_days",
+   "fieldtype": "Int",
+   "label": "Stale Project Days"
+  },
+  {
+   "default": "70",
+   "fieldname": "sprint_min_completion_pct",
+   "fieldtype": "Float",
+   "label": "Sprint Min Completion %"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-04-22 22:10:00.000000",
+ "modified": "2026-05-30 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Gameplan",
  "name": "GP Settings",
@@ -54,4 +128,3 @@
  "states": [],
  "track_changes": 1
 }
-

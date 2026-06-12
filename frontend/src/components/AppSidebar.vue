@@ -225,6 +225,8 @@ import LucideListTodo from '~icons/lucide/list-todo'
 import LucideNewspaper from '~icons/lucide/newspaper'
 import LucideFiles from '~icons/lucide/files'
 import LucideZap from '~icons/lucide/zap'
+import LucideLayoutDashboard from '~icons/lucide/layout-dashboard'
+import { executiveAccess } from '@/data/executive'
 
 export default {
   name: 'AppSidebar',
@@ -260,8 +262,17 @@ export default {
   mounted() {
     let sidebarWidth = parseInt(localStorage.getItem('sidebarWidth') || 256)
     this.sidebarWidth = sidebarWidth
+    if (this.$user()?.isNotGuest && !executiveAccess.fetched) {
+      executiveAccess.fetch().catch(() => {})
+    }
   },
   computed: {
+    canViewExecutive() {
+      const user = this.$user()
+      if (!user?.isNotGuest) return false
+      if (user.role === 'Gameplan Admin' || user.is_system_manager) return true
+      return !!executiveAccess.data && executiveAccess.data !== 0
+    },
     navigation() {
       return [
         {
@@ -295,6 +306,15 @@ export default {
           },
           isActive: /People|PersonProfile/g.test(this.$route.name),
           condition: () => this.$user().isNotGuest,
+        },
+        {
+          name: 'Executive',
+          icon: LucideLayoutDashboard,
+          route: {
+            name: 'ExecutiveCockpit',
+          },
+          isActive: this.$route.name === 'ExecutiveCockpit',
+          condition: () => this.canViewExecutive,
         },
         {
           name: 'Notifications',
