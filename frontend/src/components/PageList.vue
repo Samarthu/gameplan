@@ -39,7 +39,9 @@
   </div>
 </template>
 <script setup>
+import { onBeforeUnmount, onMounted } from 'vue'
 import { createListResource } from 'frappe-ui'
+import { onProjectMerged } from '@/utils/projectMerge'
 
 let props = defineProps({
   listOptions: {
@@ -58,5 +60,15 @@ let pages = createListResource({
   auto: true,
   realtime: true,
   orderBy: props.listOptions.orderBy || 'modified desc',
+})
+
+let unsubscribeProjectMerged
+onMounted(() => {
+  unsubscribeProjectMerged = onProjectMerged(() => {
+    pages.reload?.()
+  })
+})
+onBeforeUnmount(() => {
+  unsubscribeProjectMerged?.()
 })
 </script>
