@@ -414,6 +414,22 @@
 
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
+          <!-- Export to Excel -->
+          <div class="relative">
+            <Tooltip text="Export selected tasks to Excel">
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+                @click.stop="toggleExportPopover($event)"
+              >
+                <LucideSheet class="h-3.5 w-3.5" />
+                Export
+              </button>
+            </Tooltip>
+          </div>
+
+          <div class="w-px h-4 bg-outline-gray-2"></div>
+
           <!-- Delete -->
           <Tooltip text="Delete selected tasks">
             <button
@@ -440,6 +456,73 @@
         </div>
       </Transition>
     </Teleport>
+
+    <Teleport to="body">
+      <div
+        v-if="showExportPopover"
+        class="fixed z-[60] overflow-hidden rounded-xl border border-outline-gray-2 bg-surface-white shadow-2xl"
+        :style="exportPopoverStyle"
+        data-export-popover
+        @click.stop
+      >
+        <div class="border-b border-outline-gray-2 px-4 py-3">
+          <div class="text-sm font-semibold text-ink-gray-9">Export to Excel</div>
+          <div class="mt-0.5 text-xs text-ink-gray-5">
+            {{ selectedTasks.length }} task{{ selectedTasks.length === 1 ? '' : 's' }} · choose columns
+          </div>
+        </div>
+        <div class="max-h-48 overflow-y-auto px-4 py-2">
+          <label
+            v-for="col in exportColumnDefs"
+            :key="col.key"
+            class="flex items-center gap-2 rounded px-1 py-1.5 text-sm text-ink-gray-8 hover:bg-surface-gray-1"
+          >
+            <input
+              type="checkbox"
+              class="h-3.5 w-3.5 rounded border-outline-gray-3 text-ink-gray-9 focus:ring-0"
+              :checked="exportColumnSelection[col.key]"
+              :disabled="col.required"
+              @change="toggleExportColumn(col.key)"
+            />
+            <span>{{ col.label }}</span>
+          </label>
+        </div>
+        <div class="space-y-2 border-t border-outline-gray-2 px-4 py-3">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded px-2 py-1 text-xs font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+              @click="selectVisibleExportColumns"
+            >
+              Visible columns
+            </button>
+            <button
+              type="button"
+              class="rounded px-2 py-1 text-xs font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+              @click="selectAllExportColumns"
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              class="rounded px-2 py-1 text-xs font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+              @click="clearExportColumns"
+            >
+              Clear
+            </button>
+          </div>
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="!hasExportColumnsSelected"
+            @click="exportSelectedTasks"
+          >
+            <LucideSheet class="h-4 w-4" />
+            Export to Excel
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 <script>
@@ -450,8 +533,13 @@ import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
 import TeamView from './TeamView.vue'
 import { activeProjects } from '@/data/projects'
-import { activeUsers } from '@/data/users'
+import { activeUsers, getUser } from '@/data/users'
 import { sprints } from '@/data/sprints'
+import {
+  downloadTasksSpreadsheet,
+  getDefaultExportSelection,
+  getExportColumnDefs,
+} from '@/utils/taskExport'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
 const TASK_TYPES = [
@@ -517,6 +605,9 @@ export default {
       filtersPanelStyle: {},
       openFilterValueMenu: null,
       showAddFilterMenu: false,
+      showExportPopover: false,
+      exportColumnSelection: {},
+      exportPopoverStyle: {},
       inlinePopover: { name: null, field: null },
       selectedTag: null,
       allTags: [],
@@ -690,9 +781,78 @@ export default {
       if (this.showAddFilterMenu) {
         this.showAddFilterMenu = false
       }
+      if (this.showExportPopover && !e.target.closest('[data-export-popover]')) {
+        this.showExportPopover = false
+      }
       if (this.inlinePopover.name) {
         this.inlinePopover = { name: null, field: null }
       }
+    },
+    toggleExportPopover(event) {
+      this.activePopover = null
+      const opening = !this.showExportPopover
+      if (opening) {
+        this.initExportColumnSelection()
+        const rect = event?.currentTarget?.getBoundingClientRect()
+        if (rect) {
+          const width = 320
+          const left = Math.min(
+            Math.max(rect.left + rect.width / 2 - width / 2, 12),
+            window.innerWidth - width - 12,
+          )
+          const bottom = window.innerHeight - rect.top + 12
+          this.exportPopoverStyle = {
+            left: `${left}px`,
+            bottom: `${bottom}px`,
+            width: `${width}px`,
+          }
+        }
+      }
+      this.showExportPopover = opening
+    },
+    initExportColumnSelection() {
+      const visibility = {}
+      for (const [key, col] of Object.entries(this.columns)) {
+        visibility[key] = col.visible
+      }
+      this.exportColumnSelection = getDefaultExportSelection(visibility)
+    },
+    toggleExportColumn(key) {
+      const col = this.exportColumnDefs.find((c) => c.key === key)
+      if (col?.required) return
+      this.exportColumnSelection = {
+        ...this.exportColumnSelection,
+        [key]: !this.exportColumnSelection[key],
+      }
+    },
+    selectAllExportColumns() {
+      const selection = {}
+      for (const col of this.exportColumnDefs) {
+        selection[col.key] = true
+      }
+      this.exportColumnSelection = selection
+    },
+    selectVisibleExportColumns() {
+      this.initExportColumnSelection()
+    },
+    clearExportColumns() {
+      const selection = {}
+      for (const col of this.exportColumnDefs) {
+        selection[col.key] = Boolean(col.required)
+      }
+      this.exportColumnSelection = selection
+    },
+    exportSelectedTasks() {
+      const columnKeys = this.exportColumnDefs
+        .filter((col) => this.exportColumnSelection[col.key])
+        .map((col) => col.key)
+      if (!columnKeys.length || !this.selectedTaskDocs.length) return
+
+      downloadTasksSpreadsheet(this.selectedTaskDocs, columnKeys, {
+        getUser,
+        dayjs: this.$dayjs,
+      })
+      this.showExportPopover = false
     },
     toggleFiltersPanel(event) {
       if (!this.showFiltersPanel && event?.currentTarget) {
@@ -930,8 +1090,10 @@ export default {
     clearSelection() {
       this.selectedTasks = []
       this.activePopover = null
+      this.showExportPopover = false
     },
     togglePopover(name) {
+      this.showExportPopover = false
       if (name === 'copy-project' && !this.canCopySelectionToProject) {
         this.$dialog({
           title: 'Cannot copy selection',
@@ -1275,6 +1437,12 @@ export default {
     selectedTaskDocs() {
       const selected = new Set(this.selectedTasks)
       return (this.tasks.data || []).filter((task) => selected.has(task.name))
+    },
+    exportColumnDefs() {
+      return getExportColumnDefs()
+    },
+    hasExportColumnsSelected() {
+      return this.exportColumnDefs.some((col) => this.exportColumnSelection[col.key])
     },
     bulkStatusOptions() {
       return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })

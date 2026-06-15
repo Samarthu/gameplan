@@ -92,6 +92,7 @@ declare module 'vue' {
     LucideRotateCcw: typeof import('~icons/lucide/rotate-ccw')['default']
     LucideSave: typeof import('~icons/lucide/save')['default']
     LucideSearch: typeof import('~icons/lucide/search')['default']
+    LucideSheet: typeof import('~icons/lucide/sheet')['default']
     LucideSlidersHorizontal: typeof import('~icons/lucide/sliders-horizontal')['default']
     LucideTag: typeof import('~icons/lucide/tag')['default']
     LucideTrash2: typeof import('~icons/lucide/trash2')['default']
