@@ -126,6 +126,7 @@
 </template>
 <script>
 import { TextEditor, Tooltip } from 'frappe-ui'
+import { onProjectMerged } from '@/utils/projectMerge'
 
 export default {
   name: 'DiscussionList',
@@ -195,6 +196,14 @@ export default {
   },
   activated() {
     this.$resources.discussions.reload()
+  },
+  mounted() {
+    this._unsubscribeProjectMerged = onProjectMerged(() => {
+      this.discussions?.reload?.()
+    })
+  },
+  beforeUnmount() {
+    this._unsubscribeProjectMerged?.()
   },
 }
 </script>

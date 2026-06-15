@@ -540,6 +540,7 @@ import {
   getDefaultExportSelection,
   getExportColumnDefs,
 } from '@/utils/taskExport'
+import { onProjectMerged } from '@/utils/projectMerge'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
 const TASK_TYPES = [
@@ -654,12 +655,16 @@ export default {
   },
   mounted() {
     document.addEventListener('click', this.handleOutsideClick)
+    this._unsubscribeProjectMerged = onProjectMerged(() => {
+      this.tasks?.reload?.()
+    })
     call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags', { txt: '' }).then((tags) => {
       this.allTags = tags || []
     })
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleOutsideClick)
+    this._unsubscribeProjectMerged?.()
   },
   components: {
     Dropdown,
