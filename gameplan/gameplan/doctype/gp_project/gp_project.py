@@ -217,14 +217,60 @@ class GPProject(ManageMembersMixin, Archivable, Document):
 
 	@frappe.whitelist()
 	def merge_with_project(self, project=None):
-		if not project:
-			return
-		project = str(project)
-		if str(self.name) == project:
-			return
-		if not frappe.db.exists("GP Project", project):
-			frappe.throw(f'Invalid Project "{project}"')
-		return self.rename(project, merge=True, validate_rename=False, force=True)
+		target = (frappe.utils.cstr(project) or "").strip()
+		source = self.name
+
+		if not target:
+			frappe.throw(_("Please select a project to merge into"))
+		if source == target:
+			frappe.throw(_("Cannot merge a project into itself"))
+		if not frappe.db.exists("GP Project", target):
+			frappe.throw(_("Invalid Project {0}").format(frappe.bold(target)))
+
+		target_doc = frappe.get_doc("GP Project", target)
+		self.check_permission("write")
+		target_doc.check_permission("write")
+
+		source_key = frappe.utils.cstr(source)
+		target_key = frappe.utils.cstr(target)
+
+		move_by_project = [
+			("GP Task", "project"),
+			("GP Discussion", "project"),
+			("GP Page", "project"),
+			("GP Project Visit", "project"),
+			("GP Pinned Project", "project"),
+			("GP Followed Project", "project"),
+			("GP Guest Access", "project"),
+			("GP Notification", "project"),
+			("GP Task Team Link", "source_project"),
+		]
+		team_sync_doctypes = (
+			"GP Task",
+			"GP Discussion",
+			"GP Page",
+			"GP Project Visit",
+			"GP Pinned Project",
+			"GP Followed Project",
+			"GP Guest Access",
+			"GP Notification",
+		)
+
+		for doctype, fieldname in move_by_project:
+			_repoint_link_field(doctype, fieldname, source_key, target_key)
+
+		if target_doc.team:
+			for doctype in team_sync_doctypes:
+				_sync_team_for_project(doctype, target_key, target_doc.team)
+
+		frappe.flags.gameplan_merging_project = source_key
+		try:
+			frappe.delete_doc("GP Project", source, ignore_permissions=True, force=True)
+		finally:
+			frappe.flags.gameplan_merging_project = None
+
+		gameplan.notify_project_merged(source_key, target_key, target_doc.team)
+		return target_key
 
 	@frappe.whitelist()
 	def invite_guest(self, email):
