@@ -118,6 +118,7 @@ def get_dashboard_data(
 			"due_date",
 			"creation",
 			"completed_at",
+			"sprint",
 		],
 		limit_page_length=0,
 	)
@@ -155,7 +156,75 @@ def get_dashboard_data(
 		"by_status": _group_count(tasks, "status", TASK_STATUSES),
 		"by_team": _by_team(tasks),
 		"by_type": _group_count(tasks, "task_type", TASK_TYPES),
+		"by_sprint": _by_sprint(tasks),
+		"team_options": _team_options(start, end, tree),
+		"project_options": _project_options(start, end, team, tree),
 		"people_options": _people_in_scope(start, end, team, project, tree),
+	}
+
+
+def _team_options(start, end, tree) -> list[dict]:
+	"""Teams that appear in the reporting-tree task set for the date range,
+	regardless of visibility — so totals reconcile. Private teams are flagged."""
+	scope = _build_filters(start, end, None, None, None)
+	scope["assigned_to"] = ["in", tree]
+	names = {
+		t.team
+		for t in frappe.get_all("GP Task", filters=scope, fields=["team"], limit_page_length=0)
+		if t.team
+	}
+	if not names:
+		return []
+	teams = frappe.get_all(
+		"GP Team", filters={"name": ["in", list(names)]}, fields=["name", "title", "is_private"]
+	)
+	options = [
+		{"value": t.name, "label": t.title, "is_private": bool(t.is_private)} for t in teams
+	]
+	options.sort(key=lambda o: o["label"].lower())
+	return options
+
+
+def _project_options(start, end, team, tree) -> list[dict]:
+	"""Projects in scope, cascaded by the selected team. Private projects flagged."""
+	scope = _build_filters(start, end, team, None, None)
+	scope["assigned_to"] = ["in", tree]
+	names = {
+		t.project
+		for t in frappe.get_all("GP Task", filters=scope, fields=["project"], limit_page_length=0)
+		if t.project
+	}
+	if not names:
+		return []
+	projects = frappe.get_all(
+		"GP Project",
+		filters={"name": ["in", list(names)]},
+		fields=["name", "title", "is_private", "team"],
+	)
+	options = [
+		{"value": p.name, "label": p.title, "is_private": bool(p.is_private), "team": p.team}
+		for p in projects
+	]
+	options.sort(key=lambda o: o["label"].lower())
+	return options
+
+
+def _by_sprint(tasks) -> dict:
+	counts = {}
+	for t in tasks:
+		key = t.sprint or "No sprint"
+		counts[key] = counts.get(key, 0) + 1
+	titles = {}
+	sprint_names = [k for k in counts if k != "No sprint"]
+	if sprint_names:
+		for row in frappe.get_all(
+			"GP Sprint", filters={"name": ["in", sprint_names]}, fields=["name", "title"]
+		):
+			titles[row.name] = row.title
+	labels = sorted(counts, key=lambda k: counts[k], reverse=True)
+	return {
+		"labels": [titles.get(k, k) for k in labels],
+		"datasets": [{"name": "Tasks", "values": [counts[k] for k in labels]}],
 	}
 
 

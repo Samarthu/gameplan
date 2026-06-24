@@ -103,6 +103,11 @@
           <FrappeChart v-if="hasData(byType)" type="bar" :data="byType" :height="260" />
           <Empty v-else />
         </ChartCard>
+
+        <ChartCard title="Tasks by sprint" class="lg:col-span-2">
+          <FrappeChart v-if="hasData(bySprint)" type="bar" :data="bySprint" :height="260" />
+          <Empty v-else />
+        </ChartCard>
       </div>
     </div>
   </div>
@@ -114,8 +119,6 @@ import { Autocomplete, Breadcrumbs, Button, FormControl, usePageMeta } from 'fra
 import dayjs from '@/utils/dayjs'
 import FrappeChart from '@/components/charts/FrappeChart.vue'
 import { dashboardData, dashboardFilters, reloadDashboard } from '@/data/dashboard'
-import { activeTeams } from '@/data/teams'
-import { activeProjects } from '@/data/projects'
 
 const filters = dashboardFilters
 
@@ -136,27 +139,31 @@ function onPresetChange(val) {
   if (val !== 'custom') applyPreset(Number(val))
 }
 
-// Filter option lists — cascade: project depends on team, people depends on project/team.
-const teamOptions = computed(() =>
-  activeTeams.value.map((t) => ({ label: t.title, value: t.name })),
-)
+// Filter options are computed server-side from the in-scope task set (within
+// your reporting tree) so the counts reconcile and the lists cascade. Private
+// teams/projects are surfaced too, marked distinctly.
+function withPrivacy(opt) {
+  return { value: opt.value, label: opt.is_private ? `${opt.label} · private` : opt.label }
+}
+const teamOptions = computed(() => (dashboardData.data?.team_options || []).map(withPrivacy))
 const projectOptions = computed(() =>
-  activeProjects.value
-    .filter((p) => !filters.value.team || p.team === filters.value.team)
-    .map((p) => ({ label: p.title, value: p.name })),
+  (dashboardData.data?.project_options || []).map(withPrivacy),
 )
-// People who actually have tasks in the current scope (within your reporting
-// tree). Computed server-side and returned with the dashboard data, so the list
-// cascades automatically as team/project change.
 const peopleOptions = computed(() => dashboardData.data?.people_options || [])
 
-// Keep dependent selections valid as parent filters change.
+// Cascade: changing a parent filter clears now-irrelevant child selections.
+// (Option lists arrive with the next data load, so we reset rather than diff.)
 watch(
   () => filters.value.team,
   () => {
-    if (filters.value.project && !projectOptions.value.some((o) => o.value === filters.value.project)) {
-      filters.value.project = null
-    }
+    filters.value.project = null
+    filters.value.people = null
+  },
+)
+watch(
+  () => filters.value.project,
+  () => {
+    filters.value.people = null
   },
 )
 
@@ -166,6 +173,7 @@ const activity = computed(() => dashboardData.data?.activity || { labels: [], da
 const byStatus = computed(() => dashboardData.data?.by_status || { labels: [], datasets: [] })
 const byTeam = computed(() => dashboardData.data?.by_team || { labels: [], datasets: [] })
 const byType = computed(() => dashboardData.data?.by_type || { labels: [], datasets: [] })
+const bySprint = computed(() => dashboardData.data?.by_sprint || { labels: [], datasets: [] })
 
 const kpis = computed(() => [
   { label: 'Tasks', value: summary.value.total_tasks ?? 0 },
