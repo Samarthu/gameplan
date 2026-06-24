@@ -226,6 +226,7 @@ import LucideNewspaper from '~icons/lucide/newspaper'
 import LucideFiles from '~icons/lucide/files'
 import LucideZap from '~icons/lucide/zap'
 import LucideLayoutDashboard from '~icons/lucide/layout-dashboard'
+import LucideChartLine from '~icons/lucide/bar-chart-2'
 import { executiveAccess } from '@/data/executive'
 
 export default {
@@ -315,6 +316,14 @@ export default {
           },
           isActive: this.$route.name === 'ExecutiveCockpit',
           condition: () => this.canViewExecutive,
+        },
+        {
+          name: 'Dashboard',
+          icon: LucideChartLine,
+          route: {
+            name: 'Dashboard',
+          },
+          isActive: this.$route.name === 'Dashboard',
         },
         {
           name: 'Notifications',
