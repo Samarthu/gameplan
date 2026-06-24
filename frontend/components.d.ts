@@ -39,6 +39,7 @@ declare module 'vue' {
     ExecutiveSummaryDetailDialog: typeof import('./src/components/executive/ExecutiveSummaryDetailDialog.vue')['default']
     FilePreviewDialog: typeof import('./src/components/AttachmentsPanel/FilePreviewDialog.vue')['default']
     FileThumb: typeof import('./src/components/AttachmentsPanel/FileThumb.vue')['default']
+    FrappeChart: typeof import('./src/components/charts/FrappeChart.vue')['default']
     GameplanLogo: typeof import('./src/components/GameplanLogo.vue')['default']
     GameplanLogoType: typeof import('./src/components/GameplanLogoType.vue')['default']
     HealthBadge: typeof import('./src/components/executive/HealthBadge.vue')['default']
