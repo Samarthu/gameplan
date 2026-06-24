@@ -109,6 +109,7 @@ def get_dashboard_data(
 		filters=filters,
 		fields=[
 			"name",
+			"title",
 			"status",
 			"task_type",
 			"team",
@@ -149,6 +150,56 @@ def get_dashboard_data(
 		"avg_resolution_days": avg_resolution_days,
 	}
 
+	# Resolve display names + images for assigned_to once (batch lookup).
+	assignee_users = list({t.assigned_to for t in tasks if t.assigned_to})
+	name_map = {}
+	image_map = {}
+	if assignee_users:
+		for p in frappe.get_all(
+			"GP User Profile",
+			filters={"user": ["in", assignee_users]},
+			fields=["user", "full_name", "image"],
+			limit_page_length=0,
+		):
+			name_map[p.user] = p.full_name or p.user
+			image_map[p.user] = p.image or None
+
+	# Resolve team and project titles.
+	team_names = list({t.team for t in tasks if t.team})
+	team_title_map = {}
+	if team_names:
+		for row in frappe.get_all(
+			"GP Team", filters={"name": ["in", team_names]}, fields=["name", "title"]
+		):
+			team_title_map[row.name] = row.title
+
+	project_names = list({t.project for t in tasks if t.project})
+	project_title_map = {}
+	if project_names:
+		for row in frappe.get_all(
+			"GP Project", filters={"name": ["in", project_names]}, fields=["name", "title"]
+		):
+			project_title_map[row.name] = row.title
+
+	task_list = [
+		{
+			"name": t.name,
+			"title": t.title,
+			"status": t.status,
+			"task_type": t.task_type,
+			"assigned_to": t.assigned_to,
+			"assigned_to_name": name_map.get(t.assigned_to, t.assigned_to),
+			"assigned_to_image": image_map.get(t.assigned_to),
+			"due_date": str(t.due_date) if t.due_date else None,
+			"project": t.project,
+			"project_title": project_title_map.get(t.project, t.project),
+			"team": t.team,
+			"team_title": team_title_map.get(t.team, t.team),
+		}
+		for t in tasks
+	]
+	task_list.sort(key=lambda t: (t["due_date"] or "9999", t["title"] or ""))
+
 	return {
 		"range": {"from": str(start), "to": str(end)},
 		"summary": summary,
@@ -160,6 +211,7 @@ def get_dashboard_data(
 		"team_options": _team_options(start, end, tree),
 		"project_options": _project_options(start, end, team, tree),
 		"people_options": _people_in_scope(start, end, team, project, tree),
+		"task_list": task_list,
 	}
 
 

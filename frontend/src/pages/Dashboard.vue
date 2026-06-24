@@ -109,6 +109,76 @@
           <Empty v-else />
         </ChartCard>
       </div>
+
+      <!-- Assigned tasks list -->
+      <div class="rounded-lg border bg-surface-white">
+        <div class="border-b px-4 py-3">
+          <h2 class="text-base font-semibold text-ink-gray-9">Assigned Tasks</h2>
+          <p class="text-sm text-ink-gray-5">All tasks matching the selected filters</p>
+        </div>
+        <div v-if="taskList.length === 0" class="flex h-32 items-center justify-center text-sm text-ink-gray-5">
+          No tasks for the selected filters.
+        </div>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="border-b bg-surface-gray-1 text-xs text-ink-gray-5">
+              <tr>
+                <th class="px-4 py-2 text-left font-medium">Title</th>
+                <th class="px-4 py-2 text-left font-medium">Status</th>
+                <th class="px-4 py-2 text-left font-medium">Type</th>
+                <th class="px-4 py-2 text-left font-medium">Team</th>
+                <th class="px-4 py-2 text-left font-medium">Project</th>
+                <th class="px-4 py-2 text-left font-medium">Assigned To</th>
+                <th class="px-4 py-2 text-left font-medium">Due Date</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <tr
+                v-for="task in taskList"
+                :key="task.name"
+                class="hover:bg-surface-gray-1"
+              >
+                <td class="max-w-xs truncate px-4 py-2 text-ink-gray-9">
+                  <a
+                    :href="`/g/tasks/${task.name}`"
+                    class="hover:text-ink-blue-3 hover:underline"
+                  >{{ task.title || task.name }}</a>
+                </td>
+                <td class="px-4 py-2">
+                  <span
+                    class="inline-block rounded px-1.5 py-0.5 text-xs font-medium"
+                    :class="statusClass(task.status)"
+                  >{{ task.status }}</span>
+                </td>
+                <td class="px-4 py-2 text-ink-gray-6">{{ task.task_type || '—' }}</td>
+                <td class="px-4 py-2 text-ink-gray-6">{{ task.team_title || '—' }}</td>
+                <td class="px-4 py-2 text-ink-gray-6">{{ task.project_title || '—' }}</td>
+                <td class="px-4 py-2">
+                  <div v-if="task.assigned_to" class="flex items-center gap-2">
+                    <div class="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-surface-gray-3">
+                      <img
+                        v-if="task.assigned_to_image"
+                        :src="task.assigned_to_image"
+                        :alt="task.assigned_to_name"
+                        class="h-full w-full object-cover"
+                      />
+                      <span
+                        v-else
+                        class="flex h-full w-full items-center justify-center text-xs font-medium text-ink-gray-6"
+                      >{{ (task.assigned_to_name || '?')[0].toUpperCase() }}</span>
+                    </div>
+                    <span class="text-ink-gray-6">{{ task.assigned_to_name }}</span>
+                  </div>
+                  <span v-else class="text-ink-gray-4">—</span>
+                </td>
+                <td class="px-4 py-2" :class="task.due_date && isPast(task.due_date) ? 'text-red-600' : 'text-ink-gray-6'">
+                  {{ task.due_date || '—' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -182,6 +252,25 @@ const kpis = computed(() => [
   { label: 'Overdue Tasks', value: summary.value.overdue_tasks ?? 0 },
   { label: 'Avg. Resolution', value: `${summary.value.avg_resolution_days ?? 0} days` },
 ])
+
+const taskList = computed(() => dashboardData.data?.task_list || [])
+
+const STATUS_CLASSES = {
+  Done: 'bg-green-100 text-green-700',
+  Cancelled: 'bg-gray-100 text-gray-500',
+  'In Progress': 'bg-blue-100 text-blue-700',
+  'Under Testing': 'bg-yellow-100 text-yellow-700',
+  'Ready to Merge': 'bg-purple-100 text-purple-700',
+  Backlog: 'bg-gray-100 text-gray-600',
+  Todo: 'bg-gray-100 text-gray-600',
+  Reopen: 'bg-orange-100 text-orange-600',
+}
+function statusClass(status) {
+  return STATUS_CLASSES[status] || 'bg-gray-100 text-gray-600'
+}
+function isPast(date) {
+  return date && date < dayjs().format('YYYY-MM-DD')
+}
 
 function hasData(chart) {
   const values = chart?.datasets?.[0]?.values || []
