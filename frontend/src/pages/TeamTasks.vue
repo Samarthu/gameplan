@@ -93,6 +93,7 @@ function showNewTaskDialog(options = {}) {
   newTaskDialog.value.show({
     defaults: {
       team: props.team.name,
+      project: route.query.linked_project || null,
       assigned_to: getUser('sessionUser').name,
       ...options,
     },
