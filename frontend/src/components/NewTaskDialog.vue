@@ -178,7 +178,7 @@ import { Dialog, FormControl, Autocomplete, Dropdown, TextInput, createResource 
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import { activeUsers } from '@/data/users'
 import { activeTeams } from '@/data/teams'
-import { getTeamProjects } from '@/data/projects'
+import { getTeamProjects, getProject } from '@/data/projects'
 import { nextStackId, pushStack, removeStack, pillStyle as makePillStyle } from '@/utils/minimizedStack'
 
 const props = defineProps(['modelValue', 'defaults'])
@@ -251,7 +251,7 @@ function closeFromPill() {
 }
 
 function statusOptions({ onClick }) {
-  return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+  return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
     return {
       icon: () => h(TaskStatusIcon, { status }),
       label: status,
@@ -309,10 +309,16 @@ const selectedTeam = computed(() => {
 
 const projectOptions = computed(() => {
   if (!newTask.value.team) return []
-  return getTeamProjects(newTask.value.team).map((project) => ({
+  const options = getTeamProjects(newTask.value.team).map((project) => ({
     label: project.title,
     value: project.name.toString(),
   }))
+  // Include a pre-selected linked project even if it belongs to another team.
+  if (newTask.value.project && !options.find((o) => o.value == newTask.value.project)) {
+    const p = getProject(newTask.value.project)
+    if (p) options.push({ label: p.title, value: p.name.toString() })
+  }
+  return options
 })
 
 const selectedProject = computed(() => {
@@ -373,8 +379,16 @@ function show({ defaults, onSuccess } = {}) {
 }
 
 function onCreateClick(close) {
+  // Creating under a linked project (owned by another team): the task belongs to
+  // the project's own team, and the current team becomes a linked team.
+  const project = getProject(newTask.value.project)
+  const linkTeam =
+    project && newTask.value.team && project.team !== newTask.value.team
+      ? newTask.value.team
+      : null
   const newTaskDoc = {
     ...newTask.value,
+    team: linkTeam ? project.team : newTask.value.team,
     assignees: assigneeUserIds.value.map((user) => ({ user })),
   }
   createTask
@@ -384,7 +398,17 @@ function onCreateClick(close) {
           return 'Task title is required'
         }
       },
-      onSuccess: _onSuccess,
+      onSuccess: (doc) => {
+        if (linkTeam) {
+          // Reload only after the link exists, so the filtered list picks it up.
+          linkTaskToTeam.submit(
+            { task: doc.name, team: linkTeam, source_project: newTaskDoc.project },
+            { onSuccess: () => _onSuccess?.(doc) },
+          )
+        } else {
+          _onSuccess?.(doc)
+        }
+      },
     })
     .then(close)
 }

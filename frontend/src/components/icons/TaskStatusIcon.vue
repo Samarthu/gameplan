@@ -63,6 +63,13 @@
       clip-rule="evenodd"
       d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1ZM3.5 8A4.5 4.5 0 0 1 8 3.5V2a6 6 0 1 0 4.243 1.757L13.5 2.5H10v3.5l1.318-1.318A4.5 4.5 0 1 1 3.5 8Z"
     />
+    <path
+      v-else
+      fill="currentColor"
+      fill-rule="evenodd"
+      d="M8 13A5 5 0 1 0 8 3a5 5 0 0 0 0 10Zm0 2A7 7 0 1 0 8 1a7 7 0 0 0 0 14Z"
+      clip-rule="evenodd"
+    />
   </svg>
 </template>
 <script>
