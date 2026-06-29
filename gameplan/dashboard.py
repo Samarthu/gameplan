@@ -165,8 +165,23 @@ def get_dashboard_data(
 		"avg_resolution_days": avg_resolution_days,
 	}
 
-	# Resolve display names + images for assigned_to once (batch lookup).
-	assignee_users = list({t.assigned_to for t in tasks if t.assigned_to})
+	# Map each task -> its assignees (child table), batched.
+	task_assignees: dict[str, list[str]] = {}
+	if tasks:
+		for row in frappe.get_all(
+			"GP Task Assignee",
+			filters={"parent": ["in", [t.name for t in tasks]]},
+			fields=["parent", "user"],
+			limit_page_length=0,
+		):
+			if row.user:
+				task_assignees.setdefault(str(row.parent), []).append(row.user)
+
+	# Resolve display names + images for every assignee once (batch lookup).
+	assignee_users = list(
+		{t.assigned_to for t in tasks if t.assigned_to}
+		| {u for users in task_assignees.values() for u in users}
+	)
 	name_map = {}
 	image_map = {}
 	if assignee_users:
@@ -186,7 +201,7 @@ def get_dashboard_data(
 		for row in frappe.get_all(
 			"GP Team", filters={"name": ["in", team_names]}, fields=["name", "title"]
 		):
-			team_title_map[row.name] = row.title
+			team_title_map[str(row.name)] = row.title
 
 	project_names = list({t.project for t in tasks if t.project})
 	project_title_map = {}
@@ -194,7 +209,7 @@ def get_dashboard_data(
 		for row in frappe.get_all(
 			"GP Project", filters={"name": ["in", project_names]}, fields=["name", "title"]
 		):
-			project_title_map[row.name] = row.title
+			project_title_map[str(row.name)] = row.title
 
 	task_list = [
 		{
@@ -205,11 +220,15 @@ def get_dashboard_data(
 			"assigned_to": t.assigned_to,
 			"assigned_to_name": name_map.get(t.assigned_to, t.assigned_to),
 			"assigned_to_image": image_map.get(t.assigned_to),
+			"assignees": [
+				{"user": u, "name": name_map.get(u, u), "image": image_map.get(u)}
+				for u in (task_assignees.get(str(t.name)) or ([t.assigned_to] if t.assigned_to else []))
+			],
 			"due_date": str(t.due_date) if t.due_date else None,
 			"project": t.project,
-			"project_title": project_title_map.get(t.project, t.project),
+			"project_title": project_title_map.get(str(t.project), t.project),
 			"team": t.team,
-			"team_title": team_title_map.get(t.team, t.team),
+			"team_title": team_title_map.get(str(t.team), t.team),
 		}
 		for t in tasks
 	]

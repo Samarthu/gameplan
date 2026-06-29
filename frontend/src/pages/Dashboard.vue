@@ -82,41 +82,18 @@
         </div>
       </div>
 
-      <!-- Charts -->
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <ChartCard title="Task activity" subtitle="Created vs completed over time">
-          <FrappeChart v-if="hasData(activity)" type="line" :data="activity" :height="260" />
-          <Empty v-else />
-        </ChartCard>
-
-        <ChartCard title="Tasks by status">
-          <FrappeChart v-if="hasData(byStatus)" type="donut" :data="byStatus" :height="260" />
-          <Empty v-else />
-        </ChartCard>
-
-        <ChartCard title="Tasks by team">
-          <FrappeChart v-if="hasData(byTeam)" type="bar" :data="byTeam" :height="260" />
-          <Empty v-else />
-        </ChartCard>
-
-        <ChartCard title="Tasks by type">
-          <FrappeChart v-if="hasData(byType)" type="bar" :data="byType" :height="260" />
-          <Empty v-else />
-        </ChartCard>
-
-        <ChartCard title="Tasks by sprint" class="lg:col-span-2">
-          <FrappeChart v-if="hasData(bySprint)" type="bar" :data="bySprint" :height="260" />
-          <Empty v-else />
-        </ChartCard>
-      </div>
-
       <!-- Assigned tasks list -->
-      <div class="rounded-lg border bg-surface-white">
-        <div class="border-b px-4 py-3">
-          <h2 class="text-base font-semibold text-ink-gray-9">Assigned Tasks</h2>
-          <p class="text-sm text-ink-gray-5">All tasks matching the selected filters</p>
-        </div>
-        <div v-if="taskList.length === 0" class="flex h-32 items-center justify-center text-sm text-ink-gray-5">
+      <details class="group rounded-lg border bg-surface-white">
+        <summary class="flex cursor-pointer items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <svg class="h-4 w-4 shrink-0 text-ink-gray-5 transition-transform group-open:rotate-90" viewBox="0 0 16 16" fill="none">
+            <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <div>
+            <h2 class="text-base font-semibold text-ink-gray-9">Assigned Tasks</h2>
+            <p class="text-sm text-ink-gray-5">All tasks matching the selected filters</p>
+          </div>
+        </summary>
+        <div v-if="taskList.length === 0" class="flex h-32 items-center justify-center border-t text-sm text-ink-gray-5">
           No tasks for the selected filters.
         </div>
         <div v-else class="overflow-x-auto">
@@ -154,20 +131,24 @@
                 <td class="px-4 py-2 text-ink-gray-6">{{ task.team_title || '—' }}</td>
                 <td class="px-4 py-2 text-ink-gray-6">{{ task.project_title || '—' }}</td>
                 <td class="px-4 py-2">
-                  <div v-if="task.assigned_to" class="flex items-center gap-2">
-                    <div class="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-surface-gray-3">
+                  <div v-if="task.assignees && task.assignees.length" class="flex items-center">
+                    <div
+                      v-for="a in task.assignees"
+                      :key="a.user"
+                      class="-ml-1.5 h-6 w-6 shrink-0 overflow-hidden rounded-full bg-blue-500 ring-2 ring-white first:ml-0"
+                      :title="a.name"
+                    >
                       <img
-                        v-if="task.assigned_to_image"
-                        :src="task.assigned_to_image"
-                        :alt="task.assigned_to_name"
+                        v-if="a.image"
+                        :src="a.image"
+                        :alt="a.name"
                         class="h-full w-full object-cover"
                       />
                       <span
                         v-else
-                        class="flex h-full w-full items-center justify-center text-xs font-medium text-ink-gray-6"
-                      >{{ (task.assigned_to_name || '?')[0].toUpperCase() }}</span>
+                        class="flex h-full w-full items-center justify-center text-xs font-medium text-white"
+                      >{{ (a.name || '?')[0].toUpperCase() }}</span>
                     </div>
-                    <span class="text-ink-gray-6">{{ task.assigned_to_name }}</span>
                   </div>
                   <span v-else class="text-ink-gray-4">—</span>
                 </td>
@@ -178,6 +159,34 @@
             </tbody>
           </table>
         </div>
+      </details>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard title="Task activity" subtitle="Created vs completed over time">
+          <FrappeChart v-if="hasData(activity)" type="line" :data="activity" :height="260" />
+          <Empty v-else />
+        </ChartCard>
+
+        <ChartCard title="Tasks by status">
+          <FrappeChart v-if="hasData(byStatus)" type="donut" :data="byStatus" :height="260" />
+          <Empty v-else />
+        </ChartCard>
+
+        <ChartCard title="Tasks by team">
+          <FrappeChart v-if="hasData(byTeam)" type="bar" :data="byTeam" :height="260" />
+          <Empty v-else />
+        </ChartCard>
+
+        <ChartCard title="Tasks by type">
+          <FrappeChart v-if="hasData(byType)" type="bar" :data="byType" :height="260" />
+          <Empty v-else />
+        </ChartCard>
+
+        <ChartCard title="Tasks by sprint" class="lg:col-span-2">
+          <FrappeChart v-if="hasData(bySprint)" type="bar" :data="bySprint" :height="260" />
+          <Empty v-else />
+        </ChartCard>
       </div>
     </div>
   </div>
