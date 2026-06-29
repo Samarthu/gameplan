@@ -743,7 +743,7 @@ export default {
       }
     },
     statusOptions({ onClick }) {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -944,7 +944,7 @@ export default {
     },
     valueOptionsForFilter(filter) {
       const options = {
-        status: ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((value) => ({ label: value, value })),
+        status: ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((value) => ({ label: value, value })),
         priority: ['Urgent', 'High', 'Medium', 'Low'].map((value) => ({ label: value, value })),
         task_type: TASK_TYPES.map((value) => ({ label: value, value })),
         tag: this.allTags.map((value) => ({ label: value, value })),
@@ -1493,7 +1493,7 @@ export default {
       })
     },
     kanbanGroups() {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,

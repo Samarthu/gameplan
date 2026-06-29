@@ -212,7 +212,7 @@ export default {
       )
     },
     statusOptionsFor(task) {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map(
+      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map(
         (status) => ({
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
