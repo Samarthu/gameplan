@@ -117,7 +117,7 @@
               >
                 <td class="max-w-xs truncate px-4 py-2 text-ink-gray-9">
                   <a
-                    :href="`/g/tasks/${task.name}`"
+                    :href="`/g/task/${task.name}`"
                     class="hover:text-ink-blue-3 hover:underline"
                   >{{ task.title || task.name }}</a>
                 </td>
