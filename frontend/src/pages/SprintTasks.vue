@@ -71,7 +71,7 @@
         title: 'Edit Sprint',
         actions: [
           { label: 'Save', variant: 'solid', onClick: saveSprint },
-          { label: 'Delete', theme: 'red', onClick: deleteSprint },
+          { label: 'Delete', theme: 'red', onClick: openConfirmDelete },
         ],
       }"
     >
@@ -92,11 +92,26 @@
         </div>
       </template>
     </Dialog>
+    <Dialog
+      v-model="showConfirmDelete"
+      :options="{
+        title: 'Delete Sprint',
+        actions: [
+          { label: 'Delete', variant: 'solid', theme: 'red', loading: sprints.delete.loading, onClick: deleteSprint },
+          { label: 'Cancel', onClick: (close) => close() },
+        ],
+      }"
+    >
+      <template #body-content>
+        <p class="text-base text-ink-gray-7">Delete this sprint? This cannot be undone.</p>
+        <ErrorMessage class="mt-2" :message="deleteError" />
+      </template>
+    </Dialog>
   </div>
 </template>
 <script setup>
 import { computed, ref } from 'vue'
-import { getCachedListResource, TabButtons, Tooltip, Dialog, FormControl, ErrorMessage } from 'frappe-ui'
+import { getCachedListResource, TabButtons, Tooltip, Dialog, FormControl, ErrorMessage, call } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import TaskList from '@/components/TaskList.vue'
 import NewTaskDialog from '@/components/NewTaskDialog.vue'
@@ -157,7 +172,23 @@ function formatDate(dateStr) {
 }
 
 const showEditDialog = ref(false)
+const showConfirmDelete = ref(false)
 const editError = ref(null)
+const deleteError = ref(null)
+
+async function openConfirmDelete() {
+  editError.value = null
+  const count = await call('frappe.client.get_count', {
+    doctype: 'GP Task',
+    filters: { sprint: props.sprintId },
+  })
+  if (count) {
+    editError.value = `Delete the ${count} task(s) in this sprint before deleting it.`
+    return
+  }
+  deleteError.value = null
+  showConfirmDelete.value = true
+}
 const editForm = ref({ title: '', status: 'Planned', start_date: null, end_date: null })
 
 function openEditSprint() {
@@ -199,15 +230,18 @@ function saveSprint(close) {
 }
 
 function deleteSprint(close) {
-  editError.value = null
+  deleteError.value = null
   sprints.delete.submit(props.sprintId, {
     onSuccess: () => {
       sprints.reload()
       close()
+      showEditDialog.value = false
       router.push({ name: 'TeamOverview', params: { teamId: props.teamId } })
     },
-    onError: (e) =>
-      (editError.value = e.messages?.[0] || 'Delete all tasks in this sprint before deleting it.'),
+    onError: (e) => {
+      // Keep the confirm dialog open so the reason is visible.
+      deleteError.value = e.messages?.[0] || 'Delete all tasks in this sprint before deleting it.'
+    },
   })
 }
 
