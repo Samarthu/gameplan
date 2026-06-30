@@ -1160,10 +1160,16 @@ export default {
       this.clearSelection()
       this.tasks.reload()
     },
-    bulkMoveToSprint(option) {
+    async bulkMoveToSprint(option) {
       if (!option) return
       this.activePopover = null
-      this.bulkUpdate('sprint', option.value)
+      // Moving into a sprint detaches the task from its project so it no longer
+      // shows up in the project's task list.
+      for (const name of this.selectedTasks) {
+        await this.tasks.setValue.submit({ name, sprint: option.value, project: null })
+      }
+      this.clearSelection()
+      this.tasks.reload()
     },
     async bulkCopyToSprint(option) {
       if (!option) return
