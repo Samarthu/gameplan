@@ -69,7 +69,10 @@
       v-model="showEditDialog"
       :options="{
         title: 'Edit Sprint',
-        actions: [{ label: 'Save', variant: 'solid', onClick: saveSprint }],
+        actions: [
+          { label: 'Save', variant: 'solid', onClick: saveSprint },
+          { label: 'Delete', theme: 'red', onClick: deleteSprint },
+        ],
       }"
     >
       <template #body-content>
@@ -193,6 +196,19 @@ function saveSprint(close) {
       onError: (e) => (editError.value = e.messages?.[0] || 'Failed to save'),
     },
   )
+}
+
+function deleteSprint(close) {
+  editError.value = null
+  sprints.delete.submit(props.sprintId, {
+    onSuccess: () => {
+      sprints.reload()
+      close()
+      router.push({ name: 'TeamOverview', params: { teamId: props.teamId } })
+    },
+    onError: (e) =>
+      (editError.value = e.messages?.[0] || 'Delete all tasks in this sprint before deleting it.'),
+  })
 }
 
 function showNewTaskDialog(options = {}) {
