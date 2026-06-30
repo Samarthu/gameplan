@@ -8,6 +8,13 @@ class GPSprint(Document):
 		if not self.title:
 			self.title = self._generate_title()
 
+	def on_trash(self):
+		count = frappe.db.count("GP Task", {"sprint": self.name})
+		if count:
+			frappe.throw(
+				frappe._("Delete the {0} task(s) in this sprint before deleting it.").format(count)
+			)
+
 	def _generate_title(self):
 		if self.start_date and self.end_date:
 			s = getdate(self.start_date)

@@ -84,6 +84,15 @@
               @update:modelValue="onProjectPicked"
             />
           </div>
+          <div class="space-y-2">
+            <div class="text-sm text-ink-gray-7">Sprint</div>
+            <Autocomplete
+              placeholder="Select sprint"
+              :options="sprintOptions"
+              v-model="selectedSprint"
+              @update:modelValue="onSprintPicked"
+            />
+          </div>
         </div>
         <div class="space-y-2">
           <div class="text-sm text-ink-gray-7">Assignees</div>
@@ -179,6 +188,7 @@ import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import { activeUsers } from '@/data/users'
 import { activeTeams } from '@/data/teams'
 import { getTeamProjects, getProject } from '@/data/projects'
+import { getTeamSprints } from '@/data/sprints'
 import { nextStackId, pushStack, removeStack, pillStyle as makePillStyle } from '@/utils/minimizedStack'
 
 const props = defineProps(['modelValue', 'defaults'])
@@ -214,6 +224,7 @@ const initialData = {
   status: 'Backlog',
   project: null,
   team: null,
+  sprint: null,
 }
 
 const newTask = ref({ ...initialData })
@@ -332,10 +343,31 @@ function onTeamPicked(option) {
   if (!projectOptions.value.find((o) => o.value == newTask.value.project)) {
     newTask.value.project = null
   }
+  // Clear sprint if it no longer belongs to the selected team
+  if (!sprintOptions.value.find((o) => o.value == newTask.value.sprint)) {
+    newTask.value.sprint = null
+  }
 }
 
 function onProjectPicked(option) {
   newTask.value.project = option?.value || null
+}
+
+const sprintOptions = computed(() => {
+  if (!newTask.value.team) return []
+  return getTeamSprints(newTask.value.team).map((sprint) => ({
+    label: sprint.title,
+    value: sprint.name.toString(),
+  }))
+})
+
+const selectedSprint = computed(() => {
+  if (!newTask.value.sprint) return null
+  return sprintOptions.value.find((o) => o.value == newTask.value.sprint) || null
+})
+
+function onSprintPicked(option) {
+  newTask.value.sprint = option?.value || null
 }
 
 function onAssigneePicked(option) {
@@ -361,6 +393,7 @@ function show({ defaults, onSuccess } = {}) {
     due_date: d.due_date ?? null,
     project: d.project ?? null,
     team: d.team ?? null,
+    sprint: d.sprint ?? null,
   }
   assigneeUserIds.value = []
   if (Array.isArray(d.assignees) && d.assignees.length) {
