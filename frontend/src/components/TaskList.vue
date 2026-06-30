@@ -1062,16 +1062,48 @@ export default {
       }[status] || 'bg-surface-gray-1'
     },
 
+    // Depth in the parent_task tree (root = 0), used to delete children first.
+    taskDepth(name) {
+      const byName = {}
+      for (const t of this.tasks.data || []) byName[t.name] = t
+      let depth = 0
+      let cur = byName[name]
+      const seen = new Set()
+      while (cur?.parent_task && byName[cur.parent_task] && !seen.has(cur.name)) {
+        seen.add(cur.name)
+        depth++
+        cur = byName[cur.parent_task]
+      }
+      return depth
+    },
     // Selection helpers
     isSelected(name) {
       return this.selectedTasks.includes(name)
     },
+    descendantNames(name) {
+      // All subtask names under `name`, recursively (children, grandchildren, …).
+      const out = []
+      const stack = [name]
+      const all = this.filteredTasks
+      while (stack.length) {
+        const parent = String(stack.pop())
+        for (const t of all) {
+          if (t.parent_task != null && String(t.parent_task) === parent && !out.includes(t.name)) {
+            out.push(t.name)
+            stack.push(t.name)
+          }
+        }
+      }
+      return out
+    },
     toggleTask(name) {
-      const idx = this.selectedTasks.indexOf(name)
-      if (idx > -1) {
-        this.selectedTasks.splice(idx, 1)
-      } else {
-        this.selectedTasks.push(name)
+      const selecting = !this.isSelected(name)
+      // Cascade to subtasks so selecting a parent selects its whole subtree too.
+      const names = [name, ...this.descendantNames(name)]
+      for (const n of names) {
+        const idx = this.selectedTasks.indexOf(n)
+        if (selecting && idx === -1) this.selectedTasks.push(n)
+        else if (!selecting && idx > -1) this.selectedTasks.splice(idx, 1)
       }
     },
     isGroupFullySelected(group) {
@@ -1081,14 +1113,20 @@ export default {
       return group.tasks.some((t) => this.isSelected(t.name)) && !this.isGroupFullySelected(group)
     },
     toggleGroup(group) {
+      // Cascade to subtasks too (children may live in a different status group).
+      const names = new Set()
+      group.tasks.forEach((t) => {
+        names.add(t.name)
+        this.descendantNames(t.name).forEach((n) => names.add(n))
+      })
       if (this.isGroupFullySelected(group)) {
-        group.tasks.forEach((t) => {
-          const idx = this.selectedTasks.indexOf(t.name)
+        names.forEach((n) => {
+          const idx = this.selectedTasks.indexOf(n)
           if (idx > -1) this.selectedTasks.splice(idx, 1)
         })
       } else {
-        group.tasks.forEach((t) => {
-          if (!this.isSelected(t.name)) this.selectedTasks.push(t.name)
+        names.forEach((n) => {
+          if (!this.isSelected(n)) this.selectedTasks.push(n)
         })
       }
     },
@@ -1260,12 +1298,26 @@ export default {
             theme: 'red',
             variant: 'solid',
             onClick: async (close) => {
-              for (const task of deletableTasks) {
-                await this.tasks.delete.submit(task.name)
+              // Delete deepest-first so a child is removed before its parent,
+              // otherwise Frappe's link check blocks deleting the parent.
+              const byDepth = [...deletableTasks].sort(
+                (a, b) => this.taskDepth(b.name) - this.taskDepth(a.name),
+              )
+              const errors = []
+              for (const task of byDepth) {
+                try {
+                  await this.tasks.delete.submit(task.name)
+                } catch (e) {
+                  const raw = e?.messages?.[0] || e?.message || `Failed to delete ${task.title}`
+                  errors.push(raw.replace(/<[^>]+>/g, ''))
+                }
               }
               close()
               this.clearSelection()
               this.tasks.reload()
+              if (errors.length) {
+                this.$dialog({ title: 'Some tasks could not be deleted', message: errors.join('\n') })
+              }
             },
           },
         ],
