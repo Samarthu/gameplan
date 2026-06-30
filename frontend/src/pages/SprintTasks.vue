@@ -11,6 +11,11 @@
           >
             {{ sprint?.status }}
           </span>
+          <Button v-if="sprint" variant="ghost" @click="openEditSprint" aria-label="Edit sprint">
+            <template #icon>
+              <LucidePencil class="h-4 w-4 text-ink-gray-6" />
+            </template>
+          </Button>
         </div>
         <p v-if="sprint?.start_date || sprint?.end_date" class="mt-1 text-sm text-ink-gray-5">
           <span v-if="sprint?.start_date">{{ formatDate(sprint.start_date) }}</span>
@@ -60,17 +65,42 @@
       @request-new-task="showNewTaskDialog"
     />
     <NewTaskDialog ref="newTaskDialog" />
+    <Dialog
+      v-model="showEditDialog"
+      :options="{
+        title: 'Edit Sprint',
+        actions: [{ label: 'Save', variant: 'solid', onClick: saveSprint }],
+      }"
+    >
+      <template #body-content>
+        <div class="space-y-4">
+          <FormControl label="Name" v-model="editForm.title" autocomplete="off" />
+          <FormControl
+            label="Status"
+            type="select"
+            :options="['Planned', 'Active', 'Completed']"
+            v-model="editForm.status"
+          />
+          <div class="grid grid-cols-2 gap-3">
+            <FormControl label="From date" type="date" v-model="editForm.start_date" />
+            <FormControl label="To date" type="date" v-model="editForm.end_date" />
+          </div>
+          <ErrorMessage :message="editError" />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 <script setup>
 import { computed, ref } from 'vue'
-import { getCachedListResource, TabButtons, Tooltip } from 'frappe-ui'
+import { getCachedListResource, TabButtons, Tooltip, Dialog, FormControl, ErrorMessage } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import TaskList from '@/components/TaskList.vue'
 import NewTaskDialog from '@/components/NewTaskDialog.vue'
-import { getSprint } from '@/data/sprints'
+import { sprints, getSprint } from '@/data/sprints'
 import { getUser } from '@/data/users'
 import LucideListFilter from '~icons/lucide/list-filter'
+import LucidePencil from '~icons/lucide/pencil'
 
 const props = defineProps({
   sprintId: {
@@ -121,6 +151,48 @@ let statusClass = computed(() => {
 function formatDate(dateStr) {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+const showEditDialog = ref(false)
+const editError = ref(null)
+const editForm = ref({ title: '', status: 'Planned', start_date: null, end_date: null })
+
+function openEditSprint() {
+  const s = sprint.value
+  if (!s) return
+  editForm.value = {
+    title: s.title || '',
+    status: s.status || 'Planned',
+    start_date: s.start_date || null,
+    end_date: s.end_date || null,
+  }
+  editError.value = null
+  showEditDialog.value = true
+}
+
+function saveSprint(close) {
+  if (!editForm.value.title) {
+    editError.value = 'Name is required'
+    return
+  }
+  if (
+    editForm.value.start_date &&
+    editForm.value.end_date &&
+    editForm.value.end_date < editForm.value.start_date
+  ) {
+    editError.value = 'To date cannot be before from date'
+    return
+  }
+  sprints.setValue.submit(
+    { name: props.sprintId, ...editForm.value },
+    {
+      onSuccess: () => {
+        sprints.reload()
+        close()
+      },
+      onError: (e) => (editError.value = e.messages?.[0] || 'Failed to save'),
+    },
+  )
 }
 
 function showNewTaskDialog(options = {}) {

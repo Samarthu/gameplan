@@ -137,6 +137,7 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.notify_assignment()
 
 	def on_update(self):
+		self.sync_tasks_count_on_project_change()
 		self.notify_assignment()
 		self.update_project_progress()
 		self.notify_mentions()
@@ -193,9 +194,12 @@ class GPTask(HasMentions, HasActivity, Document):
 			search.index_doc(self)
 
 	def on_trash(self):
-		self.update_tasks_count(-1)
 		search = GameplanSearch()
 		search.remove_doc(self)
+
+	def after_delete(self):
+		# Row is gone now, so the recount is accurate.
+		self.update_tasks_count()
 
 	def notify_assignment(self):
 		current = assignee_users_from_doc(self)
@@ -221,11 +225,23 @@ class GPTask(HasMentions, HasActivity, Document):
 				message = _("{0} assigned you a task: {1}").format(assigner_name, self.title)
 			GPNotification.notify_task_user(self, assignee, message, "Task Assigned", from_user)
 
-	def update_tasks_count(self, delta=1):
-		if not self.project:
+	def update_tasks_count(self, delta=1, project=None):
+		# delta is ignored; recompute from source so the counter can't drift (or go negative).
+		project = project or self.project
+		if not project:
 			return
-		current_tasks_count = frappe.db.get_value("GP Project", self.project, "tasks_count") or 0
-		frappe.db.set_value("GP Project", self.project, "tasks_count", current_tasks_count + delta)
+		count = frappe.db.count("GP Task", {"project": project})
+		frappe.db.set_value("GP Project", project, "tasks_count", count)
+
+	def sync_tasks_count_on_project_change(self):
+		if not self.has_value_changed("project"):
+			return
+		prev_doc = self.get_doc_before_save()
+		old_project = prev_doc.project if prev_doc else None
+		if old_project:
+			self.update_tasks_count(project=old_project)
+		if self.project:
+			self.update_tasks_count()
 
 	def update_project_progress(self):
 		if self.project and self.has_value_changed("is_completed"):
