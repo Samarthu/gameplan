@@ -196,17 +196,27 @@
           ref="description"
           editor-class="prose-sm max-w-none focus-within:ring-2 focus-within:ring-outline-gray-3 rounded-sm p-0.5 -ml-0.5 min-h-[4rem]"
           placeholder="Description"
-          :content="$resources.task.doc.description"
+          :content="descriptionContent"
           :bubbleMenu="true"
-          :floatingMenu="true"
-          @blur="
-            !$refs.description.editor.isEmpty
-              ? $resources.task.setValueDebounced.submit({
-                  description: $refs.description.editor.getHTML(),
-                })
-              : null
-          "
-        />
+          @blur="saveDescription"
+        >
+          <!-- Custom toolbar: @mousedown.prevent keeps the editor focused so
+               commands apply on the first click (frappe-ui's built-in menus
+               blur the editor and swallow the first click). -->
+          <template #top>
+            <div
+              class="mb-1 flex flex-wrap items-center gap-0.5 border-b border-outline-gray-2 pb-1"
+              @mousedown.prevent
+            >
+              <button v-for="b in descriptionToolbar" :key="b.label" type="button"
+                class="flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+                :class="b.isActive() ? 'bg-surface-gray-3 text-ink-gray-9' : ''"
+                :title="b.label"
+                @click="b.run"
+              >{{ b.text }}</button>
+            </div>
+          </template>
+        </TextEditor>
         <ChildTasks
           class="mt-8 border-t border-outline-gray-2 pt-6"
           :parentTaskId="taskId"
@@ -315,6 +325,12 @@ export default {
           },
         },
         onSuccess(doc) {
+          // Seed the editor only when a different task loads — not on save echoes,
+          // which would revert in-progress edits (e.g. applying a numbered list).
+          if (doc.name !== this.descriptionLoadedFor) {
+            this.descriptionLoadedFor = doc.name
+            this.descriptionContent = doc.description || ''
+          }
           if (
             ['ProjectTaskDetail', 'Task'].includes(this.$route.name) &&
             Number(this.$route.params.taskId) === doc.name
@@ -341,6 +357,8 @@ export default {
       tagSelection: null,
       allTagSuggestions: [],
       tagSearchQuery: '',
+      descriptionContent: '',
+      descriptionLoadedFor: null,
     }
   },
   watch: {
@@ -364,6 +382,14 @@ export default {
     document.body.classList.remove('select-none', 'cursor-col-resize')
   },
   methods: {
+    saveDescription() {
+      const editor = this.$refs.description?.editor
+      if (!editor) return
+      // Empty editor -> save "" so a cleared description actually persists.
+      const html = editor.isEmpty ? '' : editor.getHTML()
+      if (html === (this.$resources.task.doc.description || '')) return // nothing changed
+      this.$resources.task.setValue.submit({ description: html })
+    },
     restoreActivityPanelWidth() {
       const savedWidth = Number(localStorage.getItem('gameplan_task_activity_width'))
       if (savedWidth) {
@@ -512,6 +538,20 @@ export default {
     },
   },
   computed: {
+    descriptionToolbar() {
+      const ed = () => this.$refs.description?.editor
+      const chain = () => ed().chain().focus()
+      return [
+        { label: 'Paragraph', text: 'T', run: () => chain().setParagraph().run(), isActive: () => ed()?.isActive('paragraph') },
+        { label: 'Heading 2', text: 'H2', run: () => chain().toggleHeading({ level: 2 }).run(), isActive: () => ed()?.isActive('heading', { level: 2 }) },
+        { label: 'Heading 3', text: 'H3', run: () => chain().toggleHeading({ level: 3 }).run(), isActive: () => ed()?.isActive('heading', { level: 3 }) },
+        { label: 'Bullet List', text: '•', run: () => chain().toggleBulletList().run(), isActive: () => ed()?.isActive('bulletList') },
+        { label: 'Numbered List', text: '1.', run: () => chain().toggleOrderedList().run(), isActive: () => ed()?.isActive('orderedList') },
+        { label: 'Quote', text: '❝', run: () => chain().toggleBlockquote().run(), isActive: () => ed()?.isActive('blockquote') },
+        { label: 'Code', text: '</>', run: () => chain().toggleCodeBlock().run(), isActive: () => ed()?.isActive('codeBlock') },
+        { label: 'Divider', text: '—', run: () => chain().setHorizontalRule().run(), isActive: () => false },
+      ]
+    },
     activityFilterLabel() {
       return {
         all: 'All',

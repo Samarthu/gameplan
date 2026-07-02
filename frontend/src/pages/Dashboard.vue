@@ -252,7 +252,14 @@ const activity = computed(() => dashboardData.data?.activity || { labels: [], da
 const byStatus = computed(() => dashboardData.data?.by_status || { labels: [], datasets: [] })
 const byTeam = computed(() => dashboardData.data?.by_team || { labels: [], datasets: [] })
 const byType = computed(() => dashboardData.data?.by_type || { labels: [], datasets: [] })
-const bySprint = computed(() => dashboardData.data?.by_sprint || { labels: [], datasets: [] })
+const bySprint = computed(() => {
+  const raw = dashboardData.data?.by_sprint || { labels: [], datasets: [] }
+  // Backend falls back to the sprint id when a sprint has no title; show "Sprint N" instead of a bare id.
+  return {
+    ...raw,
+    labels: (raw.labels || []).map((l) => (/^\d+$/.test(String(l)) ? `Sprint ${l}` : l)),
+  }
+})
 
 const kpis = computed(() => [
   { label: 'Tasks', value: summary.value.total_tasks ?? 0 },

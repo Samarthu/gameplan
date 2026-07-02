@@ -300,13 +300,13 @@ def _project_options(start, end, team, tree) -> list[dict]:
 def _by_sprint(tasks) -> dict:
 	counts = {}
 	for t in tasks:
-		key = t.sprint or "No sprint"
-		counts[key] = counts.get(key, 0) + 1
+		if not t.sprint:  # skip tasks with no sprint
+			continue
+		counts[t.sprint] = counts.get(t.sprint, 0) + 1
 	titles = {}
-	sprint_names = [k for k in counts if k != "No sprint"]
-	if sprint_names:
+	if counts:
 		for row in frappe.get_all(
-			"GP Sprint", filters={"name": ["in", sprint_names]}, fields=["name", "title"]
+			"GP Sprint", filters={"name": ["in", list(counts)]}, fields=["name", "title"]
 		):
 			titles[row.name] = row.title
 	labels = sorted(counts, key=lambda k: counts[k], reverse=True)
