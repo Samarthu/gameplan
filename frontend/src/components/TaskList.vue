@@ -289,6 +289,51 @@
             </button>
           </Dropdown>
 
+          <!-- Assignee -->
+          <div class="relative">
+            <button
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('assignee')"
+            >
+              <LucideUserPlus class="h-3.5 w-3.5" />
+              Assignee
+            </button>
+            <div
+              v-if="activePopover === 'assignee'"
+              class="absolute w-56 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="userOptions"
+                placeholder="Assign person..."
+                @update:modelValue="bulkAddAssignee"
+              />
+            </div>
+          </div>
+
+          <!-- Tag -->
+          <div class="relative">
+            <button
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('tag')"
+            >
+              <LucideTag class="h-3.5 w-3.5" />
+              Tag
+            </button>
+            <div
+              v-if="activePopover === 'tag'"
+              class="absolute w-56 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="bulkTagOptions"
+                placeholder="Add tag..."
+                @update:modelValue="bulkAddTag"
+              />
+              <div v-if="!bulkTagOptions.length" class="px-2 py-1 text-sm text-ink-gray-5">
+                No tags available
+              </div>
+            </div>
+          </div>
+
           <!-- Due Date -->
           <div class="relative">
             <button
@@ -1177,6 +1222,29 @@ export default {
       this.activePopover = null
       this.bulkUpdate('project', option.value)
     },
+    async bulkAddAssignee(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const task of this.selectedTaskDocs) {
+        const existing = this.assigneeIds(task)
+        if (existing.includes(option.value)) continue
+        await this.tasks.setValue.submit({
+          name: task.name,
+          assignees: [...existing, option.value].map((user) => ({ user })),
+        })
+      }
+      this.clearSelection()
+      this.tasks.reload()
+    },
+    async bulkAddTag(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const name of this.selectedTasks) {
+        await call('frappe.desk.doctype.tag.tag.add_tag', { tag: option.value, dt: 'GP Task', dn: name })
+      }
+      this.clearSelection()
+      this.tasks.reload()
+    },
     async bulkCopyToProject(option) {
       if (!option) return
       this.activePopover = null
@@ -1523,6 +1591,9 @@ export default {
     },
     bulkTaskTypeOptions() {
       return this.taskTypeOptions({ onClick: (task_type) => this.bulkUpdate('task_type', task_type) })
+    },
+    bulkTagOptions() {
+      return this.allTags.map((tag) => ({ label: tag, value: tag }))
     },
     bulkPriorityOptions() {
       return [
