@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Chart } from 'frappe-charts'
 
 const props = defineProps({
@@ -30,6 +30,14 @@ function render() {
     barOptions: { spaceRatio: 0.4 },
     data: props.data,
     ...props.options,
+  })
+  // ponytail: frappe-charts clips pie/donut legends that wrap onto extra rows —
+  // grow the svg to fit the rendered content
+  nextTick(() => {
+    const svg = el.value && el.value.querySelector('svg')
+    if (!svg) return
+    const needed = Math.ceil(svg.getBBox().y + svg.getBBox().height) + 10
+    if (needed > Number(svg.getAttribute('height'))) svg.setAttribute('height', needed)
   })
 }
 

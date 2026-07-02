@@ -204,6 +204,7 @@
       :showColumnsPicker="showColumnsPicker"
       :columnsPickerStyle="columnsPickerStyle"
       :inlinePopover="inlinePopover"
+      :inlinePopoverStyle="inlinePopoverStyle"
       :userOptions="userOptions"
       :syncGroupHeaderScroll="syncGroupHeaderScroll"
       :visibleTasksForGroup="visibleTasksForGroup"
@@ -610,6 +611,7 @@ export default {
       exportColumnSelection: {},
       exportPopoverStyle: {},
       inlinePopover: { name: null, field: null },
+      inlinePopoverStyle: {},
       selectedTag: null,
       allTags: [],
       taskFilters: [],
@@ -1002,10 +1004,19 @@ export default {
         .map((value) => value.trim().toLowerCase())
         .filter(Boolean)
     },
-    toggleInlinePopover(taskName, field) {
+    toggleInlinePopover(taskName, field, event) {
       if (this.inlinePopover.name === taskName && this.inlinePopover.field === field) {
         this.inlinePopover = { name: null, field: null }
       } else {
+        // ponytail: fixed positioning so popovers escape the overflow-x-auto list
+        // container, which otherwise scrolls/clips when the list is short
+        const rect = event?.currentTarget?.getBoundingClientRect()
+        if (rect) {
+          this.inlinePopoverStyle = {
+            top: `${rect.bottom + 4}px`,
+            left: `${Math.min(Math.max(rect.left, 8), window.innerWidth - 240)}px`,
+          }
+        }
         this.inlinePopover = { name: taskName, field }
       }
     },
