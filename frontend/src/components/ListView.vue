@@ -206,7 +206,7 @@
               >
                 <button
                   class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none"
-                  @click.stop="toggleInlinePopover(d.name, 'assignee')"
+                  @click.stop="toggleInlinePopover(d.name, 'assignee', $event)"
                 >
                   <template v-if="assigneeIds(d).length">
                     <div class="isolate flex items-center" :class="assigneeStackSpacingClass(d)">
@@ -257,7 +257,8 @@
                 <!-- Assignee picker popover -->
                 <div
                   v-if="inlinePopover.name === d.name && inlinePopover.field === 'assignee'"
-                  class="absolute left-0 top-full z-50 mt-1 w-52 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  class="fixed z-50 w-52 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  :style="inlinePopoverStyle"
                   @click.stop
                 >
                   <Autocomplete
@@ -301,7 +302,7 @@
               >
                 <button
                   class="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none"
-                  @click.stop="toggleInlinePopover(d.name, 'due_date')"
+                  @click.stop="toggleInlinePopover(d.name, 'due_date', $event)"
                 >
                   <template v-if="d.due_date">
                     <LucideCalendar
@@ -320,7 +321,8 @@
                 <!-- Date picker popover -->
                 <div
                   v-if="inlinePopover.name === d.name && inlinePopover.field === 'due_date'"
-                  class="absolute left-0 top-full z-50 mt-1 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  class="fixed z-50 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
+                  :style="inlinePopoverStyle"
                   @click.stop
                 >
                   <input
@@ -399,35 +401,6 @@
 
               <!-- Row actions -->
               <div class="flex w-20 shrink-0 items-center justify-end gap-1 pr-1 py-2">
-                <!-- Set Sprint -->
-                <div class="relative">
-                  <Tooltip text="Set Sprint">
-                    <button
-                      class="invisible grid h-6 w-6 shrink-0 place-items-center rounded text-ink-gray-4 hover:bg-surface-gray-2 hover:text-ink-gray-7 focus:visible focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3 group-hover:visible"
-                      @click.stop="toggleInlinePopover(d.name, 'sprint')"
-                    >
-                      <LucideZap class="h-3.5 w-3.5" />
-                    </button>
-                  </Tooltip>
-                  <div
-                    v-if="inlinePopover.name === d.name && inlinePopover.field === 'sprint'"
-                    class="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-outline-gray-2 bg-surface-white p-2 shadow-lg"
-                    @click.stop
-                  >
-                    <Autocomplete
-                      :options="sprintOptions"
-                      placeholder="Assign sprint..."
-                      @update:modelValue="(opt) => { if (opt) { tasksResource.setValue.submit({ name: d.name, sprint: opt.value }); toggleInlinePopover(d.name, 'sprint') } }"
-                    />
-                    <button
-                      v-if="d.sprint"
-                      class="mt-1 w-full rounded px-2 py-1 text-left text-xs text-ink-gray-5 hover:bg-surface-gray-2"
-                      @click.stop="tasksResource.setValue.submit({ name: d.name, sprint: null }); toggleInlinePopover(d.name, 'sprint')"
-                    >
-                      Remove from sprint
-                    </button>
-                  </div>
-                </div>
                 <Tooltip text="Delete task" v-if="canDeleteTask(d)">
                   <button
                     class="invisible grid h-6 w-6 shrink-0 place-items-center rounded text-ink-gray-4 hover:bg-surface-red-1 hover:text-red-500 focus:visible focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3 group-hover:visible"
@@ -480,7 +453,6 @@ import { LoadingIndicator, Dropdown, Tooltip, Autocomplete } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
 import LucideX from '~icons/lucide/x'
-import { sprints } from '@/data/sprints'
 
 export default {
   name: 'ListView',
@@ -503,6 +475,7 @@ export default {
     showColumnsPicker: { type: Boolean, default: false },
     columnsPickerStyle: { type: Object, default: () => ({}) },
     inlinePopover: { type: Object, required: true },
+    inlinePopoverStyle: { type: Object, default: () => ({}) },
     userOptions: { type: Array, required: true },
     syncGroupHeaderScroll: { type: Function, required: true },
     visibleTasksForGroup: { type: Function, required: true },
@@ -549,9 +522,6 @@ export default {
         minWidth: `${this.taskColumnWidth}px`,
         maxWidth: `${this.taskColumnWidth}px`,
       }
-    },
-    sprintOptions() {
-      return (sprints.data || []).map((s) => ({ label: s.title, value: s.name }))
     },
   },
   mounted() {
