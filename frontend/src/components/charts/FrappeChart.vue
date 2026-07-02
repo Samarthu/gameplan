@@ -2,8 +2,15 @@
   <div ref="el" class="frappe-chart" />
 </template>
 
+<style scoped>
+/* ponytail: never clip wrapped legends even before the height fix runs */
+.frappe-chart :deep(svg) {
+  overflow: visible;
+}
+</style>
+
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Chart } from 'frappe-charts'
 
 const props = defineProps({
@@ -32,13 +39,14 @@ function render() {
     ...props.options,
   })
   // ponytail: frappe-charts clips pie/donut legends that wrap onto extra rows —
-  // grow the svg to fit the rendered content
-  nextTick(() => {
+  // grow the svg to fit. Delayed because the chart recreates its svg in an
+  // internal setTimeout(0) update right after init.
+  setTimeout(() => {
     const svg = el.value && el.value.querySelector('svg')
     if (!svg) return
     const needed = Math.ceil(svg.getBBox().y + svg.getBBox().height) + 10
     if (needed > Number(svg.getAttribute('height'))) svg.setAttribute('height', needed)
-  })
+  }, 100)
 }
 
 onMounted(render)

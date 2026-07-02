@@ -19,7 +19,11 @@
         </div>
       </div>
     </div>
-    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 xl:px-6 py-2" ref="scrollContainer">
+    <div
+      class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 xl:px-6 py-2"
+      ref="scrollContainer"
+      @click="onTimelineClick"
+    >
       <div v-if="showToolbar" class="mb-4 flex items-center justify-between gap-3">
         <Dropdown :options="timelineFilterOptions">
           <button
@@ -87,6 +91,8 @@
       </template>
       </div>
     </div>
+
+    <ImagePreview v-model:show="showImagePreview" :imageUrl="previewImageUrl" />
 
     <div v-if="!readOnlyMode && !disableNewComment" class="px-1 xl:px-6 py-4 xl:border-t xl:border-outline-gray-2 bg-surface-white z-[1]" ref="addComment">
       <div class="flex items-start min-w-0">
@@ -174,6 +180,7 @@ import Comment from './Comment.vue'
 import Activity from './Activity.vue'
 import PollEditor from './PollEditor.vue'
 import Poll from './Poll.vue'
+import ImagePreview from './ImagePreview.vue'
 import { getScrollContainer } from '@/utils/scrollContainer'
 import { Tooltip } from 'frappe-ui'
 
@@ -205,6 +212,7 @@ export default {
     PollEditor,
     Poll,
     Tooltip,
+    ImagePreview,
   },
   data() {
     let draftComment = localStorage.getItem(this.draftCommentKey())
@@ -225,6 +233,8 @@ export default {
       highlightedItem: null,
       timelineFilter: this.filter || 'all',
       timelineSort: this.sort || 'desc',
+      showImagePreview: false,
+      previewImageUrl: null,
     }
   },
   watch: {
@@ -353,6 +363,15 @@ export default {
     },
   },
   methods: {
+    onTimelineClick(e) {
+      // ponytail: click-delegation for images inside rendered comment content
+      // (.ProseMirror) so we don't touch the editor; avatars etc. are excluded
+      const img = e.target.closest('.ProseMirror img')
+      if (img && !e.target.closest('[contenteditable="true"]')) {
+        this.previewImageUrl = img.src
+        this.showImagePreview = true
+      }
+    },
     submitComment() {
       if (this.commentEmpty) {
         return
@@ -579,3 +598,8 @@ export default {
   },
 }
 </script>
+<style scoped>
+:deep(.ProseMirror:not([contenteditable='true']) img) {
+  cursor: zoom-in;
+}
+</style>
