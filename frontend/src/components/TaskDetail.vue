@@ -376,6 +376,7 @@ export default {
     window.addEventListener('resize', this.onWindowResize)
   },
   beforeUnmount() {
+    this.saveDescription() // flush unsaved description on back/navigation
     window.removeEventListener('mousemove', this.onActivityResize)
     window.removeEventListener('mouseup', this.stopActivityResize)
     window.removeEventListener('resize', this.onWindowResize)
