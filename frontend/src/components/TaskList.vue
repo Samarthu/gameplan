@@ -791,7 +791,7 @@ export default {
       }
     },
     statusOptions({ onClick }) {
-      return ['Backlog', 'Todo', 'In Progress', 'Ready for Testing', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed', 'Hold', 'QA Accepted', 'Live'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -992,7 +992,7 @@ export default {
     },
     valueOptionsForFilter(filter) {
       const options = {
-        status: ['Backlog', 'Todo', 'In Progress', 'Ready for Testing', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed', 'Hold', 'QA Accepted', 'Live'].map((value) => ({ label: value, value })),
+        status: ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((value) => ({ label: value, value })),
         priority: ['Urgent', 'High', 'Medium', 'Low'].map((value) => ({ label: value, value })),
         task_type: TASK_TYPES.map((value) => ({ label: value, value })),
         tag: this.allTags.map((value) => ({ label: value, value })),
@@ -1626,7 +1626,7 @@ export default {
       if (!this.groupByStatus) {
         return [{ id: 'all', title: '', tasks: this.topLevelTasks }]
       }
-      return ['In Progress', 'Ready for Testing', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed', 'Hold', 'QA Accepted', 'Live'].map((status) => {
+      return ['In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,
@@ -1635,7 +1635,7 @@ export default {
       })
     },
     kanbanGroups() {
-      return ['Backlog', 'Todo', 'In Progress', 'Ready for Testing', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed', 'Hold', 'QA Accepted', 'Live'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,

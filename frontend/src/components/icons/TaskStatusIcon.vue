@@ -114,6 +114,12 @@ export default {
           return 'text-red-400'
         case 'Reopen':
           return 'text-orange-500'
+        case 'Hold':
+          return 'text-yellow-600'
+        case 'QA Accepted':
+          return 'text-emerald-500'
+        case 'Live':
+          return 'text-green-600'
         case 'Backlog':
         default:
           return 'text-gray-400'

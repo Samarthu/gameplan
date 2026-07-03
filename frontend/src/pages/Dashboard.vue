@@ -281,6 +281,9 @@ const STATUS_CLASSES = {
   Backlog: 'bg-gray-100 text-gray-600',
   Todo: 'bg-gray-100 text-gray-600',
   Reopen: 'bg-orange-100 text-orange-600',
+  Hold: 'bg-yellow-100 text-yellow-800',
+  'QA Accepted': 'bg-emerald-100 text-emerald-800',
+  Live: 'bg-green-100 text-green-800',
 }
 function statusClass(status) {
   return STATUS_CLASSES[status] || 'bg-gray-100 text-gray-600'

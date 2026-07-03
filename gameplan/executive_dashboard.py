@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, flt, get_datetime, getdate, now_datetime, today
 
-OPEN_TASK_STATUSES = ("Backlog", "Todo", "In Progress", "Ready for Testing", "Under Testing", "Ready to Merge", "Reopen")
+OPEN_TASK_STATUSES = ("Backlog", "Todo", "In Progress", "Reopen", "Ready for Testing", "Hold", "QA Accepted", "Live", "Under Testing", "Ready to Merge")
 STALE_TASK_STATUSES = ("In Progress", "Ready for Testing", "Under Testing")
 
 DEFAULT_RED_OVERDUE = 5
