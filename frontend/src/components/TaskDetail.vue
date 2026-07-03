@@ -50,18 +50,22 @@
           </Dropdown>
         </div>
         <div class="mb-3">
-          <input
-            type="text"
+          <textarea
+            ref="titleTextarea"
+            rows="1"
             placeholder="Title"
-            class="-ml-0.5 w-full rounded-sm border-none bg-surface-white p-0.5 text-2xl font-semibold text-ink-gray-9 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+            class="-ml-0.5 w-full resize-none overflow-hidden rounded-sm border-none bg-surface-white p-0.5 text-2xl font-semibold text-ink-gray-9 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
             @change="
               $resources.task.setValueDebounced.submit({
                 title: $event.target.value,
               })
             "
+            @keydown.enter.prevent="$event.target.blur()"
+            @input="resizeTitle"
             v-model="$resources.task.doc.title"
             v-focus
-          />
+            maxlength="140"
+          ></textarea>
         </div>
         <div class="mb-8 grid max-w-4xl grid-cols-1 gap-x-12 gap-y-4 border-b border-outline-gray-2 pb-8 text-base text-ink-gray-7 md:grid-cols-2">
           <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
@@ -339,6 +343,7 @@ export default {
           }
           this.$resources.task.getLinkedTeams.submit()
           this.loadDocTags()
+          this.resizeTitle()
         },
       }
     },
@@ -367,21 +372,52 @@ export default {
       this.loadDocTags()
     },
   },
+  created() {
+    this.$watch(
+      () => this.$resources?.task?.doc?.title,
+      () => {
+        this.resizeTitle()
+      }
+    )
+    this.$watch(
+      () => this.$resources?.task?.doc,
+      (doc) => {
+        if (doc && doc.name === this.taskId) {
+          if (doc.name !== this.descriptionLoadedFor) {
+            this.descriptionLoadedFor = doc.name
+            this.descriptionContent = doc.description || ''
+          }
+        }
+      },
+      { immediate: true }
+    )
+  },
   mounted() {
     this.restoreActivityPanelWidth()
     this.loadDocTags()
     this.fetchTagSuggestions('')
+    this.resizeTitle()
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
     window.addEventListener('resize', this.onWindowResize)
   },
   beforeUnmount() {
+    this.saveDescription() // flush unsaved description on back/navigation
     window.removeEventListener('mousemove', this.onActivityResize)
     window.removeEventListener('mouseup', this.stopActivityResize)
     window.removeEventListener('resize', this.onWindowResize)
     document.body.classList.remove('select-none', 'cursor-col-resize')
   },
   methods: {
+    resizeTitle() {
+      this.$nextTick(() => {
+        const el = this.$refs.titleTextarea
+        if (el) {
+          el.style.height = 'auto'
+          el.style.height = el.scrollHeight + 'px'
+        }
+      })
+    },
     saveDescription() {
       const editor = this.$refs.description?.editor
       if (!editor) return
@@ -596,7 +632,7 @@ export default {
       return this.assignableUsers.filter((o) => !ids.has(o.value))
     },
     statusOptions() {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed', 'Hold', 'QA Accepted', 'Live'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,

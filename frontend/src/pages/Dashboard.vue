@@ -275,11 +275,15 @@ const STATUS_CLASSES = {
   Done: 'bg-green-100 text-green-700',
   Cancelled: 'bg-gray-100 text-gray-500',
   'In Progress': 'bg-blue-100 text-blue-700',
+  'Ready for Testing': 'bg-indigo-100 text-indigo-700',
   'Under Testing': 'bg-yellow-100 text-yellow-700',
   'Ready to Merge': 'bg-purple-100 text-purple-700',
   Backlog: 'bg-gray-100 text-gray-600',
   Todo: 'bg-gray-100 text-gray-600',
   Reopen: 'bg-orange-100 text-orange-600',
+  Hold: 'bg-yellow-100 text-yellow-800',
+  'QA Accepted': 'bg-emerald-100 text-emerald-800',
+  Live: 'bg-green-100 text-green-800',
 }
 function statusClass(status) {
   return STATUS_CLASSES[status] || 'bg-gray-100 text-gray-600'
