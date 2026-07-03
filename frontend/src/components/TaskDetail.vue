@@ -379,6 +379,18 @@ export default {
         this.resizeTitle()
       }
     )
+    this.$watch(
+      () => this.$resources?.task?.doc,
+      (doc) => {
+        if (doc && doc.name === this.taskId) {
+          if (doc.name !== this.descriptionLoadedFor) {
+            this.descriptionLoadedFor = doc.name
+            this.descriptionContent = doc.description || ''
+          }
+        }
+      },
+      { immediate: true }
+    )
   },
   mounted() {
     this.restoreActivityPanelWidth()
@@ -620,7 +632,7 @@ export default {
       return this.assignableUsers.filter((o) => !ids.has(o.value))
     },
     statusOptions() {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed', 'Hold', 'QA Accepted', 'Live'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Ready for Testing', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed', 'Hold', 'QA Accepted', 'Live'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,

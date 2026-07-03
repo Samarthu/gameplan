@@ -36,6 +36,13 @@
       clip-rule="evenodd"
     />
     <path
+      v-else-if="status == 'Ready for Testing'"
+      fill="currentColor"
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm0-1.75a5.25 5.25 0 1 1 0-10.5 5.25 5.25 0 0 1 0 10.5ZM6.5 4h3v1h-.5v1h2l2 5.5H5L7 6h2V5h-.5V4Z"
+    />
+    <path
       v-else-if="status == 'Under Testing'"
       fill="currentColor"
       fill-rule="evenodd"
@@ -95,6 +102,8 @@ export default {
           return 'text-green-600'
         case 'In Progress':
           return 'text-blue-500'
+        case 'Ready for Testing':
+          return 'text-indigo-500'
         case 'Under Testing':
           return 'text-purple-500'
         case 'Ready to Merge':
