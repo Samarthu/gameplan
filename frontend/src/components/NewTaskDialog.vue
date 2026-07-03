@@ -32,7 +32,7 @@
           </div>
         </div>
         <div class="space-y-4">
-        <FormControl label="Title" v-model="newTask.title" autocomplete="off" />
+        <FormControl label="Title" v-model="newTask.title" autocomplete="off" maxlength="140" />
         <FormControl label="Description" type="textarea" v-model="newTask.description" />
         <div class="flex flex-wrap gap-3">
           <Dropdown
