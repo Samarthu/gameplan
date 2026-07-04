@@ -331,7 +331,7 @@ export default {
         onSuccess(doc) {
           // Seed the editor only when a different task loads — not on save echoes,
           // which would revert in-progress edits (e.g. applying a numbered list).
-          if (doc.name !== this.descriptionLoadedFor) {
+          if (String(doc.name) !== String(this.descriptionLoadedFor)) {
             this.descriptionLoadedFor = doc.name
             this.descriptionContent = doc.description || ''
           }
@@ -382,8 +382,8 @@ export default {
     this.$watch(
       () => this.$resources?.task?.doc,
       (doc) => {
-        if (doc && doc.name === this.taskId) {
-          if (doc.name !== this.descriptionLoadedFor) {
+        if (doc && String(doc.name) === String(this.taskId)) {
+          if (String(doc.name) !== String(this.descriptionLoadedFor)) {
             this.descriptionLoadedFor = doc.name
             this.descriptionContent = doc.description || ''
           }
