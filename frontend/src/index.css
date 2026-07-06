@@ -8,3 +8,9 @@
 body {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* long dropdown menus (e.g. task status) scroll instead of overflowing the viewport */
+[role='menu'] {
+  max-height: 60vh;
+  overflow-y: auto;
+}
