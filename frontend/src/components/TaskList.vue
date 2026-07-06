@@ -1626,7 +1626,7 @@ export default {
       if (!this.groupByStatus) {
         return [{ id: 'all', title: '', tasks: this.topLevelTasks }]
       }
-      return ['In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Ready to Merge', 'Ready for Testing', 'Under Testing', 'QA Accepted', 'Done', 'Live', 'Reopen', 'Hold', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,
