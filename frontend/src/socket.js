@@ -2,6 +2,7 @@ import { io } from 'socket.io-client'
 import { socketio_port } from '../../../../sites/common_site_config.json'
 import { getCachedListResource } from 'frappe-ui/src/resources/listResource'
 import { getCachedResource } from 'frappe-ui/src/resources/resources'
+import { emitProjectMerged } from '@/utils/projectMerge'
 
 export function initSocket() {
   let host = window.location.hostname
@@ -21,6 +22,11 @@ export function initSocket() {
         resource.reload()
       }
     }
+  })
+  socket.on('project_merged', (data) => {
+    getCachedListResource('Projects')?.reload()
+    getCachedListResource('Linked Projects')?.reload()
+    emitProjectMerged(data || {})
   })
   return socket
 }

@@ -4,7 +4,28 @@
 import frappe
 from frappe import _
 
-from gameplan.gameplan.doctype.gp_notification.gp_notification import GPNotification
+from gameplan.gameplan.doctype.gp_notification.gp_notification import (
+	GPNotification,
+	TASK_SCHEDULE_NOTIFICATION_TYPES,
+)
+
+def dismiss_stale_task_schedule_notifications():
+	"""Mark due/overdue notifications as read for closed or cancelled tasks."""
+	type_placeholders = ", ".join(["%s"] * len(TASK_SCHEDULE_NOTIFICATION_TYPES))
+	frappe.db.sql(
+		f"""
+		update `tabGP Notification` n
+		inner join `tabGP Task` t on t.name = n.task
+		set n.read = 1
+		where n.read = 0
+			and n.type in ({type_placeholders})
+			and (
+				t.is_completed = 1
+				or t.status in ('Done', 'Cancelled')
+			)
+		""",
+		TASK_SCHEDULE_NOTIFICATION_TYPES,
+	)
 
 
 def already_sent_today(task_name: str, notif_type: str, to_user: str) -> bool:
@@ -40,6 +61,8 @@ def send_task_due_notifications():
 	"""Notify assignees when tasks are due tomorrow, due today, or overdue (runs daily)."""
 	from frappe.utils import add_days, formatdate, getdate
 
+	dismiss_stale_task_schedule_notifications()
+
 	today_d = getdate()
 	tomorrow_d = add_days(today_d, 1)
 
@@ -48,7 +71,8 @@ def send_task_due_notifications():
 		return frappe.db.sql(
 			f"""
 			select name from `tabGP Task` t
-			where is_completed = 0 and status != "Done"
+			where is_completed = 0
+			and coalesce(status, '') not in ('Done', 'Cancelled')
 			and due_date is not null
 			and due_date {op} %(due)s
 			and (

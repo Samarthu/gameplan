@@ -114,6 +114,12 @@ const routes = [
     meta: { fullWidth: true },
   },
   {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/pages/Dashboard.vue'),
+    meta: { fullWidth: true },
+  },
+  {
     path: '/:teamId',
     name: 'TeamLayout',
     component: () => import('@/pages/TeamLayout.vue'),

@@ -16,6 +16,7 @@
     "@vueuse/core": "^10.1.2",
     "dayjs": "^1.10.7",
     "feather-icons": "^4.28.0",
+    "frappe-charts": "^1.6.2",
     "frappe-ui": "^0.1.93",
     "fuzzysort": "^2.0.4",
     "gemoji": "^7.1.0",

@@ -204,6 +204,7 @@
       :showColumnsPicker="showColumnsPicker"
       :columnsPickerStyle="columnsPickerStyle"
       :inlinePopover="inlinePopover"
+      :inlinePopoverStyle="inlinePopoverStyle"
       :userOptions="userOptions"
       :syncGroupHeaderScroll="syncGroupHeaderScroll"
       :visibleTasksForGroup="visibleTasksForGroup"
@@ -236,6 +237,7 @@
       :confirmDeleteTask="confirmDeleteTask"
       :toggleColumn="toggleColumn"
       :toggleColumnsPicker="toggleColumnsPicker"
+      @view-task="openTaskDialog"
     />
 
     <div
@@ -244,6 +246,12 @@
     >
       {{ tasks.data?.length ? 'No tasks match the selected filters' : 'No tasks' }}
     </div>
+
+    <TaskDetailDialog
+      v-model="showTaskDialog"
+      :task-id="selectedTaskId"
+      @closed="onTaskDialogClosed"
+    />
 
     <!-- Bulk action bar -->
     <Teleport to="body">
@@ -287,6 +295,51 @@
               Priority
             </button>
           </Dropdown>
+
+          <!-- Assignee -->
+          <div class="relative">
+            <button
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('assignee')"
+            >
+              <LucideUserPlus class="h-3.5 w-3.5" />
+              Assignee
+            </button>
+            <div
+              v-if="activePopover === 'assignee'"
+              class="absolute w-56 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="userOptions"
+                placeholder="Assign person..."
+                @update:modelValue="bulkAddAssignee"
+              />
+            </div>
+          </div>
+
+          <!-- Tag -->
+          <div class="relative">
+            <button
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('tag')"
+            >
+              <LucideTag class="h-3.5 w-3.5" />
+              Tag
+            </button>
+            <div
+              v-if="activePopover === 'tag'"
+              class="absolute w-56 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="bulkTagOptions"
+                placeholder="Add tag..."
+                @update:modelValue="bulkAddTag"
+              />
+              <div v-if="!bulkTagOptions.length" class="px-2 py-1 text-sm text-ink-gray-5">
+                No tags available
+              </div>
+            </div>
+          </div>
 
           <!-- Due Date -->
           <div class="relative">
@@ -414,6 +467,22 @@
 
           <div class="w-px h-4 bg-outline-gray-2"></div>
 
+          <!-- Export to Excel -->
+          <div class="relative">
+            <Tooltip text="Export selected tasks to Excel">
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+                @click.stop="toggleExportPopover($event)"
+              >
+                <LucideSheet class="h-3.5 w-3.5" />
+                Export
+              </button>
+            </Tooltip>
+          </div>
+
+          <div class="w-px h-4 bg-outline-gray-2"></div>
+
           <!-- Delete -->
           <Tooltip text="Delete selected tasks">
             <button
@@ -440,6 +509,73 @@
         </div>
       </Transition>
     </Teleport>
+
+    <Teleport to="body">
+      <div
+        v-if="showExportPopover"
+        class="fixed z-[60] overflow-hidden rounded-xl border border-outline-gray-2 bg-surface-white shadow-2xl"
+        :style="exportPopoverStyle"
+        data-export-popover
+        @click.stop
+      >
+        <div class="border-b border-outline-gray-2 px-4 py-3">
+          <div class="text-sm font-semibold text-ink-gray-9">Export to Excel</div>
+          <div class="mt-0.5 text-xs text-ink-gray-5">
+            {{ selectedTasks.length }} task{{ selectedTasks.length === 1 ? '' : 's' }} · choose columns
+          </div>
+        </div>
+        <div class="max-h-48 overflow-y-auto px-4 py-2">
+          <label
+            v-for="col in exportColumnDefs"
+            :key="col.key"
+            class="flex items-center gap-2 rounded px-1 py-1.5 text-sm text-ink-gray-8 hover:bg-surface-gray-1"
+          >
+            <input
+              type="checkbox"
+              class="h-3.5 w-3.5 rounded border-outline-gray-3 text-ink-gray-9 focus:ring-0"
+              :checked="exportColumnSelection[col.key]"
+              :disabled="col.required"
+              @change="toggleExportColumn(col.key)"
+            />
+            <span>{{ col.label }}</span>
+          </label>
+        </div>
+        <div class="space-y-2 border-t border-outline-gray-2 px-4 py-3">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded px-2 py-1 text-xs font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+              @click="selectVisibleExportColumns"
+            >
+              Visible columns
+            </button>
+            <button
+              type="button"
+              class="rounded px-2 py-1 text-xs font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+              @click="selectAllExportColumns"
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              class="rounded px-2 py-1 text-xs font-medium text-ink-gray-6 hover:bg-surface-gray-2"
+              @click="clearExportColumns"
+            >
+              Clear
+            </button>
+          </div>
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="!hasExportColumnsSelected"
+            @click="exportSelectedTasks"
+          >
+            <LucideSheet class="h-4 w-4" />
+            Export to Excel
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 <script>
@@ -449,9 +585,16 @@ import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
 import TeamView from './TeamView.vue'
+import TaskDetailDialog from './TaskDetailDialog.vue'
 import { activeProjects } from '@/data/projects'
-import { activeUsers } from '@/data/users'
+import { activeUsers, getUser } from '@/data/users'
 import { sprints } from '@/data/sprints'
+import {
+  downloadTasksSpreadsheet,
+  getDefaultExportSelection,
+  getExportColumnDefs,
+} from '@/utils/taskExport'
+import { onProjectMerged } from '@/utils/projectMerge'
 
 const COLUMNS_STORAGE_KEY = 'gameplan_task_columns'
 const TASK_TYPES = [
@@ -500,6 +643,7 @@ export default {
         Backlog: true,
         Todo: true,
         'In Progress': true,
+        'Ready for Testing': true,
         'Under Testing': true,
         'Ready to Merge': true,
         Reopen: true,
@@ -517,7 +661,11 @@ export default {
       filtersPanelStyle: {},
       openFilterValueMenu: null,
       showAddFilterMenu: false,
+      showExportPopover: false,
+      exportColumnSelection: {},
+      exportPopoverStyle: {},
       inlinePopover: { name: null, field: null },
+      inlinePopoverStyle: {},
       selectedTag: null,
       allTags: [],
       taskFilters: [],
@@ -554,6 +702,8 @@ export default {
         project:    { label: 'Project',     visible: saved.project    ?? true },
         team:       { label: 'Team',        visible: saved.team       ?? true },
       },
+      showTaskDialog: false,
+      selectedTaskId: null,
     }
   },
   watch: {
@@ -563,12 +713,16 @@ export default {
   },
   mounted() {
     document.addEventListener('click', this.handleOutsideClick)
+    this._unsubscribeProjectMerged = onProjectMerged(() => {
+      this.tasks?.reload?.()
+    })
     call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags', { txt: '' }).then((tags) => {
       this.allTags = tags || []
     })
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleOutsideClick)
+    this._unsubscribeProjectMerged?.()
   },
   components: {
     Dropdown,
@@ -577,6 +731,7 @@ export default {
     ListView,
     KanbanView,
     TeamView,
+    TaskDetailDialog,
   },
   resources: {
     tasks() {
@@ -595,6 +750,13 @@ export default {
     },
   },
   methods: {
+    openTaskDialog(taskId) {
+      this.selectedTaskId = String(taskId)
+      this.showTaskDialog = true
+    },
+    onTaskDialogClosed() {
+      this.tasks.reload()
+    },
     syncGroupHeaderScroll(event) {
       this.horizontalScrollLeft = event.target.scrollLeft
     },
@@ -647,7 +809,7 @@ export default {
       }
     },
     statusOptions({ onClick }) {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -690,9 +852,78 @@ export default {
       if (this.showAddFilterMenu) {
         this.showAddFilterMenu = false
       }
+      if (this.showExportPopover && !e.target.closest('[data-export-popover]')) {
+        this.showExportPopover = false
+      }
       if (this.inlinePopover.name) {
         this.inlinePopover = { name: null, field: null }
       }
+    },
+    toggleExportPopover(event) {
+      this.activePopover = null
+      const opening = !this.showExportPopover
+      if (opening) {
+        this.initExportColumnSelection()
+        const rect = event?.currentTarget?.getBoundingClientRect()
+        if (rect) {
+          const width = 320
+          const left = Math.min(
+            Math.max(rect.left + rect.width / 2 - width / 2, 12),
+            window.innerWidth - width - 12,
+          )
+          const bottom = window.innerHeight - rect.top + 12
+          this.exportPopoverStyle = {
+            left: `${left}px`,
+            bottom: `${bottom}px`,
+            width: `${width}px`,
+          }
+        }
+      }
+      this.showExportPopover = opening
+    },
+    initExportColumnSelection() {
+      const visibility = {}
+      for (const [key, col] of Object.entries(this.columns)) {
+        visibility[key] = col.visible
+      }
+      this.exportColumnSelection = getDefaultExportSelection(visibility)
+    },
+    toggleExportColumn(key) {
+      const col = this.exportColumnDefs.find((c) => c.key === key)
+      if (col?.required) return
+      this.exportColumnSelection = {
+        ...this.exportColumnSelection,
+        [key]: !this.exportColumnSelection[key],
+      }
+    },
+    selectAllExportColumns() {
+      const selection = {}
+      for (const col of this.exportColumnDefs) {
+        selection[col.key] = true
+      }
+      this.exportColumnSelection = selection
+    },
+    selectVisibleExportColumns() {
+      this.initExportColumnSelection()
+    },
+    clearExportColumns() {
+      const selection = {}
+      for (const col of this.exportColumnDefs) {
+        selection[col.key] = Boolean(col.required)
+      }
+      this.exportColumnSelection = selection
+    },
+    exportSelectedTasks() {
+      const columnKeys = this.exportColumnDefs
+        .filter((col) => this.exportColumnSelection[col.key])
+        .map((col) => col.key)
+      if (!columnKeys.length || !this.selectedTaskDocs.length) return
+
+      downloadTasksSpreadsheet(this.selectedTaskDocs, columnKeys, {
+        getUser,
+        dayjs: this.$dayjs,
+      })
+      this.showExportPopover = false
     },
     toggleFiltersPanel(event) {
       if (!this.showFiltersPanel && event?.currentTarget) {
@@ -779,7 +1010,7 @@ export default {
     },
     valueOptionsForFilter(filter) {
       const options = {
-        status: ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((value) => ({ label: value, value })),
+        status: ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((value) => ({ label: value, value })),
         priority: ['Urgent', 'High', 'Medium', 'Low'].map((value) => ({ label: value, value })),
         task_type: TASK_TYPES.map((value) => ({ label: value, value })),
         tag: this.allTags.map((value) => ({ label: value, value })),
@@ -837,10 +1068,19 @@ export default {
         .map((value) => value.trim().toLowerCase())
         .filter(Boolean)
     },
-    toggleInlinePopover(taskName, field) {
+    toggleInlinePopover(taskName, field, event) {
       if (this.inlinePopover.name === taskName && this.inlinePopover.field === field) {
         this.inlinePopover = { name: null, field: null }
       } else {
+        // ponytail: fixed positioning so popovers escape the overflow-x-auto list
+        // container, which otherwise scrolls/clips when the list is short
+        const rect = event?.currentTarget?.getBoundingClientRect()
+        if (rect) {
+          this.inlinePopoverStyle = {
+            top: `${rect.bottom + 4}px`,
+            left: `${Math.min(Math.max(rect.left, 8), window.innerWidth - 240)}px`,
+          }
+        }
         this.inlinePopover = { name: taskName, field }
       }
     },
@@ -889,6 +1129,7 @@ export default {
         Backlog: 'bg-surface-gray-1',
         Todo: 'bg-amber-50',
         'In Progress': 'bg-pink-50',
+        'Ready for Testing': 'bg-indigo-50',
         'Under Testing': 'bg-surface-blue-1',
         'Ready to Merge': 'bg-green-50',
         Done: 'bg-green-50',
@@ -897,16 +1138,48 @@ export default {
       }[status] || 'bg-surface-gray-1'
     },
 
+    // Depth in the parent_task tree (root = 0), used to delete children first.
+    taskDepth(name) {
+      const byName = {}
+      for (const t of this.tasks.data || []) byName[t.name] = t
+      let depth = 0
+      let cur = byName[name]
+      const seen = new Set()
+      while (cur?.parent_task && byName[cur.parent_task] && !seen.has(cur.name)) {
+        seen.add(cur.name)
+        depth++
+        cur = byName[cur.parent_task]
+      }
+      return depth
+    },
     // Selection helpers
     isSelected(name) {
       return this.selectedTasks.includes(name)
     },
+    descendantNames(name) {
+      // All subtask names under `name`, recursively (children, grandchildren, …).
+      const out = []
+      const stack = [name]
+      const all = this.filteredTasks
+      while (stack.length) {
+        const parent = String(stack.pop())
+        for (const t of all) {
+          if (t.parent_task != null && String(t.parent_task) === parent && !out.includes(t.name)) {
+            out.push(t.name)
+            stack.push(t.name)
+          }
+        }
+      }
+      return out
+    },
     toggleTask(name) {
-      const idx = this.selectedTasks.indexOf(name)
-      if (idx > -1) {
-        this.selectedTasks.splice(idx, 1)
-      } else {
-        this.selectedTasks.push(name)
+      const selecting = !this.isSelected(name)
+      // Cascade to subtasks so selecting a parent selects its whole subtree too.
+      const names = [name, ...this.descendantNames(name)]
+      for (const n of names) {
+        const idx = this.selectedTasks.indexOf(n)
+        if (selecting && idx === -1) this.selectedTasks.push(n)
+        else if (!selecting && idx > -1) this.selectedTasks.splice(idx, 1)
       }
     },
     isGroupFullySelected(group) {
@@ -916,22 +1189,30 @@ export default {
       return group.tasks.some((t) => this.isSelected(t.name)) && !this.isGroupFullySelected(group)
     },
     toggleGroup(group) {
+      // Cascade to subtasks too (children may live in a different status group).
+      const names = new Set()
+      group.tasks.forEach((t) => {
+        names.add(t.name)
+        this.descendantNames(t.name).forEach((n) => names.add(n))
+      })
       if (this.isGroupFullySelected(group)) {
-        group.tasks.forEach((t) => {
-          const idx = this.selectedTasks.indexOf(t.name)
+        names.forEach((n) => {
+          const idx = this.selectedTasks.indexOf(n)
           if (idx > -1) this.selectedTasks.splice(idx, 1)
         })
       } else {
-        group.tasks.forEach((t) => {
-          if (!this.isSelected(t.name)) this.selectedTasks.push(t.name)
+        names.forEach((n) => {
+          if (!this.isSelected(n)) this.selectedTasks.push(n)
         })
       }
     },
     clearSelection() {
       this.selectedTasks = []
       this.activePopover = null
+      this.showExportPopover = false
     },
     togglePopover(name) {
+      this.showExportPopover = false
       if (name === 'copy-project' && !this.canCopySelectionToProject) {
         this.$dialog({
           title: 'Cannot copy selection',
@@ -960,6 +1241,29 @@ export default {
       if (!option) return
       this.activePopover = null
       this.bulkUpdate('project', option.value)
+    },
+    async bulkAddAssignee(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const task of this.selectedTaskDocs) {
+        const existing = this.assigneeIds(task)
+        if (existing.includes(option.value)) continue
+        await this.tasks.setValue.submit({
+          name: task.name,
+          assignees: [...existing, option.value].map((user) => ({ user })),
+        })
+      }
+      this.clearSelection()
+      this.tasks.reload()
+    },
+    async bulkAddTag(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const name of this.selectedTasks) {
+        await call('frappe.desk.doctype.tag.tag.add_tag', { tag: option.value, dt: 'GP Task', dn: name })
+      }
+      this.clearSelection()
+      this.tasks.reload()
     },
     async bulkCopyToProject(option) {
       if (!option) return
@@ -993,10 +1297,16 @@ export default {
       this.clearSelection()
       this.tasks.reload()
     },
-    bulkMoveToSprint(option) {
+    async bulkMoveToSprint(option) {
       if (!option) return
       this.activePopover = null
-      this.bulkUpdate('sprint', option.value)
+      // Moving into a sprint detaches the task from its project so it no longer
+      // shows up in the project's task list.
+      for (const name of this.selectedTasks) {
+        await this.tasks.setValue.submit({ name, sprint: option.value, project: null })
+      }
+      this.clearSelection()
+      this.tasks.reload()
     },
     async bulkCopyToSprint(option) {
       if (!option) return
@@ -1087,12 +1397,26 @@ export default {
             theme: 'red',
             variant: 'solid',
             onClick: async (close) => {
-              for (const task of deletableTasks) {
-                await this.tasks.delete.submit(task.name)
+              // Delete deepest-first so a child is removed before its parent,
+              // otherwise Frappe's link check blocks deleting the parent.
+              const byDepth = [...deletableTasks].sort(
+                (a, b) => this.taskDepth(b.name) - this.taskDepth(a.name),
+              )
+              const errors = []
+              for (const task of byDepth) {
+                try {
+                  await this.tasks.delete.submit(task.name)
+                } catch (e) {
+                  const raw = e?.messages?.[0] || e?.message || `Failed to delete ${task.title}`
+                  errors.push(raw.replace(/<[^>]+>/g, ''))
+                }
               }
               close()
               this.clearSelection()
               this.tasks.reload()
+              if (errors.length) {
+                this.$dialog({ title: 'Some tasks could not be deleted', message: errors.join('\n') })
+              }
             },
           },
         ],
@@ -1276,11 +1600,20 @@ export default {
       const selected = new Set(this.selectedTasks)
       return (this.tasks.data || []).filter((task) => selected.has(task.name))
     },
+    exportColumnDefs() {
+      return getExportColumnDefs()
+    },
+    hasExportColumnsSelected() {
+      return this.exportColumnDefs.some((col) => this.exportColumnSelection[col.key])
+    },
     bulkStatusOptions() {
       return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })
     },
     bulkTaskTypeOptions() {
       return this.taskTypeOptions({ onClick: (task_type) => this.bulkUpdate('task_type', task_type) })
+    },
+    bulkTagOptions() {
+      return this.allTags.map((tag) => ({ label: tag, value: tag }))
     },
     bulkPriorityOptions() {
       return [
@@ -1311,7 +1644,7 @@ export default {
       if (!this.groupByStatus) {
         return [{ id: 'all', title: '', tasks: this.topLevelTasks }]
       }
-      return ['In Progress', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Ready to Merge', 'Ready for Testing', 'Under Testing', 'QA Accepted', 'Done', 'Live', 'Reopen', 'Hold', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,
@@ -1320,7 +1653,7 @@ export default {
       })
     },
     kanbanGroups() {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,

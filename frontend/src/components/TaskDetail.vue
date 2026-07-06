@@ -20,27 +20,7 @@
             :options="[
               {
                 label: 'Delete',
-                onClick: () => {
-                  $dialog({
-                    title: 'Delete task',
-                    message: 'Are you sure you want to delete this task?',
-                    actions: [
-                      {
-                        label: 'Delete',
-                        theme: 'red',
-                        variant: 'solid',
-                        onClick(close) {
-                          return $resources.task.delete.submit(null, {
-                            onSuccess() {
-                              close()
-                              $router.back()
-                            },
-                          })
-                        },
-                      },
-                    ],
-                  })
-                },
+                onClick: () => confirmDeleteTask(),
               },
             ]"
           >
@@ -50,18 +30,22 @@
           </Dropdown>
         </div>
         <div class="mb-3">
-          <input
-            type="text"
+          <textarea
+            ref="titleTextarea"
+            rows="1"
             placeholder="Title"
-            class="-ml-0.5 w-full rounded-sm border-none bg-surface-white p-0.5 text-2xl font-semibold text-ink-gray-9 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+            class="-ml-0.5 w-full resize-none overflow-hidden rounded-sm border-none bg-surface-white p-0.5 text-2xl font-semibold text-ink-gray-9 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
             @change="
               $resources.task.setValueDebounced.submit({
                 title: $event.target.value,
               })
             "
+            @keydown.enter.prevent="$event.target.blur()"
+            @input="resizeTitle"
             v-model="$resources.task.doc.title"
             v-focus
-          />
+            maxlength="140"
+          ></textarea>
         </div>
         <div class="mb-8 grid max-w-4xl grid-cols-1 gap-x-12 gap-y-4 border-b border-outline-gray-2 pb-8 text-base text-ink-gray-7 md:grid-cols-2">
           <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
@@ -196,17 +180,27 @@
           ref="description"
           editor-class="prose-sm max-w-none focus-within:ring-2 focus-within:ring-outline-gray-3 rounded-sm p-0.5 -ml-0.5 min-h-[4rem]"
           placeholder="Description"
-          :content="$resources.task.doc.description"
+          :content="descriptionContent"
           :bubbleMenu="true"
-          :floatingMenu="true"
-          @blur="
-            !$refs.description.editor.isEmpty
-              ? $resources.task.setValueDebounced.submit({
-                  description: $refs.description.editor.getHTML(),
-                })
-              : null
-          "
-        />
+          @blur="saveDescription"
+        >
+          <!-- Custom toolbar: @mousedown.prevent keeps the editor focused so
+               commands apply on the first click (frappe-ui's built-in menus
+               blur the editor and swallow the first click). -->
+          <template #top>
+            <div
+              class="mb-1 flex flex-wrap items-center gap-0.5 border-b border-outline-gray-2 pb-1"
+              @mousedown.prevent
+            >
+              <button v-for="b in descriptionToolbar" :key="b.label" type="button"
+                class="flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+                :class="b.isActive() ? 'bg-surface-gray-3 text-ink-gray-9' : ''"
+                :title="b.label"
+                @click="b.run"
+              >{{ b.text }}</button>
+            </div>
+          </template>
+        </TextEditor>
         <ChildTasks
           class="mt-8 border-t border-outline-gray-2 pt-6"
           :parentTaskId="taskId"
@@ -279,7 +273,11 @@ import { getTeamProjects } from '@/data/projects'
 
 export default {
   name: 'TaskDetail',
-  props: ['taskId'],
+  props: {
+    taskId: { type: [String, Number], required: true },
+    embedded: { type: Boolean, default: false },
+  },
+  emits: ['close', 'switch-task'],
   directives: { focus },
   resources: {
     parentTask() {
@@ -315,6 +313,12 @@ export default {
           },
         },
         onSuccess(doc) {
+          // Seed the editor only when a different task loads — not on save echoes,
+          // which would revert in-progress edits (e.g. applying a numbered list).
+          if (String(doc.name) !== String(this.descriptionLoadedFor)) {
+            this.descriptionLoadedFor = doc.name
+            this.descriptionContent = doc.description || ''
+          }
           if (
             ['ProjectTaskDetail', 'Task'].includes(this.$route.name) &&
             Number(this.$route.params.taskId) === doc.name
@@ -323,6 +327,7 @@ export default {
           }
           this.$resources.task.getLinkedTeams.submit()
           this.loadDocTags()
+          this.resizeTitle()
         },
       }
     },
@@ -341,6 +346,8 @@ export default {
       tagSelection: null,
       allTagSuggestions: [],
       tagSearchQuery: '',
+      descriptionContent: '',
+      descriptionLoadedFor: null,
     }
   },
   watch: {
@@ -349,21 +356,85 @@ export default {
       this.loadDocTags()
     },
   },
+  created() {
+    this.$watch(
+      () => this.$resources?.task?.doc?.title,
+      () => {
+        this.resizeTitle()
+      }
+    )
+    this.$watch(
+      () => this.$resources?.task?.doc,
+      (doc) => {
+        if (doc && String(doc.name) === String(this.taskId)) {
+          if (String(doc.name) !== String(this.descriptionLoadedFor)) {
+            this.descriptionLoadedFor = doc.name
+            this.descriptionContent = doc.description || ''
+          }
+        }
+      },
+      { immediate: true }
+    )
+  },
   mounted() {
     this.restoreActivityPanelWidth()
     this.loadDocTags()
     this.fetchTagSuggestions('')
+    this.resizeTitle()
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
     window.addEventListener('resize', this.onWindowResize)
   },
   beforeUnmount() {
+    this.saveDescription() // flush unsaved description on back/navigation
     window.removeEventListener('mousemove', this.onActivityResize)
     window.removeEventListener('mouseup', this.stopActivityResize)
     window.removeEventListener('resize', this.onWindowResize)
     document.body.classList.remove('select-none', 'cursor-col-resize')
   },
   methods: {
+    confirmDeleteTask() {
+      this.$dialog({
+        title: 'Delete task',
+        message: 'Are you sure you want to delete this task?',
+        actions: [
+          {
+            label: 'Delete',
+            theme: 'red',
+            variant: 'solid',
+            onClick: (close) => {
+              return this.$resources.task.delete.submit(null, {
+                onSuccess: () => {
+                  close()
+                  if (this.embedded) {
+                    this.$emit('close')
+                  } else {
+                    this.$router.back()
+                  }
+                },
+              })
+            },
+          },
+        ],
+      })
+    },
+    resizeTitle() {
+      this.$nextTick(() => {
+        const el = this.$refs.titleTextarea
+        if (el) {
+          el.style.height = 'auto'
+          el.style.height = el.scrollHeight + 'px'
+        }
+      })
+    },
+    saveDescription() {
+      const editor = this.$refs.description?.editor
+      if (!editor) return
+      // Empty editor -> save "" so a cleared description actually persists.
+      const html = editor.isEmpty ? '' : editor.getHTML()
+      if (html === (this.$resources.task.doc.description || '')) return // nothing changed
+      this.$resources.task.setValue.submit({ description: html })
+    },
     restoreActivityPanelWidth() {
       const savedWidth = Number(localStorage.getItem('gameplan_task_activity_width'))
       if (savedWidth) {
@@ -490,14 +561,19 @@ export default {
       })
     },
     openParentTask() {
-      const parent = this.$resources.parentTask?.doc
       const parentId = this.$resources.task.doc.parent_task
+      if (this.embedded) {
+        this.$emit('switch-task', parentId)
+        return
+      }
+      const parent = this.$resources.parentTask?.doc
       this.$router.push({
         name: parent?.project ? 'ProjectTaskDetail' : 'Task',
         params: { teamId: parent?.team, projectId: parent?.project, taskId: parentId },
       })
     },
     updateRoute() {
+      if (this.embedded) return
       let task = this.$resources.task.doc
       if (task) {
         this.$router.replace({
@@ -512,6 +588,20 @@ export default {
     },
   },
   computed: {
+    descriptionToolbar() {
+      const ed = () => this.$refs.description?.editor
+      const chain = () => ed().chain().focus()
+      return [
+        { label: 'Paragraph', text: 'T', run: () => chain().setParagraph().run(), isActive: () => ed()?.isActive('paragraph') },
+        { label: 'Heading 2', text: 'H2', run: () => chain().toggleHeading({ level: 2 }).run(), isActive: () => ed()?.isActive('heading', { level: 2 }) },
+        { label: 'Heading 3', text: 'H3', run: () => chain().toggleHeading({ level: 3 }).run(), isActive: () => ed()?.isActive('heading', { level: 3 }) },
+        { label: 'Bullet List', text: '•', run: () => chain().toggleBulletList().run(), isActive: () => ed()?.isActive('bulletList') },
+        { label: 'Numbered List', text: '1.', run: () => chain().toggleOrderedList().run(), isActive: () => ed()?.isActive('orderedList') },
+        { label: 'Quote', text: '❝', run: () => chain().toggleBlockquote().run(), isActive: () => ed()?.isActive('blockquote') },
+        { label: 'Code', text: '</>', run: () => chain().toggleCodeBlock().run(), isActive: () => ed()?.isActive('codeBlock') },
+        { label: 'Divider', text: '—', run: () => chain().setHorizontalRule().run(), isActive: () => false },
+      ]
+    },
     activityFilterLabel() {
       return {
         all: 'All',
@@ -556,7 +646,7 @@ export default {
       return this.assignableUsers.filter((o) => !ids.has(o.value))
     },
     statusOptions() {
-      return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,

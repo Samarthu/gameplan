@@ -22,7 +22,7 @@
           compact
           :listOptions="{
             filters: {
-              status: ['in', ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge']],
+              status: ['in', ['Backlog', 'Todo', 'In Progress', 'Ready for Testing', 'Under Testing', 'Ready to Merge']],
               assigned_or_owner: $user().name,
             },
             pageLength,

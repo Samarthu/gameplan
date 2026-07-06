@@ -36,6 +36,13 @@
       clip-rule="evenodd"
     />
     <path
+      v-else-if="status == 'Ready for Testing'"
+      fill="currentColor"
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm0-1.75a5.25 5.25 0 1 1 0-10.5 5.25 5.25 0 0 1 0 10.5ZM6.5 4h3v1h-.5v1h2l2 5.5H5L7 6h2V5h-.5V4Z"
+    />
+    <path
       v-else-if="status == 'Under Testing'"
       fill="currentColor"
       fill-rule="evenodd"
@@ -63,6 +70,13 @@
       clip-rule="evenodd"
       d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1ZM3.5 8A4.5 4.5 0 0 1 8 3.5V2a6 6 0 1 0 4.243 1.757L13.5 2.5H10v3.5l1.318-1.318A4.5 4.5 0 1 1 3.5 8Z"
     />
+    <path
+      v-else
+      fill="currentColor"
+      fill-rule="evenodd"
+      d="M8 13A5 5 0 1 0 8 3a5 5 0 0 0 0 10Zm0 2A7 7 0 1 0 8 1a7 7 0 0 0 0 14Z"
+      clip-rule="evenodd"
+    />
   </svg>
 </template>
 <script>
@@ -80,7 +94,7 @@ export default {
   },
   computed: {
     statusColorClass() {
-      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled' && this.status !== 'Reopen') {
+      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled' && this.status !== 'Not a Bug' && this.status !== 'Reopen') {
         return 'text-red-500'
       }
       switch (this.status) {
@@ -88,6 +102,8 @@ export default {
           return 'text-green-600'
         case 'In Progress':
           return 'text-blue-500'
+        case 'Ready for Testing':
+          return 'text-indigo-500'
         case 'Under Testing':
           return 'text-purple-500'
         case 'Ready to Merge':
@@ -96,8 +112,16 @@ export default {
           return 'text-amber-500'
         case 'Cancelled':
           return 'text-red-400'
+        case 'Not a Bug':
+          return 'text-slate-500'
         case 'Reopen':
           return 'text-orange-500'
+        case 'Hold':
+          return 'text-yellow-600'
+        case 'QA Accepted':
+          return 'text-emerald-500'
+        case 'Live':
+          return 'text-green-600'
         case 'Backlog':
         default:
           return 'text-gray-400'

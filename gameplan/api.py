@@ -39,6 +39,7 @@ def get_user_info(user=None):
 			users.append(session_user_doc)
 
 	roles = frappe.db.get_all("Has Role", filters={"parenttype": "User"}, fields=["role", "parent"])
+	desk_roles = set(frappe.get_all("Role", filters={"desk_access": 1}, pluck="name"))
 	user_profiles = frappe.db.get_all(
 		"GP User Profile",
 		fields=[
@@ -68,6 +69,7 @@ def get_user_info(user=None):
 		user.is_system_manager = (
 			"System Manager" in user_roles or user.name == "Administrator"
 		)
+		user.has_desk_access = bool(set(user_roles) & desk_roles)
 	return users
 
 

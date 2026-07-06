@@ -219,7 +219,6 @@
               <span class="whitespace-nowrap font-semibold">{{ project.doc.title }}</span> project
               to the selected project. This change is irreversible!
             </p>
-            {{ projectMergeDialog.project }}
             <Autocomplete
               :options="mergeProjectsList"
               v-model="projectMergeDialog.project"
@@ -236,29 +235,7 @@
               class="w-full"
               variant="solid"
               :loading="project.mergeWithProject.loading"
-              @click="
-                () => {
-                  project.mergeWithProject.submit(
-                    { project: projectMergeDialog.project?.value },
-                    {
-                      validate() {
-                        if (!projectMergeDialog.project?.value) {
-                          return 'Please select a project to merge'
-                        }
-                      },
-                      onSuccess() {
-                        if (projectMergeDialog.project.value) {
-                          projectMergeDialog.show = false
-                          return $router.replace({
-                            name: 'Project',
-                            params: { projectId: projectMergeDialog.project.value },
-                          })
-                        }
-                      },
-                    },
-                  )
-                }
-              "
+              @click="onProjectMerge"
             >
               {{
                 projectMergeDialog.project
@@ -364,6 +341,7 @@ export default {
           label: d.title,
           value: d.name.toString(),
           icon: d.icon,
+          team: d.team,
         }))
     },
     goalLimitOptions() {
@@ -558,6 +536,48 @@ export default {
       })
       this.projectMoveDialog.team = null
       this.project.moveToTeam.reset()
+    },
+    onProjectMerge() {
+      const selected = this.projectMergeDialog.project
+      if (!selected?.value) {
+        this.$dialog({
+          title: 'Select a project',
+          message: 'Please select a project to merge into.',
+        })
+        return
+      }
+
+      const targetId = selected.value.toString()
+      const targetTeam =
+        selected.team ||
+        projects.data?.find((p) => p.name?.toString() === targetId)?.team ||
+        this.team.doc.name
+
+      this.project.mergeWithProject.submit(
+        { project: targetId },
+        {
+          onSuccess: () => {
+            this.projectMergeDialog.show = false
+            this.projectMergeDialog.project = null
+            this.project.mergeWithProject.reset()
+            projects.reload()
+
+            for (let team of teams.data || []) {
+              if (team.name === targetTeam) {
+                team.open = true
+              }
+            }
+
+            this.$router.replace({
+              name: 'ProjectOverview',
+              params: {
+                teamId: targetTeam,
+                projectId: targetId,
+              },
+            })
+          },
+        },
+      )
     },
   },
 }

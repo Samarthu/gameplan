@@ -22,6 +22,7 @@ import { h, computed, onMounted } from 'vue'
 import { Dropdown } from 'frappe-ui'
 import { showSettingsDialog } from '@/components/Settings/SettingsDialog.vue'
 import LucideCreditCard from '~icons/lucide/credit-card'
+import LucideLayoutDashboard from '~icons/lucide/layout-dashboard'
 import LucideMoon from '~icons/lucide/moon'
 import GameplanLogo from './GameplanLogo.vue'
 import { getUser } from '@/data/users'
@@ -48,6 +49,14 @@ const dropdownItems = computed(() => [
     icon: LucideMoon,
     label: 'Toggle theme',
     onClick: toggleTheme,
+  },
+  {
+    icon: LucideLayoutDashboard,
+    label: 'Switch to Desk',
+    condition: () => user.has_desk_access,
+    onClick: () => {
+      window.location.href = '/app'
+    },
   },
   {
     icon: () => h(LucideCreditCard),

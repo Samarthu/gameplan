@@ -6,6 +6,13 @@ import frappe
 
 
 def on_trash(doc, method):
+	if (
+		getattr(frappe.flags, "gameplan_merging_project", None)
+		and doc.doctype == "GP Project"
+		and frappe.utils.cstr(doc.name) == frappe.utils.cstr(frappe.flags.gameplan_merging_project)
+	):
+		return
+
 	to_delete = getattr(doc, "on_delete_cascade", [])
 	for doctype in to_delete:
 		for record in get_linked_records(doc.doctype, doc.name, doctype):

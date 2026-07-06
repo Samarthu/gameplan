@@ -32,7 +32,7 @@
           </div>
         </div>
         <div class="space-y-4">
-        <FormControl label="Title" v-model="newTask.title" autocomplete="off" />
+        <FormControl label="Title" v-model="newTask.title" autocomplete="off" maxlength="140" />
         <FormControl label="Description" type="textarea" v-model="newTask.description" />
         <div class="flex flex-wrap gap-3">
           <Dropdown
@@ -82,6 +82,15 @@
               :options="projectOptions"
               v-model="selectedProject"
               @update:modelValue="onProjectPicked"
+            />
+          </div>
+          <div class="space-y-2">
+            <div class="text-sm text-ink-gray-7">Sprint</div>
+            <Autocomplete
+              placeholder="Select sprint"
+              :options="sprintOptions"
+              v-model="selectedSprint"
+              @update:modelValue="onSprintPicked"
             />
           </div>
         </div>
@@ -178,7 +187,8 @@ import { Dialog, FormControl, Autocomplete, Dropdown, TextInput, createResource 
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import { activeUsers } from '@/data/users'
 import { activeTeams } from '@/data/teams'
-import { getTeamProjects } from '@/data/projects'
+import { getTeamProjects, getProject } from '@/data/projects'
+import { getTeamSprints } from '@/data/sprints'
 import { nextStackId, pushStack, removeStack, pillStyle as makePillStyle } from '@/utils/minimizedStack'
 
 const props = defineProps(['modelValue', 'defaults'])
@@ -214,6 +224,7 @@ const initialData = {
   status: 'Backlog',
   project: null,
   team: null,
+  sprint: null,
 }
 
 const newTask = ref({ ...initialData })
@@ -251,7 +262,7 @@ function closeFromPill() {
 }
 
 function statusOptions({ onClick }) {
-  return ['Backlog', 'Todo', 'In Progress', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Reopen'].map((status) => {
+  return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
     return {
       icon: () => h(TaskStatusIcon, { status }),
       label: status,
@@ -309,10 +320,16 @@ const selectedTeam = computed(() => {
 
 const projectOptions = computed(() => {
   if (!newTask.value.team) return []
-  return getTeamProjects(newTask.value.team).map((project) => ({
+  const options = getTeamProjects(newTask.value.team).map((project) => ({
     label: project.title,
     value: project.name.toString(),
   }))
+  // Include a pre-selected linked project even if it belongs to another team.
+  if (newTask.value.project && !options.find((o) => o.value == newTask.value.project)) {
+    const p = getProject(newTask.value.project)
+    if (p) options.push({ label: p.title, value: p.name.toString() })
+  }
+  return options
 })
 
 const selectedProject = computed(() => {
@@ -326,10 +343,31 @@ function onTeamPicked(option) {
   if (!projectOptions.value.find((o) => o.value == newTask.value.project)) {
     newTask.value.project = null
   }
+  // Clear sprint if it no longer belongs to the selected team
+  if (!sprintOptions.value.find((o) => o.value == newTask.value.sprint)) {
+    newTask.value.sprint = null
+  }
 }
 
 function onProjectPicked(option) {
   newTask.value.project = option?.value || null
+}
+
+const sprintOptions = computed(() => {
+  if (!newTask.value.team) return []
+  return getTeamSprints(newTask.value.team).map((sprint) => ({
+    label: sprint.title,
+    value: sprint.name.toString(),
+  }))
+})
+
+const selectedSprint = computed(() => {
+  if (!newTask.value.sprint) return null
+  return sprintOptions.value.find((o) => o.value == newTask.value.sprint) || null
+})
+
+function onSprintPicked(option) {
+  newTask.value.sprint = option?.value || null
 }
 
 function onAssigneePicked(option) {
@@ -355,6 +393,7 @@ function show({ defaults, onSuccess } = {}) {
     due_date: d.due_date ?? null,
     project: d.project ?? null,
     team: d.team ?? null,
+    sprint: d.sprint ?? null,
   }
   assigneeUserIds.value = []
   if (Array.isArray(d.assignees) && d.assignees.length) {
@@ -373,8 +412,16 @@ function show({ defaults, onSuccess } = {}) {
 }
 
 function onCreateClick(close) {
+  // Creating under a linked project (owned by another team): the task belongs to
+  // the project's own team, and the current team becomes a linked team.
+  const project = getProject(newTask.value.project)
+  const linkTeam =
+    project && newTask.value.team && project.team !== newTask.value.team
+      ? newTask.value.team
+      : null
   const newTaskDoc = {
     ...newTask.value,
+    team: linkTeam ? project.team : newTask.value.team,
     assignees: assigneeUserIds.value.map((user) => ({ user })),
   }
   createTask
@@ -384,7 +431,17 @@ function onCreateClick(close) {
           return 'Task title is required'
         }
       },
-      onSuccess: _onSuccess,
+      onSuccess: (doc) => {
+        if (linkTeam) {
+          // Reload only after the link exists, so the filtered list picks it up.
+          linkTaskToTeam.submit(
+            { task: doc.name, team: linkTeam, source_project: newTaskDoc.project },
+            { onSuccess: () => _onSuccess?.(doc) },
+          )
+        } else {
+          _onSuccess?.(doc)
+        }
+      },
     })
     .then(close)
 }
