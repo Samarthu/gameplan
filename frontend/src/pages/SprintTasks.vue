@@ -24,6 +24,7 @@
         </p>
       </div>
       <div class="flex items-center gap-2">
+        <TaskSearchInput v-if="taskListRef" v-model="taskListRef.searchQuery" />
         <Tooltip
           :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'"
         >
@@ -114,6 +115,7 @@ import { computed, ref } from 'vue'
 import { getCachedListResource, TabButtons, Tooltip, Dialog, FormControl, ErrorMessage, call } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import TaskList from '@/components/TaskList.vue'
+import TaskSearchInput from '@/components/TaskSearchInput.vue'
 import NewTaskDialog from '@/components/NewTaskDialog.vue'
 import { sprints, getSprint } from '@/data/sprints'
 import { getUser } from '@/data/users'

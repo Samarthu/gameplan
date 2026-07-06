@@ -23,7 +23,8 @@
           v-model="currentTab"
         />
         <div class="flex items-center gap-2">
-          <Tooltip :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'">
+          <TaskSearchInput v-if="taskListRef" v-model="taskListRef.searchQuery" />
+        <Tooltip :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'">
             <button
               type="button"
               class="relative grid h-8 w-8 place-items-center rounded-lg border border-outline-gray-2 bg-surface-white text-ink-gray-6 shadow-sm transition hover:bg-surface-gray-2 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
@@ -68,6 +69,7 @@ import { getCachedListResource, usePageMeta, Breadcrumbs, TabButtons, Tooltip } 
 import { useRoute, useRouter } from 'vue-router'
 import { getUser } from '@/data/users'
 import LucideListFilter from '~icons/lucide/list-filter'
+import TaskSearchInput from '@/components/TaskSearchInput.vue'
 
 let newTaskDialog = ref(null)
 let taskListRef = ref(null)

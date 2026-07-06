@@ -128,6 +128,7 @@ declare module 'vue' {
     TaskDetail: typeof import('./src/components/TaskDetail.vue')['default']
     TaskList: typeof import('./src/components/TaskList.vue')['default']
     TaskPriorityIcon: typeof import('./src/components/icons/TaskPriorityIcon.vue')['default']
+    TaskSearchInput: typeof import('./src/components/TaskSearchInput.vue')['default']
     TaskStatusIcon: typeof import('./src/components/icons/TaskStatusIcon.vue')['default']
     TeamHealthGrid: typeof import('./src/components/executive/TeamHealthGrid.vue')['default']
     TeamMembers: typeof import('./src/components/TeamMembers.vue')['default']

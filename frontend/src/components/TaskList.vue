@@ -659,6 +659,7 @@ export default {
       inlinePopover: { name: null, field: null },
       inlinePopoverStyle: {},
       selectedTag: null,
+      searchQuery: '',
       allTags: [],
       taskFilters: [],
       nextFilterId: 1,
@@ -1517,7 +1518,14 @@ export default {
       }).length + (this.selectedTag ? 1 : 0)
     },
     filteredTasks() {
+      const query = this.searchQuery.toLowerCase()
       return (this.tasks.data || []).filter((task) => {
+        if (query) {
+          const title = (task.title || '').toLowerCase()
+          // description is HTML — strip tags before matching
+          const description = (task.description || '').replace(/<[^>]*>/g, ' ').toLowerCase()
+          if (!title.includes(query) && !description.includes(query)) return false
+        }
         return this.taskFilters.every((filter) => this.taskMatchesFilter(task, filter))
       })
     },
