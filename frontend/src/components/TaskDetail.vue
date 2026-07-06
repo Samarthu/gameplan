@@ -632,7 +632,7 @@ export default {
       return this.assignableUsers.filter((o) => !ids.has(o.value))
     },
     statusOptions() {
-      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,

@@ -94,7 +94,7 @@ export default {
   },
   computed: {
     statusColorClass() {
-      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled' && this.status !== 'Reopen') {
+      if (this.overdue && this.status !== 'Done' && this.status !== 'Cancelled' && this.status !== 'Not a Bug' && this.status !== 'Reopen') {
         return 'text-red-500'
       }
       switch (this.status) {
@@ -112,6 +112,8 @@ export default {
           return 'text-amber-500'
         case 'Cancelled':
           return 'text-red-400'
+        case 'Not a Bug':
+          return 'text-slate-500'
         case 'Reopen':
           return 'text-orange-500'
         case 'Hold':
