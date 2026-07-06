@@ -30,6 +30,24 @@
       <div class="mb-5 flex items-center justify-between space-x-2">
         <h2 class="text-2xl font-semibold text-ink-gray-9">Projects</h2>
         <div class="flex items-stretch space-x-2">
+          <div class="relative w-56">
+            <LucideSearch class="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-gray-4" />
+            <input
+              v-model.trim="projectSearchQuery"
+              type="text"
+              placeholder="Search projects"
+              class="h-full w-full rounded-lg border border-outline-gray-2 bg-surface-white pl-8 pr-8 text-sm text-ink-gray-8 placeholder:text-ink-gray-4 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+            />
+            <button
+              v-if="projectSearchQuery"
+              type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-ink-gray-5 hover:text-ink-gray-8"
+              aria-label="Clear search"
+              @click="projectSearchQuery = ''"
+            >
+              <LucideX class="h-4 w-4" />
+            </button>
+          </div>
           <TabButtons :buttons="[{ label: 'Active' }, { label: 'Archived' }]" v-model="activeTab" />
           <Button :route="{ name: 'TeamTasks' }"> Tasks </Button>
           <Button v-if="teamProjects.length" @click="createNewProjectDialog = true" variant="solid">
@@ -188,6 +206,24 @@
       <div class="mb-5 flex items-center justify-between space-x-2">
         <h2 class="text-2xl font-semibold text-ink-gray-9">Sprints</h2>
         <div class="flex items-stretch space-x-2">
+          <div class="relative w-56">
+            <LucideSearch class="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-gray-4" />
+            <input
+              v-model.trim="sprintSearchQuery"
+              type="text"
+              placeholder="Search sprints"
+              class="h-full w-full rounded-lg border border-outline-gray-2 bg-surface-white pl-8 pr-8 text-sm text-ink-gray-8 placeholder:text-ink-gray-4 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
+            />
+            <button
+              v-if="sprintSearchQuery"
+              type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-ink-gray-5 hover:text-ink-gray-8"
+              aria-label="Clear search"
+              @click="sprintSearchQuery = ''"
+            >
+              <LucideX class="h-4 w-4" />
+            </button>
+          </div>
           <TabButtons
             :buttons="[{ label: 'All' }, { label: 'Planned' }, { label: 'Active' }, { label: 'Completed' }]"
             v-model="sprintTab"
@@ -294,6 +330,8 @@ export default {
   data() {
     return {
       createNewProjectDialog: false,
+      projectSearchQuery: '',
+      sprintSearchQuery: '',
       projectMinimized: false,
       projectStackId: nextStackId(),
       newProject: { title: '', is_private: 0 },
@@ -356,7 +394,10 @@ export default {
       return projects
     },
     projectsList() {
-      return this.activeTab === 'Active' ? this.activeProjects : this.archivedProjects
+      const list = this.activeTab === 'Active' ? this.activeProjects : this.archivedProjects
+      const query = this.projectSearchQuery.toLowerCase()
+      if (!query) return list
+      return list.filter((p) => (p.title || '').toLowerCase().includes(query))
     },
     activeProjects() {
       return [
@@ -371,8 +412,11 @@ export default {
       return getTeamProjects(this.team.name)
     },
     filteredSprints() {
-      if (this.sprintTab === 'All') return this.teamSprints
-      return this.teamSprints.filter((s) => s.status === this.sprintTab)
+      let list = this.teamSprints
+      if (this.sprintTab !== 'All') list = list.filter((s) => s.status === this.sprintTab)
+      const query = this.sprintSearchQuery.toLowerCase()
+      if (query) list = list.filter((s) => (s.title || '').toLowerCase().includes(query))
+      return list
     },
     teamSprints() {
       const counts = this.$resources.sprintTaskCounts.data || {}
