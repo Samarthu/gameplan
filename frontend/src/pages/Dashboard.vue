@@ -284,6 +284,7 @@ const STATUS_CLASSES = {
   Hold: 'bg-yellow-100 text-yellow-800',
   'QA Accepted': 'bg-emerald-100 text-emerald-800',
   Live: 'bg-green-100 text-green-800',
+  'Not a Bug': 'bg-slate-100 text-slate-600',
 }
 function statusClass(status) {
   return STATUS_CLASSES[status] || 'bg-gray-100 text-gray-600'

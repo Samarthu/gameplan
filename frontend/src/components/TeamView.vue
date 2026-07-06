@@ -202,7 +202,7 @@ import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
 import { getUser } from '@/data/users'
 
-const STATUS_ORDER = ['In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled']
+const STATUS_ORDER = ['In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Todo', 'Backlog', 'Done', 'Cancelled', 'Not a Bug']
 const STATUS_META = {
   Backlog: { dotClass: 'bg-gray-400', barClass: 'bg-gray-400' },
   Todo: { dotClass: 'bg-amber-500', barClass: 'bg-amber-500' },
@@ -216,11 +216,12 @@ const STATUS_META = {
   Hold: { dotClass: 'bg-yellow-600', barClass: 'bg-yellow-600' },
   'QA Accepted': { dotClass: 'bg-emerald-500', barClass: 'bg-emerald-500' },
   Live: { dotClass: 'bg-green-600', barClass: 'bg-green-600' },
+  'Not a Bug': { dotClass: 'bg-slate-400', barClass: 'bg-slate-400' },
 }
 const STATUS_GROUPS = [
   { label: 'Not started', statuses: ['Backlog', 'Todo'] },
   { label: 'Active', statuses: ['In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge'] },
-  { label: 'Closed', statuses: ['Done', 'Cancelled'] },
+  { label: 'Closed', statuses: ['Done', 'Cancelled', 'Not a Bug'] },
 ]
 const TASK_TYPES = [
   'Task',

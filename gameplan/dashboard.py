@@ -21,6 +21,7 @@ TASK_STATUSES = (
 	"Ready to Merge",
 	"Done",
 	"Cancelled",
+	"Not a Bug",
 )
 
 TASK_TYPES = (
