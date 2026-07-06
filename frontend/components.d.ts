@@ -100,6 +100,7 @@ declare module 'vue' {
     LucideUnfoldVertical: typeof import('~icons/lucide/unfold-vertical')['default']
     LucideUserPlus: typeof import('~icons/lucide/user-plus')['default']
     LucideUserPlus2: typeof import('~icons/lucide/user-plus2')['default']
+    LucideUsers: typeof import('~icons/lucide/users')['default']
     LucideX: typeof import('~icons/lucide/x')['default']
     LucideZap: typeof import('~icons/lucide/zap')['default']
     ManagementInsights: typeof import('./src/components/executive/ManagementInsights.vue')['default']

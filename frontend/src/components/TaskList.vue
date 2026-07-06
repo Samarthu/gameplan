@@ -376,6 +376,27 @@
             </div>
           </div>
 
+          <!-- Link team -->
+          <div class="relative">
+            <button
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('link-team')"
+            >
+              <LucideUsers class="h-3.5 w-3.5" />
+              Team
+            </button>
+            <div
+              v-if="activePopover === 'link-team'"
+              class="absolute w-56 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="teamOptions"
+                placeholder="Link to team..."
+                @update:modelValue="bulkLinkTeam"
+              />
+            </div>
+          </div>
+
           <!-- Copy to project -->
           <div class="relative">
             <Tooltip text="Copy to another project in the same team">
@@ -579,6 +600,7 @@ import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
 import TeamView from './TeamView.vue'
 import { activeProjects } from '@/data/projects'
+import { activeTeams } from '@/data/teams'
 import { activeUsers, getUser } from '@/data/users'
 import { sprints } from '@/data/sprints'
 import {
@@ -1225,6 +1247,18 @@ export default {
       this.activePopover = null
       this.bulkUpdate('project', option.value)
     },
+    async bulkLinkTeam(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const name of this.selectedTasks) {
+        await call('gameplan.gameplan.doctype.gp_task.gp_task.link_task_to_team', {
+          task: name,
+          team: option.value,
+        })
+      }
+      this.clearSelection()
+      this.tasks.reload()
+    },
     async bulkAddAssignee(option) {
       if (!option) return
       this.activePopover = null
@@ -1528,6 +1562,12 @@ export default {
         }
         return this.taskFilters.every((filter) => this.taskMatchesFilter(task, filter))
       })
+    },
+    teamOptions() {
+      return activeTeams.value.map((t) => ({
+        label: t.title,
+        value: t.name,
+      }))
     },
     projectOptions() {
       return activeProjects.value.map((p) => ({
