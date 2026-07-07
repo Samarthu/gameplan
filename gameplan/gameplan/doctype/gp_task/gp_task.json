@@ -22,6 +22,7 @@
   "project",
   "team",
   "sprint",
+  "is_project_sprint",
   "assigned_to",
   "assignees",
   "comments_count"
@@ -131,6 +132,13 @@
    "in_standard_filter": 1,
    "label": "Sprint",
    "options": "GP Sprint"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_project_sprint",
+   "fieldtype": "Check",
+   "label": "Is Project Sprint",
+   "read_only": 1
   },
   {
    "fieldname": "comments_count",

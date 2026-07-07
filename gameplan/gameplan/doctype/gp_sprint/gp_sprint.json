@@ -8,6 +8,7 @@
  "field_order": [
   "title",
   "team",
+  "project",
   "status",
   "column_break_1",
   "start_date",
@@ -31,6 +32,14 @@
    "label": "Team",
    "options": "GP Team",
    "reqd": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Project",
+   "options": "GP Project"
   },
   {
    "default": "Planned",
