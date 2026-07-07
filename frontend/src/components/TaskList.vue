@@ -1366,23 +1366,35 @@ export default {
         user.is_system_manager
       )
     },
+    // A task linked to both a project and a sprint only loses its sprint link
+    // on delete; the task itself is deleted only when one of the links is absent.
+    shouldUnlinkInsteadOfDelete(task) {
+      return Boolean(task.project && task.sprint)
+    },
+    async deleteOrUnlink(task) {
+      if (this.shouldUnlinkInsteadOfDelete(task)) {
+        await this.tasks.setValue.submit({ name: task.name, sprint: '' })
+      } else {
+        await this.tasks.delete.submit(task.name)
+      }
+    },
     confirmDeleteTask(task) {
+      const unlink = this.shouldUnlinkInsteadOfDelete(task)
       this.$dialog({
-        title: 'Delete task',
-        message: 'Are you sure you want to delete this task?',
+        title: unlink ? 'Remove sprint link' : 'Delete task',
+        message: unlink
+          ? 'This task is linked to both a project and a sprint, so only the sprint link will be removed (not deleted).'
+          : 'Are you sure you want to delete this task?',
         actions: [
           {
-            label: 'Delete',
+            label: unlink ? 'Remove link' : 'Delete',
             theme: 'red',
             variant: 'solid',
-            onClick: (close) => {
-              return this.tasks.delete.submit(task.name, {
-                onSuccess: () => {
-                  close()
-                  this.selectedTasks = this.selectedTasks.filter((name) => name !== task.name)
-                  this.tasks.reload()
-                },
-              })
+            onClick: async (close) => {
+              await this.deleteOrUnlink(task)
+              close()
+              this.selectedTasks = this.selectedTasks.filter((name) => name !== task.name)
+              this.tasks.reload()
             },
           },
         ],
@@ -1404,10 +1416,14 @@ export default {
       const skippedMessage = skippedCount
         ? ` ${skippedCount} selected ${skippedCount === 1 ? 'task is' : 'tasks are'} not deletable and will be skipped.`
         : ''
+      const unlinkCount = deletableTasks.filter((t) => this.shouldUnlinkInsteadOfDelete(t)).length
+      const unlinkMessage = unlinkCount
+        ? ` ${unlinkCount} ${unlinkCount === 1 ? 'task is' : 'tasks are'} linked elsewhere and will only lose the sprint link instead of being deleted.`
+        : ''
 
       this.$dialog({
         title: `Delete ${deletableTasks.length} ${taskLabel}`,
-        message: `Are you sure you want to delete ${deletableTasks.length} selected ${taskLabel}?${skippedMessage}`,
+        message: `Are you sure you want to delete ${deletableTasks.length} selected ${taskLabel}?${unlinkMessage}${skippedMessage}`,
         actions: [
           {
             label: 'Delete',
@@ -1422,7 +1438,7 @@ export default {
               const errors = []
               for (const task of byDepth) {
                 try {
-                  await this.tasks.delete.submit(task.name)
+                  await this.deleteOrUnlink(task)
                 } catch (e) {
                   const raw = e?.messages?.[0] || e?.message || `Failed to delete ${task.title}`
                   errors.push(raw.replace(/<[^>]+>/g, ''))

@@ -21,15 +21,24 @@
               {
                 label: 'Delete',
                 onClick: () => {
+                  const unlink = Boolean($resources.task.doc.project && $resources.task.doc.sprint)
                   $dialog({
-                    title: 'Delete task',
-                    message: 'Are you sure you want to delete this task?',
+                    title: unlink ? 'Remove sprint link' : 'Delete task',
+                    message: unlink
+                      ? 'This task is linked to both a project and a sprint, so only the sprint link will be removed (not deleted).'
+                      : 'Are you sure you want to delete this task?',
                     actions: [
                       {
-                        label: 'Delete',
+                        label: unlink ? 'Remove link' : 'Delete',
                         theme: 'red',
                         variant: 'solid',
                         onClick(close) {
+                          if (unlink) {
+                            return $resources.task.setValue.submit(
+                              { sprint: '' },
+                              { onSuccess: () => close() },
+                            )
+                          }
                           return $resources.task.delete.submit(null, {
                             onSuccess() {
                               close()
