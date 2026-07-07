@@ -383,6 +383,27 @@
             </div>
           </div>
 
+          <!-- Link team -->
+          <div class="relative">
+            <button
+              class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-gray-7 transition hover:bg-surface-gray-2"
+              @click="togglePopover('link-team')"
+            >
+              <LucideUsers class="h-3.5 w-3.5" />
+              Team
+            </button>
+            <div
+              v-if="activePopover === 'link-team'"
+              class="absolute w-56 p-2 mb-2 -translate-x-1/2 border rounded-lg shadow-lg bottom-full left-1/2 border-outline-gray-2 bg-surface-white"
+            >
+              <Autocomplete
+                :options="teamOptions"
+                placeholder="Link to team..."
+                @update:modelValue="bulkLinkTeam"
+              />
+            </div>
+          </div>
+
           <!-- Copy to project -->
           <div class="relative">
             <Tooltip text="Copy to another project in the same team">
@@ -587,6 +608,7 @@ import KanbanView from './KanbanView.vue'
 import TeamView from './TeamView.vue'
 import TaskDetailDialog from './TaskDetailDialog.vue'
 import { activeProjects } from '@/data/projects'
+import { activeTeams } from '@/data/teams'
 import { activeUsers, getUser } from '@/data/users'
 import { sprints } from '@/data/sprints'
 import {
@@ -667,6 +689,7 @@ export default {
       inlinePopover: { name: null, field: null },
       inlinePopoverStyle: {},
       selectedTag: null,
+      searchQuery: '',
       allTags: [],
       taskFilters: [],
       nextFilterId: 1,
@@ -1242,6 +1265,18 @@ export default {
       this.activePopover = null
       this.bulkUpdate('project', option.value)
     },
+    async bulkLinkTeam(option) {
+      if (!option) return
+      this.activePopover = null
+      for (const name of this.selectedTasks) {
+        await call('gameplan.gameplan.doctype.gp_task.gp_task.link_task_to_team', {
+          task: name,
+          team: option.value,
+        })
+      }
+      this.clearSelection()
+      this.tasks.reload()
+    },
     async bulkAddAssignee(option) {
       if (!option) return
       this.activePopover = null
@@ -1349,23 +1384,35 @@ export default {
         user.is_system_manager
       )
     },
+    // A task linked to both a project and a sprint only loses its sprint link
+    // on delete; the task itself is deleted only when one of the links is absent.
+    shouldUnlinkInsteadOfDelete(task) {
+      return Boolean(task.project && task.sprint)
+    },
+    async deleteOrUnlink(task) {
+      if (this.shouldUnlinkInsteadOfDelete(task)) {
+        await this.tasks.setValue.submit({ name: task.name, sprint: '' })
+      } else {
+        await this.tasks.delete.submit(task.name)
+      }
+    },
     confirmDeleteTask(task) {
+      const unlink = this.shouldUnlinkInsteadOfDelete(task)
       this.$dialog({
-        title: 'Delete task',
-        message: 'Are you sure you want to delete this task?',
+        title: unlink ? 'Remove sprint link' : 'Delete task',
+        message: unlink
+          ? 'This task is linked to both a project and a sprint, so only the sprint link will be removed (not deleted).'
+          : 'Are you sure you want to delete this task?',
         actions: [
           {
-            label: 'Delete',
+            label: unlink ? 'Remove link' : 'Delete',
             theme: 'red',
             variant: 'solid',
-            onClick: (close) => {
-              return this.tasks.delete.submit(task.name, {
-                onSuccess: () => {
-                  close()
-                  this.selectedTasks = this.selectedTasks.filter((name) => name !== task.name)
-                  this.tasks.reload()
-                },
-              })
+            onClick: async (close) => {
+              await this.deleteOrUnlink(task)
+              close()
+              this.selectedTasks = this.selectedTasks.filter((name) => name !== task.name)
+              this.tasks.reload()
             },
           },
         ],
@@ -1387,10 +1434,14 @@ export default {
       const skippedMessage = skippedCount
         ? ` ${skippedCount} selected ${skippedCount === 1 ? 'task is' : 'tasks are'} not deletable and will be skipped.`
         : ''
+      const unlinkCount = deletableTasks.filter((t) => this.shouldUnlinkInsteadOfDelete(t)).length
+      const unlinkMessage = unlinkCount
+        ? ` ${unlinkCount} ${unlinkCount === 1 ? 'task is' : 'tasks are'} linked elsewhere and will only lose the sprint link instead of being deleted.`
+        : ''
 
       this.$dialog({
         title: `Delete ${deletableTasks.length} ${taskLabel}`,
-        message: `Are you sure you want to delete ${deletableTasks.length} selected ${taskLabel}?${skippedMessage}`,
+        message: `Are you sure you want to delete ${deletableTasks.length} selected ${taskLabel}?${unlinkMessage}${skippedMessage}`,
         actions: [
           {
             label: 'Delete',
@@ -1405,7 +1456,7 @@ export default {
               const errors = []
               for (const task of byDepth) {
                 try {
-                  await this.tasks.delete.submit(task.name)
+                  await this.deleteOrUnlink(task)
                 } catch (e) {
                   const raw = e?.messages?.[0] || e?.message || `Failed to delete ${task.title}`
                   errors.push(raw.replace(/<[^>]+>/g, ''))
@@ -1535,9 +1586,22 @@ export default {
       }).length + (this.selectedTag ? 1 : 0)
     },
     filteredTasks() {
+      const query = this.searchQuery.toLowerCase()
       return (this.tasks.data || []).filter((task) => {
+        if (query) {
+          const title = (task.title || '').toLowerCase()
+          // description is HTML — strip tags before matching
+          const description = (task.description || '').replace(/<[^>]*>/g, ' ').toLowerCase()
+          if (!title.includes(query) && !description.includes(query)) return false
+        }
         return this.taskFilters.every((filter) => this.taskMatchesFilter(task, filter))
       })
+    },
+    teamOptions() {
+      return activeTeams.value.map((t) => ({
+        label: t.title,
+        value: t.name,
+      }))
     },
     projectOptions() {
       return activeProjects.value.map((p) => ({

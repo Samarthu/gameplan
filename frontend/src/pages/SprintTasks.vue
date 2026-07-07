@@ -3,6 +3,13 @@
     <div class="mb-4.5 flex flex-wrap items-center justify-between gap-3">
       <div>
         <div class="flex items-center gap-2">
+          <router-link
+            v-if="sprintProject"
+            :to="{ name: 'ProjectOverview', params: { teamId: props.teamId, projectId: sprintProject.name } }"
+            class="text-xl font-semibold text-ink-gray-5 hover:text-ink-gray-8"
+          >
+            {{ sprintProject.title }} <span class="text-ink-gray-4">/</span>
+          </router-link>
           <h2 class="text-xl font-semibold text-ink-gray-9">{{ sprint?.title }}</h2>
           <span
             v-if="sprint?.status"
@@ -24,6 +31,7 @@
         </p>
       </div>
       <div class="flex items-center gap-2">
+        <TaskSearchInput v-if="taskListRef" v-model="taskListRef.searchQuery" />
         <Tooltip
           :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'"
         >
@@ -114,8 +122,10 @@ import { computed, ref } from 'vue'
 import { getCachedListResource, TabButtons, Tooltip, Dialog, FormControl, ErrorMessage, call } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import TaskList from '@/components/TaskList.vue'
+import TaskSearchInput from '@/components/TaskSearchInput.vue'
 import NewTaskDialog from '@/components/NewTaskDialog.vue'
 import { sprints, getSprint } from '@/data/sprints'
+import { getProject } from '@/data/projects'
 import { getUser } from '@/data/users'
 import LucideListFilter from '~icons/lucide/list-filter'
 import LucidePencil from '~icons/lucide/pencil'
@@ -137,6 +147,7 @@ let newTaskDialog = ref(null)
 let taskListRef = ref(null)
 
 let sprint = computed(() => getSprint(props.sprintId))
+let sprintProject = computed(() => (sprint.value?.project ? getProject(sprint.value.project) : null))
 
 let viewMode = computed({
   get() {
@@ -250,6 +261,7 @@ function showNewTaskDialog(options = {}) {
     defaults: {
       team: props.teamId,
       sprint: props.sprintId,
+      project: sprint.value?.project || null,
       assigned_to: getUser('sessionUser').name,
       ...options,
     },

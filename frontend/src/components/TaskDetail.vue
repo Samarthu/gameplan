@@ -1,16 +1,16 @@
 <template>
-  <div class="flex h-full flex-1" v-if="$resources.task.doc">
+  <div class="flex flex-1 h-full" v-if="$resources.task.doc">
     <div class="min-w-[420px] flex-1 overflow-y-auto border-r border-outline-gray-2">
       <div class="relative p-6">
-        <div class="absolute right-0 top-0 p-6" v-show="$resources.task.setValueDebounced.loading">
+        <div class="absolute top-0 right-0 p-6" v-show="$resources.task.setValueDebounced.loading">
           <LoadingText v-if="!$resources.task.setValueDebounced.error" text="Saving..." />
           <ErrorMessage :message="$resources.task.setValueDebounced.error" />
         </div>
-        <div class="mb-6 flex items-center justify-between gap-2">
+        <div class="flex items-center justify-between gap-2 mb-6">
           <Dropdown :options="taskTypeOptions">
             <Button class="whitespace-nowrap">
               <template #prefix>
-                <LucideCircle class="h-4 w-4" />
+                <LucideCircle class="w-4 h-4" />
               </template>
               {{ $resources.task.doc.task_type || 'Task' }}
             </Button>
@@ -20,12 +20,41 @@
             :options="[
               {
                 label: 'Delete',
-                onClick: () => confirmDeleteTask(),
+                onClick: () => {
+                  const unlink = Boolean($resources.task.doc.project && $resources.task.doc.sprint)
+                  $dialog({
+                    title: unlink ? 'Remove sprint link' : 'Delete task',
+                    message: unlink
+                      ? 'This task is linked to both a project and a sprint, so only the sprint link will be removed (not deleted).'
+                      : 'Are you sure you want to delete this task?',
+                    actions: [
+                      {
+                        label: unlink ? 'Remove link' : 'Delete',
+                        theme: 'red',
+                        variant: 'solid',
+                        onClick(close) {
+                          if (unlink) {
+                            return $resources.task.setValue.submit(
+                              { sprint: '' },
+                              { onSuccess: () => close() },
+                            )
+                          }
+                          return $resources.task.delete.submit(null, {
+                            onSuccess() {
+                              close()
+                              $router.back()
+                            },
+                          })
+                        },
+                      },
+                    ],
+                  })
+                },
               },
             ]"
           >
             <Button variant="ghost">
-              <template #icon><LucideMoreHorizontal class="h-4 w-4" /></template>
+              <template #icon><LucideMoreHorizontal class="w-4 h-4" /></template>
             </Button>
           </Dropdown>
         </div>
@@ -47,7 +76,7 @@
             maxlength="140"
           ></textarea>
         </div>
-        <div class="mb-8 grid max-w-4xl grid-cols-1 gap-x-12 gap-y-4 border-b border-outline-gray-2 pb-8 text-base text-ink-gray-7 md:grid-cols-2">
+        <div class="grid max-w-4xl grid-cols-1 pb-8 mb-8 text-base border-b gap-x-12 gap-y-4 border-outline-gray-2 text-ink-gray-7 md:grid-cols-2">
           <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
             <template v-if="$resources.task.doc.parent_task">
               <div class="text-ink-gray-6">Parent Task</div>
@@ -100,7 +129,7 @@
                   <span class="truncate whitespace-nowrap">{{ $user(uid).full_name }}</span>
                   <button
                     type="button"
-                    class="shrink-0 leading-none text-ink-gray-5 hover:text-ink-gray-8"
+                    class="leading-none shrink-0 text-ink-gray-5 hover:text-ink-gray-8"
                     aria-label="Remove assignee"
                     @click="removeAssignee(uid)"
                   >
@@ -129,11 +158,11 @@
               <div
                 v-for="tag in taskTags"
                 :key="tag"
-                class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
+                class="flex items-center justify-between gap-2 px-2 py-1 rounded bg-surface-gray-2"
               >
                 <div class="flex items-center gap-1.5 min-w-0">
                   <LucideTag class="h-3.5 w-3.5 shrink-0 text-ink-gray-5" />
-                  <span class="truncate text-sm text-ink-gray-8">{{ tag }}</span>
+                  <span class="text-sm truncate text-ink-gray-8">{{ tag }}</span>
                 </div>
                 <Button variant="ghost" @click="removeTag(tag)" :aria-label="`Remove ${tag}`">
                   <template #icon><LucideTrash2 class="h-3.5 w-3.5" /></template>
@@ -152,9 +181,9 @@
                 <div
                   v-for="team in linkedTeams"
                   :key="team.name"
-                  class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
+                  class="flex items-center justify-between gap-2 px-2 py-1 rounded bg-surface-gray-2"
                 >
-                  <span class="truncate text-base text-ink-gray-8">{{ team.team_title || team.team }}</span>
+                  <span class="text-base truncate text-ink-gray-8">{{ team.team_title || team.team }}</span>
                   <Button
                     variant="ghost"
                     @click="unlinkTeam(team.team)"
@@ -162,7 +191,7 @@
                     :aria-label="`Remove ${team.team_title || team.team}`"
                   >
                     <template #icon>
-                      <LucideTrash2 class="h-4 w-4" />
+                      <LucideTrash2 class="w-4 h-4" />
                     </template>
                   </Button>
                 </div>
@@ -202,7 +231,7 @@
           </template>
         </TextEditor>
         <ChildTasks
-          class="mt-8 border-t border-outline-gray-2 pt-6"
+          class="pt-6 mt-8 border-t border-outline-gray-2"
           :parentTaskId="taskId"
           :parentTask="$resources.task.doc"
         />
@@ -210,7 +239,7 @@
       </div>
     </div>
     <div
-      class="group/resize relative hidden shrink-0 bg-surface-white xl:flex xl:flex-col"
+      class="relative hidden group/resize shrink-0 bg-surface-white xl:flex xl:flex-col"
       :style="{ width: `${activityPanelWidth}px` }"
     >
       <button
@@ -220,13 +249,28 @@
         @mousedown.prevent="startActivityResize"
       >
         <span
-          class="h-full w-px bg-outline-gray-2 transition group-hover/resize:bg-blue-400"
+          class="w-px h-full transition bg-outline-gray-2 group-hover/resize:bg-blue-400"
           :class="isResizingActivity ? 'bg-blue-500' : ''"
         ></span>
       </button>
-      <div class="border-b border-outline-gray-2 px-6 py-3 flex items-center justify-between">
-        <span class="text-base font-semibold text-ink-gray-9">Activity</span>
-        <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-4 py-3 border-b border-outline-gray-2">
+        <div class="flex shrink-0 items-center gap-1">
+          <button
+            v-for="tab in ['Activity', 'Attachments']"
+            :key="tab"
+            type="button"
+            class="whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-semibold"
+            :class="
+              activityTab === tab
+                ? 'bg-surface-gray-2 text-ink-gray-9'
+                : 'text-ink-gray-5 hover:text-ink-gray-8'
+            "
+            @click="activityTab = tab"
+          >
+            {{ tab }}
+          </button>
+        </div>
+        <div v-if="activityTab === 'Activity'" class="flex items-center gap-2">
           <Dropdown :options="activityFilterOptions">
             <button class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-outline-gray-2 bg-surface-white px-2.5 py-1.5 text-sm font-semibold text-ink-gray-8 shadow-sm hover:bg-surface-gray-1">
               {{ activityFilterLabel }}
@@ -241,8 +285,10 @@
           </Dropdown>
         </div>
       </div>
-      <div class="min-h-0 flex-1 flex flex-col">
+      <div class="flex flex-col flex-1 min-h-0">
+        <TaskAttachments v-if="activityTab === 'Attachments'" :taskId="taskId" />
         <CommentsList
+          v-else
           doctype="GP Task"
           :name="taskId"
           class="flex-1 min-h-0"
@@ -267,6 +313,7 @@ import CommentsList from '@/components/CommentsList.vue'
 import TaskStatusIcon from '@/components/icons/TaskStatusIcon.vue'
 import TaskPriorityIcon from '@/components/icons/TaskPriorityIcon.vue'
 import ChildTasks from '@/components/ChildTasks.vue'
+import TaskAttachments from '@/components/TaskAttachments.vue'
 import { activeUsers } from '@/data/users'
 import { activeTeams } from '@/data/teams'
 import { getTeamProjects } from '@/data/projects'
@@ -336,6 +383,7 @@ export default {
     return {
       linkedTeam: null,
       assigneeAddSelection: null,
+      activityTab: 'Activity',
       activityFilter: 'all',
       activitySort: 'desc',
       activityPanelWidth: 448,
@@ -761,6 +809,7 @@ export default {
     TaskPriorityIcon,
     DatePicker,
     ChildTasks,
+    TaskAttachments,
   },
 }
 </script>

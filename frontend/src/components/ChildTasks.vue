@@ -191,6 +191,14 @@ export default {
       })
     },
     deleteTask(task) {
+      // Linked to both a project and a sprint → only drop the sprint link.
+      if (task.project && task.sprint) {
+        this.$resources.updateTask.submit(
+          { doctype: 'GP Task', name: task.name, fieldname: 'sprint', value: '' },
+          { onSuccess: () => this.childTasks.reload() },
+        )
+        return
+      }
       this.$resources.deleteTaskResource.submit(
         { doctype: 'GP Task', name: task.name },
         { onSuccess: () => this.childTasks.reload() },
