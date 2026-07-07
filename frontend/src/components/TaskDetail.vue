@@ -254,8 +254,23 @@
         ></span>
       </button>
       <div class="flex items-center justify-between px-6 py-3 border-b border-outline-gray-2">
-        <span class="text-base font-semibold text-ink-gray-9">Activity</span>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1">
+          <button
+            v-for="tab in ['Activity', 'Attachments']"
+            :key="tab"
+            type="button"
+            class="rounded-md px-2.5 py-1.5 text-base font-semibold"
+            :class="
+              activityTab === tab
+                ? 'bg-surface-gray-2 text-ink-gray-9'
+                : 'text-ink-gray-5 hover:text-ink-gray-8'
+            "
+            @click="activityTab = tab"
+          >
+            {{ tab }}
+          </button>
+        </div>
+        <div v-if="activityTab === 'Activity'" class="flex items-center gap-2">
           <Dropdown :options="activityFilterOptions">
             <button class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-outline-gray-2 bg-surface-white px-2.5 py-1.5 text-sm font-semibold text-ink-gray-8 shadow-sm hover:bg-surface-gray-1">
               {{ activityFilterLabel }}
@@ -271,7 +286,9 @@
         </div>
       </div>
       <div class="flex flex-col flex-1 min-h-0">
+        <TaskAttachments v-if="activityTab === 'Attachments'" :taskId="taskId" />
         <CommentsList
+          v-else
           doctype="GP Task"
           :name="taskId"
           class="flex-1 min-h-0"
@@ -296,6 +313,7 @@ import CommentsList from '@/components/CommentsList.vue'
 import TaskStatusIcon from '@/components/icons/TaskStatusIcon.vue'
 import TaskPriorityIcon from '@/components/icons/TaskPriorityIcon.vue'
 import ChildTasks from '@/components/ChildTasks.vue'
+import TaskAttachments from '@/components/TaskAttachments.vue'
 import { activeUsers } from '@/data/users'
 import { activeTeams } from '@/data/teams'
 import { getTeamProjects } from '@/data/projects'
@@ -365,6 +383,7 @@ export default {
     return {
       linkedTeam: null,
       assigneeAddSelection: null,
+      activityTab: 'Activity',
       activityFilter: 'all',
       activitySort: 'desc',
       activityPanelWidth: 448,
@@ -790,6 +809,7 @@ export default {
     TaskPriorityIcon,
     DatePicker,
     ChildTasks,
+    TaskAttachments,
   },
 }
 </script>
