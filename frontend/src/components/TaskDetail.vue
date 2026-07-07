@@ -253,13 +253,13 @@
           :class="isResizingActivity ? 'bg-blue-500' : ''"
         ></span>
       </button>
-      <div class="flex items-center justify-between px-6 py-3 border-b border-outline-gray-2">
-        <div class="flex items-center gap-1">
+      <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-4 py-3 border-b border-outline-gray-2">
+        <div class="flex shrink-0 items-center gap-1">
           <button
             v-for="tab in ['Activity', 'Attachments']"
             :key="tab"
             type="button"
-            class="rounded-md px-2.5 py-1.5 text-base font-semibold"
+            class="whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-semibold"
             :class="
               activityTab === tab
                 ? 'bg-surface-gray-2 text-ink-gray-9'
