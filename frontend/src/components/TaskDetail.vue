@@ -1,16 +1,16 @@
 <template>
-  <div class="flex h-full flex-1" v-if="$resources.task.doc">
+  <div class="flex flex-1 h-full" v-if="$resources.task.doc">
     <div class="min-w-[420px] flex-1 overflow-y-auto border-r border-outline-gray-2">
       <div class="relative p-6">
-        <div class="absolute right-0 top-0 p-6" v-show="$resources.task.setValueDebounced.loading">
+        <div class="absolute top-0 right-0 p-6" v-show="$resources.task.setValueDebounced.loading">
           <LoadingText v-if="!$resources.task.setValueDebounced.error" text="Saving..." />
           <ErrorMessage :message="$resources.task.setValueDebounced.error" />
         </div>
-        <div class="mb-6 flex items-center justify-between gap-2">
+        <div class="flex items-center justify-between gap-2 mb-6">
           <Dropdown :options="taskTypeOptions">
             <Button class="whitespace-nowrap">
               <template #prefix>
-                <LucideCircle class="h-4 w-4" />
+                <LucideCircle class="w-4 h-4" />
               </template>
               {{ $resources.task.doc.task_type || 'Task' }}
             </Button>
@@ -54,7 +54,7 @@
             ]"
           >
             <Button variant="ghost">
-              <template #icon><LucideMoreHorizontal class="h-4 w-4" /></template>
+              <template #icon><LucideMoreHorizontal class="w-4 h-4" /></template>
             </Button>
           </Dropdown>
         </div>
@@ -76,7 +76,7 @@
             maxlength="140"
           ></textarea>
         </div>
-        <div class="mb-8 grid max-w-4xl grid-cols-1 gap-x-12 gap-y-4 border-b border-outline-gray-2 pb-8 text-base text-ink-gray-7 md:grid-cols-2">
+        <div class="grid max-w-4xl grid-cols-1 pb-8 mb-8 text-base border-b gap-x-12 gap-y-4 border-outline-gray-2 text-ink-gray-7 md:grid-cols-2">
           <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
             <template v-if="$resources.task.doc.parent_task">
               <div class="text-ink-gray-6">Parent Task</div>
@@ -129,7 +129,7 @@
                   <span class="truncate whitespace-nowrap">{{ $user(uid).full_name }}</span>
                   <button
                     type="button"
-                    class="shrink-0 leading-none text-ink-gray-5 hover:text-ink-gray-8"
+                    class="leading-none shrink-0 text-ink-gray-5 hover:text-ink-gray-8"
                     aria-label="Remove assignee"
                     @click="removeAssignee(uid)"
                   >
@@ -158,11 +158,11 @@
               <div
                 v-for="tag in taskTags"
                 :key="tag"
-                class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
+                class="flex items-center justify-between gap-2 px-2 py-1 rounded bg-surface-gray-2"
               >
                 <div class="flex items-center gap-1.5 min-w-0">
                   <LucideTag class="h-3.5 w-3.5 shrink-0 text-ink-gray-5" />
-                  <span class="truncate text-sm text-ink-gray-8">{{ tag }}</span>
+                  <span class="text-sm truncate text-ink-gray-8">{{ tag }}</span>
                 </div>
                 <Button variant="ghost" @click="removeTag(tag)" :aria-label="`Remove ${tag}`">
                   <template #icon><LucideTrash2 class="h-3.5 w-3.5" /></template>
@@ -181,9 +181,9 @@
                 <div
                   v-for="team in linkedTeams"
                   :key="team.name"
-                  class="flex items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1"
+                  class="flex items-center justify-between gap-2 px-2 py-1 rounded bg-surface-gray-2"
                 >
-                  <span class="truncate text-base text-ink-gray-8">{{ team.team_title || team.team }}</span>
+                  <span class="text-base truncate text-ink-gray-8">{{ team.team_title || team.team }}</span>
                   <Button
                     variant="ghost"
                     @click="unlinkTeam(team.team)"
@@ -191,7 +191,7 @@
                     :aria-label="`Remove ${team.team_title || team.team}`"
                   >
                     <template #icon>
-                      <LucideTrash2 class="h-4 w-4" />
+                      <LucideTrash2 class="w-4 h-4" />
                     </template>
                   </Button>
                 </div>
@@ -231,7 +231,7 @@
           </template>
         </TextEditor>
         <ChildTasks
-          class="mt-8 border-t border-outline-gray-2 pt-6"
+          class="pt-6 mt-8 border-t border-outline-gray-2"
           :parentTaskId="taskId"
           :parentTask="$resources.task.doc"
         />
@@ -239,7 +239,7 @@
       </div>
     </div>
     <div
-      class="group/resize relative hidden shrink-0 bg-surface-white xl:flex xl:flex-col"
+      class="relative hidden group/resize shrink-0 bg-surface-white xl:flex xl:flex-col"
       :style="{ width: `${activityPanelWidth}px` }"
     >
       <button
@@ -249,11 +249,11 @@
         @mousedown.prevent="startActivityResize"
       >
         <span
-          class="h-full w-px bg-outline-gray-2 transition group-hover/resize:bg-blue-400"
+          class="w-px h-full transition bg-outline-gray-2 group-hover/resize:bg-blue-400"
           :class="isResizingActivity ? 'bg-blue-500' : ''"
         ></span>
       </button>
-      <div class="border-b border-outline-gray-2 px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center justify-between px-6 py-3 border-b border-outline-gray-2">
         <span class="text-base font-semibold text-ink-gray-9">Activity</span>
         <div class="flex items-center gap-2">
           <Dropdown :options="activityFilterOptions">
@@ -270,7 +270,7 @@
           </Dropdown>
         </div>
       </div>
-      <div class="min-h-0 flex-1 flex flex-col">
+      <div class="flex flex-col flex-1 min-h-0">
         <CommentsList
           doctype="GP Task"
           :name="taskId"
@@ -302,7 +302,11 @@ import { getTeamProjects } from '@/data/projects'
 
 export default {
   name: 'TaskDetail',
-  props: ['taskId'],
+  props: {
+    taskId: { type: [String, Number], required: true },
+    embedded: { type: Boolean, default: false },
+  },
+  emits: ['close', 'switch-task'],
   directives: { focus },
   resources: {
     parentTask() {
@@ -418,6 +422,31 @@ export default {
     document.body.classList.remove('select-none', 'cursor-col-resize')
   },
   methods: {
+    confirmDeleteTask() {
+      this.$dialog({
+        title: 'Delete task',
+        message: 'Are you sure you want to delete this task?',
+        actions: [
+          {
+            label: 'Delete',
+            theme: 'red',
+            variant: 'solid',
+            onClick: (close) => {
+              return this.$resources.task.delete.submit(null, {
+                onSuccess: () => {
+                  close()
+                  if (this.embedded) {
+                    this.$emit('close')
+                  } else {
+                    this.$router.back()
+                  }
+                },
+              })
+            },
+          },
+        ],
+      })
+    },
     resizeTitle() {
       this.$nextTick(() => {
         const el = this.$refs.titleTextarea
@@ -561,14 +590,19 @@ export default {
       })
     },
     openParentTask() {
-      const parent = this.$resources.parentTask?.doc
       const parentId = this.$resources.task.doc.parent_task
+      if (this.embedded) {
+        this.$emit('switch-task', parentId)
+        return
+      }
+      const parent = this.$resources.parentTask?.doc
       this.$router.push({
         name: parent?.project ? 'ProjectTaskDetail' : 'Task',
         params: { teamId: parent?.team, projectId: parent?.project, taskId: parentId },
       })
     },
     updateRoute() {
+      if (this.embedded) return
       let task = this.$resources.task.doc
       if (task) {
         this.$router.replace({

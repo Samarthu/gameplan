@@ -7,7 +7,7 @@ export const dashboardFilters = ref({
   to_date: null,
   team: null,
   project: null,
-  people: null,
+  people: [],
 })
 
 export const dashboardData = createResource({
@@ -22,7 +22,7 @@ export const dashboardData = createResource({
     if (f.to_date) params.to_date = f.to_date
     if (f.team) params.team = f.team
     if (f.project) params.project = f.project
-    if (f.people) params.people = f.people
+    if (f.people?.length) params.people = JSON.stringify(f.people)
     return params
   },
 })

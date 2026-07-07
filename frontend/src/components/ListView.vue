@@ -72,7 +72,7 @@
             <!-- ── Compact card row (overview widgets) ── -->
             <div
               v-if="compact"
-              class="flex cursor-pointer items-center gap-3 rounded px-2 py-2.5 transition"
+              class="group/compact flex cursor-pointer items-center gap-3 rounded px-2 py-2.5 transition"
               :class="isSelected(d.name) ? 'bg-surface-blue-1' : 'hover:bg-surface-gray-2'"
               @click="$router.push(taskRoute(d))"
             >
@@ -96,6 +96,13 @@
                   </div>
                 </div>
               </div>
+              <button
+                type="button"
+                class="invisible shrink-0 rounded p-1 text-ink-gray-4 hover:bg-surface-gray-2 hover:text-ink-gray-7 group-hover/compact:visible"
+                @click.stop="$emit('view-task', d.name)"
+              >
+                <LucideEye class="h-4 w-4" />
+              </button>
             </div>
 
             <!-- ── Full table row (tasks page) ── -->
@@ -400,7 +407,16 @@
               </div>
 
               <!-- Row actions -->
-              <div class="flex w-20 shrink-0 items-center justify-end gap-1 pr-1 py-2">
+              <div class="flex w-20 shrink-0 items-center justify-end gap-1 py-2 pr-1">
+                <Tooltip text="View task">
+                  <button
+                    type="button"
+                    class="invisible grid h-6 w-6 shrink-0 place-items-center rounded text-ink-gray-4 hover:bg-surface-gray-2 hover:text-ink-gray-7 focus:visible focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3 group-hover:visible"
+                    @click.stop="$emit('view-task', d.name)"
+                  >
+                    <LucideEye class="h-3.5 w-3.5" />
+                  </button>
+                </Tooltip>
                 <Tooltip text="Delete task" v-if="canDeleteTask(d)">
                   <button
                     class="invisible grid h-6 w-6 shrink-0 place-items-center rounded text-ink-gray-4 hover:bg-surface-red-1 hover:text-red-500 focus:visible focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3 group-hover:visible"
@@ -456,6 +472,7 @@ import LucideX from '~icons/lucide/x'
 
 export default {
   name: 'ListView',
+  emits: ['view-task'],
   components: {
     LoadingIndicator,
     Dropdown,

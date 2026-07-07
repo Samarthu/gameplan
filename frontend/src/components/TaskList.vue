@@ -237,6 +237,7 @@
       :confirmDeleteTask="confirmDeleteTask"
       :toggleColumn="toggleColumn"
       :toggleColumnsPicker="toggleColumnsPicker"
+      @view-task="openTaskDialog"
     />
 
     <div
@@ -245,6 +246,12 @@
     >
       {{ tasks.data?.length ? 'No tasks match the selected filters' : 'No tasks' }}
     </div>
+
+    <TaskDetailDialog
+      v-model="showTaskDialog"
+      :task-id="selectedTaskId"
+      @closed="onTaskDialogClosed"
+    />
 
     <!-- Bulk action bar -->
     <Teleport to="body">
@@ -599,6 +606,7 @@ import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
 import TeamView from './TeamView.vue'
+import TaskDetailDialog from './TaskDetailDialog.vue'
 import { activeProjects } from '@/data/projects'
 import { activeTeams } from '@/data/teams'
 import { activeUsers, getUser } from '@/data/users'
@@ -717,6 +725,8 @@ export default {
         project:    { label: 'Project',     visible: saved.project    ?? true },
         team:       { label: 'Team',        visible: saved.team       ?? true },
       },
+      showTaskDialog: false,
+      selectedTaskId: null,
     }
   },
   watch: {
@@ -744,6 +754,7 @@ export default {
     ListView,
     KanbanView,
     TeamView,
+    TaskDetailDialog,
   },
   resources: {
     tasks() {
@@ -762,6 +773,13 @@ export default {
     },
   },
   methods: {
+    openTaskDialog(taskId) {
+      this.selectedTaskId = String(taskId)
+      this.showTaskDialog = true
+    },
+    onTaskDialogClosed() {
+      this.tasks.reload()
+    },
     syncGroupHeaderScroll(event) {
       this.horizontalScrollLeft = event.target.scrollLeft
     },

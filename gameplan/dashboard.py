@@ -51,13 +51,40 @@ def _resolve_range(from_date: str | None, to_date: str | None) -> tuple:
 
 
 def _tasks_for_user(user: str) -> list[str]:
-	"""Task names where the user is an assignee (child table)."""
-	return [
+	"""Task names where the user is primary or secondary assignee."""
+	names: set[str] = {
 		row.parent
 		for row in frappe.get_all(
 			"GP Task Assignee", filters={"user": user}, fields=["parent"], limit_page_length=0
 		)
-	]
+	}
+	for row in frappe.get_all(
+		"GP Task", filters={"assigned_to": user}, fields=["name"], limit_page_length=0
+	):
+		names.add(row.name)
+	return list(names)
+
+
+def _tasks_for_users(users: list[str]) -> list[str]:
+	"""Union of task names for multiple assignees."""
+	names: set[str] = set()
+	for user in users:
+		names.update(_tasks_for_user(user))
+	return list(names)
+
+
+def _parse_people(people) -> list[str]:
+	"""Accept a single user id, JSON array, or list."""
+	if not people:
+		return []
+	if isinstance(people, str):
+		parsed = frappe.parse_json(people)
+		if isinstance(parsed, list):
+			return [u for u in parsed if u]
+		return [people]
+	if isinstance(people, (list, tuple)):
+		return [u for u in people if u]
+	return []
 
 
 def _build_filters(start, end, team, project, people) -> dict:
@@ -117,9 +144,10 @@ def get_dashboard_data(
 	tree = None if is_admin else _reporting_tree(frappe.session.user)
 	filters = _build_filters(start, end, team, project, None)
 
-	if people:
+	people_list = _parse_people(people)
+	if people_list:
 		# A person can be a secondary assignee, so match the assignees child table.
-		filters["name"] = ["in", _tasks_for_user(people) or [""]]
+		filters["name"] = ["in", _tasks_for_users(people_list) or [""]]
 	elif tree is not None:
 		# No explicit person → scope to me + my whole reporting line (admins: unscoped).
 		filters["assigned_to"] = ["in", tree]
@@ -323,29 +351,34 @@ def _by_sprint(tasks) -> dict:
 
 
 def _people_in_scope(start, end, team, project, tree) -> list[dict]:
-	"""People (within the reporting tree) who have tasks in the current
-	date/team/project scope — ignores any selected person so the dropdown
-	stays complete. Always lists 'You' first."""
+	"""People who have tasks in the current date/team/project scope.
+
+	Includes both primary assignees (assigned_to) and secondary assignees
+	(GP Task Assignee child table). Always lists the current user first."""
 	me = frappe.session.user
 	scope = _build_filters(start, end, team, project, None)
 	if tree is not None:
 		scope["assigned_to"] = ["in", tree]
-	task_names = [
-		t.name
-		for t in frappe.get_all("GP Task", filters=scope, fields=["name"], limit_page_length=0)
-	]
-	assignees = set()
+	task_rows = frappe.get_all(
+		"GP Task",
+		filters=scope,
+		fields=["name", "assigned_to"],
+		limit_page_length=0,
+	)
+	assignees: set[str] = set()
+	for row in task_rows:
+		if row.assigned_to:
+			assignees.add(row.assigned_to)
+	task_names = [row.name for row in task_rows]
 	if task_names:
-		assignees = {
-			row.user
-			for row in frappe.get_all(
-				"GP Task Assignee",
-				filters={"parent": ["in", task_names]},
-				fields=["user"],
-				limit_page_length=0,
-			)
-			if row.user
-		}
+		for row in frappe.get_all(
+			"GP Task Assignee",
+			filters={"parent": ["in", task_names]},
+			fields=["user"],
+			limit_page_length=0,
+		):
+			if row.user:
+				assignees.add(row.user)
 	assignees.add(me)  # always offer self
 
 	names = {
