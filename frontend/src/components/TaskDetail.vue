@@ -362,7 +362,12 @@ export default {
         onSuccess(doc) {
           // Seed the editor only when a different task loads — not on save echoes,
           // which would revert in-progress edits (e.g. applying a numbered list).
-          if (String(doc.name) !== String(this.descriptionLoadedFor)) {
+          const editor = this.$refs.description?.editor
+          const isFocused = editor && editor.isFocused
+          if (
+            String(doc.name) !== String(this.descriptionLoadedFor) ||
+            (!isFocused && (doc.description || '') !== this.descriptionContent)
+          ) {
             this.descriptionLoadedFor = doc.name
             this.descriptionContent = doc.description || ''
           }
@@ -415,7 +420,12 @@ export default {
       () => this.$resources?.task?.doc,
       (doc) => {
         if (doc && String(doc.name) === String(this.taskId)) {
-          if (String(doc.name) !== String(this.descriptionLoadedFor)) {
+          const editor = this.$refs.description?.editor
+          const isFocused = editor && editor.isFocused
+          if (
+            String(doc.name) !== String(this.descriptionLoadedFor) ||
+            (!isFocused && (doc.description || '') !== this.descriptionContent)
+          ) {
             this.descriptionLoadedFor = doc.name
             this.descriptionContent = doc.description || ''
           }
