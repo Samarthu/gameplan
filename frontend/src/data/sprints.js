@@ -3,7 +3,7 @@ import { createListResource } from 'frappe-ui'
 
 export let sprints = createListResource({
   doctype: 'GP Sprint',
-  fields: ['name', 'title', 'team', 'status', 'start_date', 'end_date'],
+  fields: ['name', 'title', 'team', 'project', 'status', 'start_date', 'end_date'],
   orderBy: 'start_date desc',
   pageLength: 999,
   cache: 'Sprints',
@@ -24,6 +24,10 @@ export let sprints = createListResource({
 
 export function getTeamSprints(team) {
   return (sprints.data || []).filter((sprint) => sprint.team === team)
+}
+
+export function getProjectSprints(project) {
+  return (sprints.data || []).filter((sprint) => sprint.project?.toString() === project?.toString())
 }
 
 export let getSprint = (sprintId) => {

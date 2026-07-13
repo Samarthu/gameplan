@@ -3,6 +3,7 @@
     <div class="mb-4.5 flex flex-wrap items-center justify-between gap-3">
       <h2 class="text-xl font-semibold text-ink-gray-9">Tasks</h2>
       <div class="flex items-center gap-2">
+        <TaskSearchInput v-if="taskListRef" v-model="taskListRef.searchQuery" />
         <Tooltip :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'">
           <button
             type="button"
@@ -50,6 +51,7 @@ import { computed, ref } from 'vue'
 import { getCachedListResource, TabButtons, Tooltip } from 'frappe-ui'
 import { useRoute, useRouter } from 'vue-router'
 import TaskList from '@/components/TaskList.vue'
+import TaskSearchInput from '@/components/TaskSearchInput.vue'
 import NewTaskDialog from '@/components/NewTaskDialog.vue'
 import { getUser } from '@/data/users'
 import LucideListFilter from '~icons/lucide/list-filter'

@@ -15,12 +15,12 @@
 
         <div
           v-else-if="previewVariant === 'image'"
-          class="flex max-h-[80vh] items-center justify-center bg-surface-gray-1"
+          class="flex max-h-[65vh] items-center justify-center bg-surface-gray-1"
         >
           <img
             :src="file.file_url"
             :alt="displayName"
-            class="max-h-[80vh] w-auto max-w-full object-contain"
+            class="max-h-[65vh] w-auto max-w-full object-contain"
           />
         </div>
 
@@ -28,17 +28,17 @@
           v-else-if="previewVariant === 'pdf'"
           :src="pdfSrc"
           :title="displayName"
-          class="h-[80vh] w-full rounded-md bg-surface-gray-1"
+          class="h-[65vh] w-full rounded-md bg-surface-gray-1"
         />
 
         <div
           v-else-if="previewVariant === 'video'"
-          class="flex max-h-[80vh] items-center justify-center bg-black"
+          class="flex max-h-[65vh] items-center justify-center bg-black"
         >
           <video
             :src="file.file_url"
             controls
-            class="max-h-[80vh] w-full"
+            class="max-h-[65vh] w-full"
           />
         </div>
 

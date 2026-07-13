@@ -108,7 +108,7 @@ import { nextStackId, pushStack, removeStack, pillStyle } from '@/utils/minimize
 export default {
   name: 'AddSprintDialog',
   components: { Autocomplete },
-  props: ['show', 'team'],
+  props: ['show', 'team', 'project'],
   emits: ['success', 'update:show'],
   data() {
     return {
@@ -127,7 +127,7 @@ export default {
   methods: {
     createSprint() {
       sprints.insert.submit(
-        { ...this.newSprint, team: this.teamValue },
+        { ...this.newSprint, team: this.teamValue, project: this.project || null },
         {
           onSuccess: (sprint) => {
             this.$resetData('newSprint')

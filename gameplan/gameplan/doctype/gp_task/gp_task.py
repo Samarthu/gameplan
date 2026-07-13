@@ -150,6 +150,11 @@ class GPTask(HasMentions, HasActivity, Document):
 			self.completed_at = None
 			self.completed_by = None
 
+		# ponytail: recomputed on every save so it stays correct when sprint changes
+		self.is_project_sprint = bool(
+			self.sprint and frappe.db.get_value("GP Sprint", self.sprint, "project")
+		)
+
 	def before_insert(self):
 		if not self.task_type:
 			self.task_type = "Task"

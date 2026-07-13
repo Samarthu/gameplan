@@ -341,7 +341,8 @@ def _by_sprint(tasks) -> dict:
 		for row in frappe.get_all(
 			"GP Sprint", filters={"name": ["in", list(counts)]}, fields=["name", "title"]
 		):
-			titles[row.name] = row.title
+			# GP Sprint has integer names while task.sprint is a string
+			titles[str(row.name)] = row.title
 	labels = sorted(counts, key=lambda k: counts[k], reverse=True)
 	return {
 		"labels": [titles.get(k, k) for k in labels],
