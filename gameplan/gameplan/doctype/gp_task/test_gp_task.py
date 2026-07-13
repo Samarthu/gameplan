@@ -76,3 +76,58 @@ class TestGPTask(FrappeTestCase):
 				},
 			)
 		)
+
+	def test_done_task_clears_existing_overdue_notification(self):
+		from frappe.utils import add_days, getdate
+
+		user = frappe.session.user
+		task = frappe.get_doc(
+			{
+				"doctype": "GP Task",
+				"title": "Overdue task to complete",
+				"status": "Todo",
+				"due_date": add_days(getdate(), -1),
+				"assigned_to": user,
+			}
+		).insert(ignore_permissions=True)
+
+		send_task_due_notifications()
+
+		self.assertTrue(
+			frappe.db.exists(
+				"GP Notification",
+				{
+					"task": task.name,
+					"to_user": user,
+					"type": "Task Overdue",
+					"read": 0,
+				},
+			)
+		)
+
+		frappe.client.set_value("GP Task", task.name, "status", "Done")
+
+		self.assertFalse(
+			frappe.db.exists(
+				"GP Notification",
+				{
+					"task": task.name,
+					"to_user": user,
+					"type": "Task Overdue",
+					"read": 0,
+				},
+			)
+		)
+		self.assertEqual(frappe.db.get_value("GP Task", task.name, "is_completed"), 1)
+
+		send_task_due_notifications()
+		self.assertFalse(
+			frappe.db.exists(
+				"GP Notification",
+				{
+					"task": task.name,
+					"to_user": user,
+					"type": "Task Overdue",
+				},
+			)
+		)

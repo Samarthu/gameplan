@@ -14,6 +14,9 @@ from gameplan.mixins.activity import HasActivity
 from gameplan.mixins.mentions import HasMentions
 from gameplan.search import GameplanSearch
 
+# Statuses that should never receive due/overdue reminders.
+CLOSED_TASK_STATUSES = frozenset({"Done", "Cancelled", "Not a Bug"})
+
 
 def assignee_users_from_doc(doc) -> set:
 	"""All User ids that should be treated as assignees for this task document."""
@@ -125,6 +128,27 @@ class GPTask(HasMentions, HasActivity, Document):
 			self.append("assignees", {"user": u})
 
 		self.assigned_to = users[0] if users else None
+		self.sync_completion_from_status()
+
+	def sync_completion_from_status(self):
+		"""Keep is_completed aligned with terminal statuses so schedulers skip closed work."""
+		if self.status in CLOSED_TASK_STATUSES:
+			if not self.is_completed:
+				self.is_completed = 1
+			if not self.completed_at:
+				self.completed_at = frappe.utils.now_datetime()
+			if not self.completed_by and frappe.session.user not in (None, "Guest"):
+				self.completed_by = frappe.session.user
+			return
+
+		if self.is_new() or not self.has_value_changed("status"):
+			return
+
+		prev = self.get_doc_before_save()
+		if prev and prev.status in CLOSED_TASK_STATUSES:
+			self.is_completed = 0
+			self.completed_at = None
+			self.completed_by = None
 
 	def before_insert(self):
 		if not self.task_type:
@@ -146,8 +170,7 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.clear_schedule_notifications_if_closed()
 
 	def clear_schedule_notifications_if_closed(self):
-		closed_statuses = {"Done", "Cancelled"}
-		is_closed = self.status in closed_statuses or self.is_completed
+		is_closed = self.status in CLOSED_TASK_STATUSES or self.is_completed
 		if not is_closed:
 			return
 
@@ -155,7 +178,7 @@ class GPTask(HasMentions, HasActivity, Document):
 		if not prev:
 			return
 
-		was_closed = prev.status in closed_statuses or prev.is_completed
+		was_closed = prev.status in CLOSED_TASK_STATUSES or prev.is_completed
 		if was_closed:
 			return
 

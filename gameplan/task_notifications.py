@@ -4,10 +4,13 @@
 import frappe
 from frappe import _
 
+from gameplan.gameplan.doctype.gp_task.gp_task import CLOSED_TASK_STATUSES
 from gameplan.gameplan.doctype.gp_notification.gp_notification import (
 	GPNotification,
 	TASK_SCHEDULE_NOTIFICATION_TYPES,
 )
+
+_CLOSED_STATUS_SQL = ", ".join(f"'{s}'" for s in sorted(CLOSED_TASK_STATUSES))
 
 def dismiss_stale_task_schedule_notifications():
 	"""Mark due/overdue notifications as read for closed or cancelled tasks."""
@@ -21,7 +24,7 @@ def dismiss_stale_task_schedule_notifications():
 			and n.type in ({type_placeholders})
 			and (
 				t.is_completed = 1
-				or t.status in ('Done', 'Cancelled')
+				or t.status in ({_CLOSED_STATUS_SQL})
 			)
 		""",
 		TASK_SCHEDULE_NOTIFICATION_TYPES,
@@ -72,7 +75,7 @@ def send_task_due_notifications():
 			f"""
 			select name from `tabGP Task` t
 			where is_completed = 0
-			and coalesce(status, '') not in ('Done', 'Cancelled')
+			and coalesce(status, '') not in ({_CLOSED_STATUS_SQL})
 			and due_date is not null
 			and due_date {op} %(due)s
 			and (
