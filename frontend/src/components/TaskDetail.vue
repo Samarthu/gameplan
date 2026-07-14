@@ -76,8 +76,8 @@
             maxlength="140"
           ></textarea>
         </div>
-        <div class="grid max-w-4xl grid-cols-1 pb-8 mb-8 text-base border-b gap-x-12 gap-y-4 border-outline-gray-2 text-ink-gray-7 md:grid-cols-2">
-          <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
+        <div class="grid max-w-4xl grid-cols-1 pb-4 mb-4 text-sm border-b gap-x-6 gap-y-1.5 border-outline-gray-2 text-ink-gray-7 md:grid-cols-2">
+          <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5 content-start">
             <template v-if="$resources.task.doc.parent_task">
               <div class="text-ink-gray-6">Parent Task</div>
               <button
@@ -117,9 +117,9 @@
               @update:modelValue="changeProject"
             />
           </div>
-          <div class="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3">
+          <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5 content-start">
             <div class="text-ink-gray-6">Assignees</div>
-            <div class="space-y-2">
+            <div class="space-y-1">
               <div class="flex flex-wrap gap-1">
                 <span
                   v-for="uid in assigneeUserIds"
@@ -158,7 +158,7 @@
               <div
                 v-for="tag in taskTags"
                 :key="tag"
-                class="flex items-center justify-between gap-2 px-2 py-1 rounded bg-surface-gray-2"
+                class="flex items-center justify-between gap-2 px-2 py-0.5 rounded bg-surface-gray-2"
               >
                 <div class="flex items-center gap-1.5 min-w-0">
                   <LucideTag class="h-3.5 w-3.5 shrink-0 text-ink-gray-5" />
@@ -176,14 +176,14 @@
                 @update:query="fetchTagSuggestions"
               /></div>
             <div class="text-ink-gray-6">Linked Teams</div>
-            <div class="space-y-2">
+            <div class="space-y-1">
               <div v-if="linkedTeams.length" class="space-y-1">
                 <div
                   v-for="team in linkedTeams"
                   :key="team.name"
-                  class="flex items-center justify-between gap-2 px-2 py-1 rounded bg-surface-gray-2"
+                  class="flex items-center justify-between gap-2 px-2 py-0.5 rounded bg-surface-gray-2"
                 >
-                  <span class="text-base truncate text-ink-gray-8">{{ team.team_title || team.team }}</span>
+                  <span class="text-sm truncate text-ink-gray-8">{{ team.team_title || team.team }}</span>
                   <Button
                     variant="ghost"
                     @click="unlinkTeam(team.team)"
