@@ -1746,7 +1746,12 @@ export default {
       }, {})
     },
     topLevelTasks() {
-      return this.filteredTasks.filter((task) => !task.parent_task)
+      // ponytail: a subtask whose parent isn't in this list (e.g. My Tasks
+      // where only the child is assigned to me) is shown at top level.
+      const names = new Set(this.filteredTasks.map((t) => t.name))
+      return this.filteredTasks.filter(
+        (task) => !task.parent_task || !names.has(task.parent_task),
+      )
     },
   },
 }

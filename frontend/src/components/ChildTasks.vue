@@ -70,6 +70,18 @@
           {{ task.title }}
         </span>
 
+        <!-- Task type -->
+        <div @click.stop>
+          <Dropdown :options="taskTypeOptionsFor(task)">
+            <button
+              class="flex max-w-[8rem] shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs text-ink-gray-6 hover:bg-surface-gray-3 focus:outline-none"
+            >
+              <LucideCircle class="h-3 w-3 shrink-0 text-ink-gray-5" />
+              <span class="truncate">{{ task.task_type || 'Task' }}</span>
+            </button>
+          </Dropdown>
+        </div>
+
         <!-- Assignee avatars -->
         <div v-if="assigneeIds(task).length" class="isolate flex shrink-0 items-center -space-x-1">
           <Tooltip
@@ -116,6 +128,22 @@ import { createResource, Dropdown, Tooltip } from 'frappe-ui'
 import { h } from 'vue'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
+
+const TASK_TYPES = [
+  'Task',
+  'Feature',
+  'Milestone',
+  'Improvement',
+  'Bug',
+  'Event',
+  'Form Response',
+  'Meeting Note',
+  'Request',
+  'Approval',
+  'Follow-up',
+  'Documentation',
+  'Support',
+]
 
 export default {
   name: 'ChildTasks',
@@ -228,7 +256,25 @@ export default {
         }),
       )
     },
+    changeTaskType(task, taskType) {
+      this.$resources.updateTask.submit(
+        { doctype: 'GP Task', name: task.name, fieldname: 'task_type', value: taskType },
+        { onSuccess: () => this.childTasks.reload() },
+      )
+    },
+    taskTypeOptionsFor(task) {
+      return TASK_TYPES.map((taskType) => ({
+        label: taskType,
+        onClick: () => this.changeTaskType(task, taskType),
+      }))
+    },
     assigneeIds(task) {
+      // Backend list query enriches each row with the full assignee list.
+      const fromEnriched = Array.isArray(task.assignee_users)
+        ? task.assignee_users.filter(Boolean)
+        : []
+      if (fromEnriched.length) return fromEnriched
+      // Fallback: child table (present on full doc loads).
       const rows = Array.isArray(task.assignees) ? task.assignees : []
       const fromRows = rows.map((r) => (typeof r === 'object' ? r.user : null)).filter(Boolean)
       if (fromRows.length) return fromRows
