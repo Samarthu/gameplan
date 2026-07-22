@@ -25,7 +25,8 @@
   "is_project_sprint",
   "assigned_to",
   "assignees",
-  "comments_count"
+  "comments_count",
+  "timer_sessions"
  ],
  "fields": [
   {
@@ -144,6 +145,12 @@
    "fieldname": "comments_count",
    "fieldtype": "Int",
    "label": "Comments Count"
+  },
+  {
+   "fieldname": "timer_sessions",
+   "fieldtype": "Table",
+   "label": "Timer Sessions",
+   "options": "GP Task Timer Session"
   }
  ],
  "index_web_pages_for_search": 1,

@@ -279,6 +279,60 @@ class GPTask(HasMentions, HasActivity, Document):
 	def track_visit(self):
 		GPNotification.clear_notifications(task=self.name)
 
+	def _open_timer_row(self):
+		for row in self.timer_sessions or []:
+			if not row.end:
+				return row
+		return None
+
+	def _close_open_timer(self, reason):
+		row = self._open_timer_row()
+		if not row:
+			frappe.throw(_("Timer is not running"))
+		now = frappe.utils.now_datetime()
+		row.end = now
+		row.duration = int(frappe.utils.time_diff_in_seconds(now, row.start))
+		if reason:
+			row.pause_reason = reason
+		self.save()
+
+	def timer_summary(self):
+		"""Server-computed so total time is timezone-correct; client only ticks the live second."""
+		total = 0
+		running = False
+		now = frappe.utils.now_datetime()
+		for row in self.timer_sessions or []:
+			if row.end:
+				total += int(row.duration or 0)
+			elif row.start:
+				running = True
+				total += int(frappe.utils.time_diff_in_seconds(now, row.start))
+		return {"running": running, "total_seconds": total}
+
+	@frappe.whitelist()
+	def get_timer(self):
+		return self.timer_summary()
+
+	@frappe.whitelist()
+	def start_timer(self):
+		if self._open_timer_row():
+			return self.timer_summary()  # already running, no-op
+		self.append("timer_sessions", {"user": frappe.session.user, "start": frappe.utils.now_datetime()})
+		self.save()
+		return self.timer_summary()
+
+	@frappe.whitelist()
+	def pause_timer(self, reason=None):
+		if not (reason or "").strip():
+			frappe.throw(_("Pause reason is required"))
+		self._close_open_timer(reason.strip())
+		return self.timer_summary()
+
+	@frappe.whitelist()
+	def stop_timer(self):
+		self._close_open_timer(None)
+		return self.timer_summary()
+
 	@frappe.whitelist()
 	def get_linked_teams(self):
 		linked_teams = frappe.db.get_all(

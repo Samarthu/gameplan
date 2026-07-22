@@ -205,6 +205,56 @@
             </div>
           </div>
         </div>
+        <div class="flex flex-wrap items-center gap-3 pb-4 mb-4 border-b border-outline-gray-2">
+          <div class="flex items-center gap-2">
+            <LucideTimer class="w-4 h-4 text-ink-gray-5" />
+            <span class="font-mono text-lg tabular-nums text-ink-gray-9">{{ timerDisplay }}</span>
+            <span v-if="timerRunning" class="text-xs font-medium text-ink-green-3">Running</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <Button
+              v-if="!timerRunning"
+              @click="startTimer"
+              :loading="$resources.task.startTimer.loading"
+            >
+              <template #prefix><LucidePlay class="w-4 h-4" /></template>
+              Start
+            </Button>
+            <Button
+              v-if="timerRunning"
+              @click="pausePromptOpen = !pausePromptOpen"
+            >
+              <template #prefix><LucidePause class="w-4 h-4" /></template>
+              Pause
+            </Button>
+            <Button
+              v-if="timerRunning"
+              theme="red"
+              @click="stopTimer"
+              :loading="$resources.task.stopTimer.loading"
+            >
+              <template #prefix><LucideSquare class="w-4 h-4" /></template>
+              Stop
+            </Button>
+          </div>
+          <div v-if="pausePromptOpen && timerRunning" class="flex items-center w-full gap-2">
+            <input
+              v-model="pauseReason"
+              type="text"
+              placeholder="Pause reason (required)"
+              class="flex-1 px-2 py-1 text-sm border rounded bg-surface-white border-outline-gray-2 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+              @keydown.enter.prevent="confirmPause"
+            />
+            <Button
+              variant="solid"
+              :disabled="!pauseReason.trim()"
+              :loading="$resources.task.pauseTimer.loading"
+              @click="confirmPause"
+            >
+              Confirm pause
+            </Button>
+          </div>
+        </div>
         <TextEditor
           ref="description"
           editor-class="prose-sm max-w-none focus-within:ring-2 focus-within:ring-outline-gray-3 rounded-sm p-0.5 -ml-0.5 min-h-[4rem]"
@@ -347,6 +397,10 @@ export default {
           getLinkedTeams: 'get_linked_teams',
           linkTeam: 'link_team',
           unlinkTeam: 'unlink_team',
+          getTimer: 'get_timer',
+          startTimer: 'start_timer',
+          pauseTimer: 'pause_timer',
+          stopTimer: 'stop_timer',
         },
         setValue: {
           onError(e) {
@@ -378,6 +432,7 @@ export default {
             this.$resources.task.trackVisit.submit()
           }
           this.$resources.task.getLinkedTeams.submit()
+          this.refreshTimer()
           this.loadDocTags()
           this.resizeTitle()
         },
@@ -401,6 +456,13 @@ export default {
       tagSearchQuery: '',
       descriptionContent: '',
       descriptionLoadedFor: null,
+      timerBase: 0,
+      timerRunning: false,
+      timerAnchorMs: 0,
+      nowMs: 0,
+      timerInterval: null,
+      pausePromptOpen: false,
+      pauseReason: '',
     }
   },
   watch: {
@@ -442,9 +504,13 @@ export default {
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
     window.addEventListener('resize', this.onWindowResize)
+    this.timerInterval = setInterval(() => {
+      if (this.timerRunning) this.nowMs = Date.now()
+    }, 1000)
   },
   beforeUnmount() {
     this.saveDescription() // flush unsaved description on back/navigation
+    clearInterval(this.timerInterval)
     window.removeEventListener('mousemove', this.onActivityResize)
     window.removeEventListener('mouseup', this.stopActivityResize)
     window.removeEventListener('resize', this.onWindowResize)
@@ -577,6 +643,50 @@ export default {
         },
       )
     },
+    refreshTimer() {
+      this.$resources.task.getTimer.submit(null, {
+        onSuccess: () => {
+          const data = this.$resources.task.getTimer.data || {}
+          this.timerBase = data.total_seconds || 0
+          this.timerRunning = !!data.running
+          this.timerAnchorMs = Date.now()
+          this.nowMs = Date.now()
+        },
+      })
+    },
+    startTimer() {
+      this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
+    },
+    confirmPause() {
+      const reason = this.pauseReason.trim()
+      if (!reason) return
+      this.$resources.task.pauseTimer.submit(
+        { reason },
+        {
+          onSuccess: () => {
+            this.pausePromptOpen = false
+            this.pauseReason = ''
+            this.refreshTimer()
+          },
+        },
+      )
+    },
+    stopTimer() {
+      this.$resources.task.stopTimer.submit(null, {
+        onSuccess: () => {
+          this.pausePromptOpen = false
+          this.pauseReason = ''
+          this.refreshTimer()
+        },
+      })
+    },
+    formatDuration(totalSeconds) {
+      const s = Math.max(0, Math.floor(totalSeconds))
+      const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+      const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+      const ss = String(s % 60).padStart(2, '0')
+      return `${hh}:${mm}:${ss}`
+    },
     loadDocTags() {
       call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags_for_doc', {
         task_id: this.taskId,
@@ -646,6 +756,10 @@ export default {
     },
   },
   computed: {
+    timerDisplay() {
+      const live = this.timerRunning ? Math.floor((this.nowMs - this.timerAnchorMs) / 1000) : 0
+      return this.formatDuration(this.timerBase + live)
+    },
     descriptionToolbar() {
       const ed = () => this.$refs.description?.editor
       const chain = () => ed().chain().focus()
