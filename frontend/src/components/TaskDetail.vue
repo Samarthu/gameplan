@@ -116,6 +116,10 @@
               v-model="selectedProject"
               @update:modelValue="changeProject"
             />
+            <template v-if="$resources.task.doc.completed_at">
+              <div class="text-ink-gray-6">Completed</div>
+              <div class="px-1.5 py-1 text-sm text-ink-gray-8">{{ completedDate }}</div>
+            </template>
           </div>
           <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5 content-start">
             <div class="text-ink-gray-6">Assignees</div>
@@ -756,6 +760,12 @@ export default {
     },
   },
   computed: {
+    completedDate() {
+      const raw = this.$resources.task.doc?.completed_at
+      if (!raw) return ''
+      const d = new Date(raw.replace(' ', 'T'))
+      return isNaN(d) ? raw : d.toLocaleDateString()
+    },
     timerDisplay() {
       const live = this.timerRunning ? Math.floor((this.nowMs - this.timerAnchorMs) / 1000) : 0
       return this.formatDuration(this.timerBase + live)
