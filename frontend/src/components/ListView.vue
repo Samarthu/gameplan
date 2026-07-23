@@ -148,7 +148,7 @@
                   />
                   <Tooltip text="Change status" v-else>
                     <Dropdown
-                      :options="statusOptions({ onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })"
+                      :options="statusOptions({ name: d.name, onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })"
                     >
                       <button class="flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3">
                         <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
@@ -354,7 +354,7 @@
                 class="flex w-40 shrink-0 items-center py-2 pl-2"
               >
                 <div @click.stop>
-                  <Dropdown :options="statusOptions({ onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
+                  <Dropdown :options="statusOptions({ name: d.name, onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
                     <button class="flex max-w-full items-center gap-2 whitespace-nowrap rounded px-1 py-0.5 hover:bg-surface-gray-3 focus:outline-none">
                       <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" class="shrink-0" />
                       <span class="truncate text-sm text-ink-gray-7">{{ d.status || '—' }}</span>

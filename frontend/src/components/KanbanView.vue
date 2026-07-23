@@ -190,7 +190,7 @@
 
               <div class="mt-3 flex items-center justify-between gap-2">
                 <div @click.stop>
-                  <Dropdown :options="statusOptions({ onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
+                  <Dropdown :options="statusOptions({ name: d.name, onClick: (status) => tasksResource.setValue.submit({ status, name: d.name }) })">
                     <button class="flex items-center gap-1 rounded px-1.5 py-1 text-sm text-ink-gray-6 hover:bg-surface-gray-2">
                       <TaskStatusIcon :status="d.status" :overdue="isTaskOverdue(d)" />
                       {{ d.status || '—' }}
@@ -306,7 +306,7 @@ export default {
     canDeleteTask: { type: Function, required: true },
     confirmDeleteTask: { type: Function, required: true },
   },
-  emits: ['request-new-task'],
+  emits: ['request-new-task', 'request-hold'],
   data() {
     return {
       draggedTask: null,
@@ -345,6 +345,10 @@ export default {
       this.draggedTask = null
       this.dragOverStatus = null
       if (task.status === status) return
+      if (status === 'Hold') {
+        this.$emit('request-hold', task.name)
+        return
+      }
       await this.tasksResource.setValue.submit({ name: task.name, status })
       this.tasksResource.reload()
     },

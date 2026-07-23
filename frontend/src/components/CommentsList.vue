@@ -78,6 +78,7 @@
             class="relative mb-4"
             :activity="item"
             :number="timelineNumber(index)"
+            @toggle-pin="togglePin(item)"
           />
         </template>
         <Poll
@@ -174,7 +175,7 @@
 </template>
 <script>
 import { nextTick } from 'vue'
-import { Dropdown, TabButtons } from 'frappe-ui'
+import { Dropdown, TabButtons, call } from 'frappe-ui'
 import CommentEditor from '@/components/CommentEditor.vue'
 import Comment from './Comment.vue'
 import Activity from './Activity.vue'
@@ -308,7 +309,7 @@ export default {
       return {
         type: 'list',
         doctype: 'GP Activity',
-        fields: ['name', 'user', 'action', 'data', 'creation'],
+        fields: ['name', 'user', 'action', 'data', 'creation', 'pinned'],
         filters: {
           reference_doctype: this.doctype,
           reference_name: this.name,
@@ -363,6 +364,16 @@ export default {
     },
   },
   methods: {
+    togglePin(activity) {
+      const pinned = activity.pinned ? 0 : 1
+      activity.pinned = pinned // optimistic
+      call('frappe.client.set_value', {
+        doctype: 'GP Activity',
+        name: activity.name,
+        fieldname: 'pinned',
+        value: pinned,
+      }).then(() => this.$resources.activities.reload())
+    },
     onTimelineClick(e) {
       // ponytail: click-delegation for images inside rendered comment content
       // (.ProseMirror) so we don't touch the editor; avatars etc. are excluded
@@ -585,6 +596,9 @@ export default {
         }
       }
       return items.sort((a, b) => {
+        // Pinned activities always float to the top, regardless of sort order.
+        const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+        if (pinDiff) return pinDiff
         const diff = new Date(a.creation) - new Date(b.creation)
         return this.timelineSort === 'desc' ? -diff : diff
       })

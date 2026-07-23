@@ -97,7 +97,17 @@
                 {{ $resources.task.doc.status || 'Set status' }}
               </Button>
             </Dropdown>
-            <div class="text-ink-gray-6">Due</div>
+            <div class="flex items-center gap-1 text-ink-gray-6">
+              Due
+              <button
+                type="button"
+                class="rounded p-0.5 text-ink-gray-4 hover:bg-surface-gray-2 hover:text-ink-gray-7"
+                title="Due date revision history"
+                @click="openDueHistory"
+              >
+                <LucideHistory class="h-3.5 w-3.5" />
+              </button>
+            </div>
             <DatePicker
               v-model="$resources.task.doc.due_date"
               variant="subtle"
@@ -116,6 +126,42 @@
               v-model="selectedProject"
               @update:modelValue="changeProject"
             />
+            <template v-if="$resources.task.doc.completed_at">
+              <div class="text-ink-gray-6">Completed</div>
+              <div class="px-1.5 py-1 text-sm text-ink-gray-8">{{ completedDate }}</div>
+            </template>
+            <div class="text-ink-gray-6">Timer</div>
+            <div class="space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-mono text-base tabular-nums text-ink-gray-9">{{ timerDisplay }}</span>
+                <span v-if="timerRunning" class="text-xs font-medium text-ink-green-3">Running</span>
+                <Button
+                  v-if="!timerRunning"
+                  @click="startTimer"
+                  :loading="$resources.task.startTimer.loading"
+                  :disabled="!timerCanStart"
+                  :title="timerCanStart ? 'Start' : 'Timer already stopped for this status'"
+                >
+                  <template #icon><LucidePlay class="w-4 h-4" /></template>
+                </Button>
+                <Button
+                  v-if="timerRunning"
+                  @click="openPausePrompt"
+                  title="Pause"
+                >
+                  <template #icon><LucidePause class="w-4 h-4" /></template>
+                </Button>
+                <Button
+                  v-if="timerRunning"
+                  theme="red"
+                  @click="stopTimer"
+                  :loading="$resources.task.stopTimer.loading"
+                  title="Stop"
+                >
+                  <template #icon><LucideSquare class="w-4 h-4" /></template>
+                </Button>
+              </div>
+            </div>
           </div>
           <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5 content-start">
             <div class="text-ink-gray-6">Assignees</div>
@@ -300,6 +346,74 @@
         />
       </div>
     </div>
+    <Dialog
+      v-model="pausePromptOpen"
+      :options="{ title: 'Pause timer' }"
+    >
+      <template #body-content>
+        <label class="block mb-1 text-sm text-ink-gray-6">Pause reason (required)</label>
+        <textarea
+          v-model="pauseReason"
+          rows="3"
+          placeholder="Why are you pausing?"
+          class="w-full px-2 py-1.5 text-sm border rounded bg-surface-white border-outline-gray-2 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+          @keydown.enter.prevent="confirmPause"
+        ></textarea>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          class="w-full"
+          :disabled="!pauseReason.trim()"
+          :loading="$resources.task.pauseTimer.loading"
+          @click="confirmPause"
+        >
+          Confirm pause
+        </Button>
+      </template>
+    </Dialog>
+    <Dialog v-model="dueHistoryOpen" :options="{ title: 'Due date revisions' }">
+      <template #body-content>
+        <div v-if="!dueHistory.length" class="text-sm text-ink-gray-5">No revisions yet.</div>
+        <ul v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          <li v-for="(rev, i) in dueHistory" :key="i" class="text-sm">
+            <div class="text-ink-gray-8">
+              <span v-if="rev.old_value">{{ formatDue(rev.old_value) }}</span>
+              <span v-else class="text-ink-gray-5">None</span>
+              →
+              <span v-if="rev.new_value" class="font-medium">{{ formatDue(rev.new_value) }}</span>
+              <span v-else class="text-ink-gray-5">None</span>
+            </div>
+            <div class="text-xs text-ink-gray-5">
+              {{ $user(rev.user).full_name }} · {{ $dayjs(rev.creation).format('DD/MM/YYYY hh:mm A') }}
+            </div>
+          </li>
+        </ul>
+      </template>
+    </Dialog>
+    <Dialog v-model="holdPromptOpen" :options="{ title: 'Put task on hold' }">
+      <template #body-content>
+        <label class="block mb-1 text-sm text-ink-gray-6">Hold reason (required)</label>
+        <textarea
+          v-model="holdReason"
+          rows="3"
+          placeholder="Why is this task on hold?"
+          class="w-full px-2 py-1.5 text-sm border rounded bg-surface-white border-outline-gray-2 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+          @keydown.enter.prevent="confirmHold"
+        ></textarea>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          class="w-full"
+          :disabled="!holdReason.trim()"
+          :loading="$resources.task.hold.loading"
+          @click="confirmHold"
+        >
+          Confirm hold
+        </Button>
+      </template>
+    </Dialog>
   </div>
 </template>
 <script>
@@ -308,7 +422,7 @@ import TextEditor from '@/components/TextEditor.vue'
 import ReadmeEditor from '@/components/ReadmeEditor.vue'
 import CommentsArea from '@/components/CommentsArea.vue'
 import { focus } from '@/directives'
-import { Autocomplete, Dropdown, LoadingText, DatePicker, call } from 'frappe-ui'
+import { Autocomplete, Dropdown, LoadingText, DatePicker, Dialog, call } from 'frappe-ui'
 import CommentsList from '@/components/CommentsList.vue'
 import TaskStatusIcon from '@/components/icons/TaskStatusIcon.vue'
 import TaskPriorityIcon from '@/components/icons/TaskPriorityIcon.vue'
@@ -347,6 +461,12 @@ export default {
           getLinkedTeams: 'get_linked_teams',
           linkTeam: 'link_team',
           unlinkTeam: 'unlink_team',
+          hold: 'hold',
+          getDueDateHistory: 'get_due_date_history',
+          getTimer: 'get_timer',
+          startTimer: 'start_timer',
+          pauseTimer: 'pause_timer',
+          stopTimer: 'stop_timer',
         },
         setValue: {
           onError(e) {
@@ -378,6 +498,7 @@ export default {
             this.$resources.task.trackVisit.submit()
           }
           this.$resources.task.getLinkedTeams.submit()
+          this.refreshTimer()
           this.loadDocTags()
           this.resizeTitle()
         },
@@ -401,6 +522,18 @@ export default {
       tagSearchQuery: '',
       descriptionContent: '',
       descriptionLoadedFor: null,
+      timerBase: 0,
+      timerRunning: false,
+      timerCanStart: true,
+      timerAnchorMs: 0,
+      nowMs: 0,
+      timerInterval: null,
+      pausePromptOpen: false,
+      pauseReason: '',
+      holdPromptOpen: false,
+      holdReason: '',
+      dueHistoryOpen: false,
+      dueHistory: [],
     }
   },
   watch: {
@@ -442,9 +575,13 @@ export default {
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
     window.addEventListener('resize', this.onWindowResize)
+    this.timerInterval = setInterval(() => {
+      if (this.timerRunning) this.nowMs = Date.now()
+    }, 1000)
   },
   beforeUnmount() {
     this.saveDescription() // flush unsaved description on back/navigation
+    clearInterval(this.timerInterval)
     window.removeEventListener('mousemove', this.onActivityResize)
     window.removeEventListener('mouseup', this.stopActivityResize)
     window.removeEventListener('resize', this.onWindowResize)
@@ -577,6 +714,85 @@ export default {
         },
       )
     },
+    refreshTimer() {
+      this.$resources.task.getTimer.submit(null, {
+        onSuccess: () => {
+          const data = this.$resources.task.getTimer.data || {}
+          this.timerBase = data.total_seconds || 0
+          this.timerRunning = !!data.running
+          this.timerCanStart = data.can_start !== false
+          this.timerAnchorMs = Date.now()
+          this.nowMs = Date.now()
+        },
+      })
+    },
+    startTimer() {
+      this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
+    },
+    openDueHistory() {
+      this.dueHistoryOpen = true
+      this.$resources.task.getDueDateHistory.submit(null, {
+        onSuccess: () => {
+          this.dueHistory = this.$resources.task.getDueDateHistory.data || []
+        },
+      })
+    },
+    formatDue(raw) {
+      if (!raw) return ''
+      const d = new Date(String(raw).replace(' ', 'T'))
+      return isNaN(d) ? raw : d.toLocaleDateString()
+    },
+    openHoldPrompt() {
+      this.holdReason = ''
+      this.holdPromptOpen = true
+    },
+    confirmHold() {
+      const reason = this.holdReason.trim()
+      if (!reason) return
+      this.$resources.task.hold.submit(
+        { reason },
+        {
+          onSuccess: () => {
+            this.holdPromptOpen = false
+            this.holdReason = ''
+          },
+        },
+      )
+    },
+    openPausePrompt() {
+      this.pauseReason = ''
+      this.pausePromptOpen = true
+    },
+    confirmPause() {
+      const reason = this.pauseReason.trim()
+      if (!reason) return
+      this.$resources.task.pauseTimer.submit(
+        { reason },
+        {
+          onSuccess: () => {
+            this.pausePromptOpen = false
+            this.pauseReason = ''
+            this.refreshTimer()
+          },
+        },
+      )
+    },
+    stopTimer() {
+      this.$resources.task.stopTimer.submit(null, {
+        onSuccess: () => {
+          this.pausePromptOpen = false
+          this.pauseReason = ''
+          this.refreshTimer()
+        },
+      })
+    },
+    formatDuration(totalSeconds) {
+      const s = Math.max(0, Math.floor(totalSeconds))
+      const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+      const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+      const ss = String(s % 60).padStart(2, '0')
+      return `${hh}:${mm}:${ss}`
+    },
     loadDocTags() {
       call('gameplan.gameplan.doctype.gp_task.gp_task.get_task_tags_for_doc', {
         task_id: this.taskId,
@@ -646,6 +862,16 @@ export default {
     },
   },
   computed: {
+    completedDate() {
+      const raw = this.$resources.task.doc?.completed_at
+      if (!raw) return ''
+      const d = new Date(raw.replace(' ', 'T'))
+      return isNaN(d) ? raw : d.toLocaleDateString()
+    },
+    timerDisplay() {
+      const live = this.timerRunning ? Math.floor((this.nowMs - this.timerAnchorMs) / 1000) : 0
+      return this.formatDuration(this.timerBase + live)
+    },
     descriptionToolbar() {
       const ed = () => this.$refs.description?.editor
       const chain = () => ed().chain().focus()
@@ -708,7 +934,13 @@ export default {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
-          onClick: () => this.$resources.task.setValue.submit({ status }),
+          onClick: () => {
+            if (status === 'Hold') {
+              this.openHoldPrompt()
+              return
+            }
+            this.$resources.task.setValue.submit({ status }, { onSuccess: () => this.refreshTimer() })
+          },
         }
       })
     },
@@ -813,6 +1045,7 @@ export default {
     CommentsArea,
     Autocomplete,
     Dropdown,
+    Dialog,
     CommentsList,
     TaskStatusIcon,
     LoadingText,

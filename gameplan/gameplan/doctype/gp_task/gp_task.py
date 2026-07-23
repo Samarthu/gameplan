@@ -109,7 +109,7 @@ def append_descendant_task_rows(rows: list, fields):
 class GPTask(HasMentions, HasActivity, Document):
 	on_delete_cascade = ["GP Comment", "GP Activity", "GP Task Team Link"]
 	on_delete_set_null = ["GP Notification"]
-	activities = ["Task Value Changed"]
+	activities = ["Task Value Changed", "Timer Paused", "Timer Stopped", "Status On Hold"]
 	mentions_field = "description"
 
 	def before_validate(self):
@@ -278,6 +278,121 @@ class GPTask(HasMentions, HasActivity, Document):
 	@frappe.whitelist()
 	def track_visit(self):
 		GPNotification.clear_notifications(task=self.name)
+
+	def _open_timer_row(self):
+		for row in self.timer_sessions or []:
+			if not row.end:
+				return row
+		return None
+
+	def _close_open_timer(self, reason, is_stop):
+		row = self._open_timer_row()
+		if not row:
+			frappe.throw(_("Timer is not running"))
+		now = frappe.utils.now_datetime()
+		row.end = now
+		row.duration = int(frappe.utils.time_diff_in_seconds(now, row.start))
+		row.is_stop = 1 if is_stop else 0
+		if reason:
+			row.pause_reason = reason
+		self.save()
+
+	def _stopped_for_current_status(self):
+		"""True if the current user already stopped the timer while the task is in this status."""
+		user = frappe.session.user
+		for row in self.timer_sessions or []:
+			if row.is_stop and row.user == user and row.task_status == self.status:
+				return True
+		return False
+
+	def timer_summary(self):
+		"""Time is scoped to the current user + current status, so it starts fresh for each status.
+		Server-computed so it stays timezone-correct; the client only ticks the live second.
+		ponytail: an open row left behind by a mid-run status change is ignored here, not auto-closed."""
+		user = frappe.session.user
+		total = 0
+		running = False
+		now = frappe.utils.now_datetime()
+		for row in self.timer_sessions or []:
+			if row.user != user or row.task_status != self.status:
+				continue
+			if row.end:
+				total += int(row.duration or 0)
+			elif row.start:
+				running = True
+				total += int(frappe.utils.time_diff_in_seconds(now, row.start))
+		return {
+			"running": running,
+			"total_seconds": total,
+			"can_start": not running and not self._stopped_for_current_status(),
+		}
+
+	@frappe.whitelist()
+	def get_timer(self):
+		return self.timer_summary()
+
+	@frappe.whitelist()
+	def start_timer(self):
+		if self._open_timer_row():
+			return self.timer_summary()  # already running, no-op
+		if self._stopped_for_current_status():
+			frappe.throw(_("Timer already stopped for this status. Change the status to track more time."))
+		self.append(
+			"timer_sessions",
+			{"user": frappe.session.user, "start": frappe.utils.now_datetime(), "task_status": self.status},
+		)
+		self.save()
+		return self.timer_summary()
+
+	@frappe.whitelist()
+	def pause_timer(self, reason=None):
+		if not (reason or "").strip():
+			frappe.throw(_("Pause reason is required"))
+		self._close_open_timer(reason.strip(), is_stop=False)
+		summary = self.timer_summary()
+		self.log_activity("Timer Paused", data={"reason": reason.strip(), "total_seconds": summary["total_seconds"]})
+		return summary
+
+	@frappe.whitelist()
+	def stop_timer(self):
+		self._close_open_timer(None, is_stop=True)
+		summary = self.timer_summary()
+		self.log_activity(
+			"Timer Stopped",
+			data={"total_seconds": summary["total_seconds"], "status": self.status},
+		)
+		return summary
+
+	@frappe.whitelist()
+	def get_due_date_history(self):
+		rows = frappe.get_all(
+			"GP Activity",
+			filters={"reference_doctype": "GP Task", "reference_name": self.name, "action": "Task Value Changed"},
+			fields=["user", "data", "creation"],
+			order_by="creation desc",
+		)
+		history = []
+		for row in rows:
+			data = frappe.parse_json(row.data) if row.data else {}
+			if data.get("field") == "due_date":
+				history.append(
+					{
+						"user": row.user,
+						"old_value": data.get("old_value"),
+						"new_value": data.get("new_value"),
+						"creation": str(row.creation),
+					}
+				)
+		return history
+
+	@frappe.whitelist()
+	def hold(self, reason=None):
+		if not (reason or "").strip():
+			frappe.throw(_("Hold reason is required"))
+		self.status = "Hold"
+		self.save()
+		activity = self.log_activity("Status On Hold", data={"reason": reason.strip()})
+		activity.db_set("pinned", 1)
 
 	@frappe.whitelist()
 	def get_linked_teams(self):
@@ -477,6 +592,14 @@ def get_duplicate_candidates(
 		if task.team != team and can_access_team(task.team)
 	]
 	return out[:lim]
+
+
+@frappe.whitelist()
+def hold_task(task, reason=None):
+	if not task:
+		frappe.throw(_("Task is required"))
+	doc = frappe.get_doc("GP Task", task)
+	doc.hold(reason=reason)
 
 
 @frappe.whitelist()

@@ -318,6 +318,33 @@
           <FrappeChart v-if="hasData(bySprint)" type="bar" :data="bySprint" :height="260" />
           <Empty v-else />
         </ChartCard>
+
+        <ChartCard
+          title="Most due-date revisions"
+          subtitle="Tasks whose due date changed most often"
+        >
+          <FrappeChart
+            v-if="hasData(dueDateRevisions)"
+            type="bar"
+            :data="dueDateRevisions"
+            :height="260"
+          />
+          <Empty v-else />
+        </ChartCard>
+
+        <ChartCard title="On hold" subtitle="Tasks currently on hold">
+          <div v-if="onHold.length" class="mt-1 max-h-[260px] space-y-1 overflow-y-auto">
+            <div
+              v-for="task in onHold"
+              :key="task.name"
+              class="flex items-center justify-between gap-2 rounded px-2 py-1.5 text-sm hover:bg-surface-gray-2"
+            >
+              <span class="truncate text-ink-gray-8">{{ task.title }}</span>
+              <span class="shrink-0 rounded px-1.5 py-0.5 text-xs" :class="statusClass('Hold')">Hold</span>
+            </div>
+          </div>
+          <Empty v-else />
+        </ChartCard>
       </div>
     </div>
   </div>
@@ -484,6 +511,11 @@ const bySprint = computed(() => {
     labels: (raw.labels || []).map((l) => (/^\d+$/.test(String(l)) ? `Sprint ${l}` : l)),
   }
 })
+
+const dueDateRevisions = computed(
+  () => dashboardData.data?.due_date_revisions || { labels: [], datasets: [] },
+)
+const onHold = computed(() => dashboardData.data?.on_hold || [])
 
 const kpis = computed(() => [
   { label: 'Tasks', value: summary.value.total_tasks ?? 0 },

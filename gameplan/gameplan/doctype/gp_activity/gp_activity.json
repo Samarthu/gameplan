@@ -10,7 +10,8 @@
   "reference_name",
   "user",
   "action",
-  "data"
+  "data",
+  "pinned"
  ],
  "fields": [
   {
@@ -41,6 +42,12 @@
    "fieldtype": "Code",
    "label": "Data",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "pinned",
+   "fieldtype": "Check",
+   "label": "Pinned"
   }
  ],
  "in_create": 1,

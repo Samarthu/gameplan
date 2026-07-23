@@ -1,5 +1,5 @@
 <template>
-  <div class="relative py-1 pl-10 pr-1 text-sm">
+  <div class="relative py-1 pl-10 pr-1 text-sm group/activity">
     <span
       class="absolute left-[17px] top-3 h-2.5 w-2.5 rounded-full border-2 border-surface-white bg-ink-gray-4 ring-1 ring-outline-gray-3"
       aria-hidden="true"
@@ -44,6 +44,23 @@
                 <span class="font-medium text-ink-gray-9">Title</span> changed from
                 <span class="text-ink-gray-8">“{{ activity.data.old_title }}”</span> to
                 <span class="text-ink-gray-8">“{{ activity.data.new_title }}”</span>
+              </span>
+              <span v-else-if="activity.action == 'Status On Hold'">
+                Put on <span class="font-medium text-ink-gray-9">Hold</span> —
+                <span class="text-ink-gray-8">“{{ activity.data.reason }}”</span>
+              </span>
+              <span v-else-if="activity.action == 'Timer Paused'">
+                <span class="font-medium text-ink-gray-9">Paused</span> the timer at
+                <span class="text-ink-gray-8">{{ formatDuration(activity.data.total_seconds) }}</span>
+                — <span class="text-ink-gray-8">“{{ activity.data.reason }}”</span>
+              </span>
+              <span v-else-if="activity.action == 'Timer Stopped'">
+                <span class="font-medium text-ink-gray-9">Stopped</span> the timer
+                <template v-if="activity.data.status">
+                  in <span class="text-ink-gray-8">{{ activity.data.status }}</span>
+                </template>
+                — total time
+                <span class="text-ink-gray-8">{{ formatDuration(activity.data.total_seconds) }}</span>
               </span>
               <span v-else-if="activity.action == 'Task Value Changed'">
                 <template v-if="activity.data.field === 'assigned_to'">
@@ -107,7 +124,16 @@
             </p>
           </div>
         </div>
-        <span v-if="number" class="absolute right-1 top-2 text-sm text-ink-gray-5">#{{ number }}</span>
+        <button
+          type="button"
+          class="absolute right-1 top-1.5 rounded p-1 text-ink-gray-4 opacity-0 transition group-hover/activity:opacity-100 hover:bg-surface-gray-2 hover:text-ink-gray-7"
+          :class="activity.pinned ? '!text-ink-blue-3 opacity-100' : ''"
+          :title="activity.pinned ? 'Unpin' : 'Pin to top'"
+          @click="$emit('toggle-pin')"
+        >
+          <LucidePin class="h-3.5 w-3.5" :class="activity.pinned ? 'fill-current' : ''" />
+        </button>
+        <span v-if="number && !activity.pinned" class="absolute right-8 top-2 text-sm text-ink-gray-5">#{{ number }}</span>
       </div>
     </UserInfo>
   </div>
@@ -119,6 +145,7 @@ import { projectTitle } from '@/utils/formatters'
 
 export default {
   name: 'Activity',
+  emits: ['toggle-pin'],
   props: {
     activity: {
       type: Object,
@@ -132,6 +159,13 @@ export default {
   components: { UserProfileLink, UserAvatar },
   methods: {
     projectTitle,
+    formatDuration(totalSeconds) {
+      const s = Math.max(0, Math.floor(totalSeconds || 0))
+      const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+      const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+      const ss = String(s % 60).padStart(2, '0')
+      return `${hh}:${mm}:${ss}`
+    },
     assigneeIdList(val) {
       if (val == null || val === '') return []
       if (Array.isArray(val)) return val.filter(Boolean)
