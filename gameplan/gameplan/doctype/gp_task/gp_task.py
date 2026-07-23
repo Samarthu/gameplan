@@ -369,7 +369,8 @@ class GPTask(HasMentions, HasActivity, Document):
 			frappe.throw(_("Hold reason is required"))
 		self.status = "Hold"
 		self.save()
-		self.log_activity("Status On Hold", data={"reason": reason.strip()})
+		activity = self.log_activity("Status On Hold", data={"reason": reason.strip()})
+		activity.db_set("pinned", 1)
 
 	@frappe.whitelist()
 	def get_linked_teams(self):
