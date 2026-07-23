@@ -362,6 +362,29 @@
         </Button>
       </template>
     </Dialog>
+    <Dialog v-model="holdPromptOpen" :options="{ title: 'Put task on hold' }">
+      <template #body-content>
+        <label class="block mb-1 text-sm text-ink-gray-6">Hold reason (required)</label>
+        <textarea
+          v-model="holdReason"
+          rows="3"
+          placeholder="Why is this task on hold?"
+          class="w-full px-2 py-1.5 text-sm border rounded bg-surface-white border-outline-gray-2 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+          @keydown.enter.prevent="confirmHold"
+        ></textarea>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          class="w-full"
+          :disabled="!holdReason.trim()"
+          :loading="$resources.task.hold.loading"
+          @click="confirmHold"
+        >
+          Confirm hold
+        </Button>
+      </template>
+    </Dialog>
   </div>
 </template>
 <script>
@@ -409,6 +432,7 @@ export default {
           getLinkedTeams: 'get_linked_teams',
           linkTeam: 'link_team',
           unlinkTeam: 'unlink_team',
+          hold: 'hold',
           getTimer: 'get_timer',
           startTimer: 'start_timer',
           pauseTimer: 'pause_timer',
@@ -476,6 +500,8 @@ export default {
       timerInterval: null,
       pausePromptOpen: false,
       pauseReason: '',
+      holdPromptOpen: false,
+      holdReason: '',
     }
   },
   watch: {
@@ -671,6 +697,23 @@ export default {
     startTimer() {
       this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
     },
+    openHoldPrompt() {
+      this.holdReason = ''
+      this.holdPromptOpen = true
+    },
+    confirmHold() {
+      const reason = this.holdReason.trim()
+      if (!reason) return
+      this.$resources.task.hold.submit(
+        { reason },
+        {
+          onSuccess: () => {
+            this.holdPromptOpen = false
+            this.holdReason = ''
+          },
+        },
+      )
+    },
     openPausePrompt() {
       this.pauseReason = ''
       this.pausePromptOpen = true
@@ -846,8 +889,13 @@ export default {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
-          onClick: () =>
-            this.$resources.task.setValue.submit({ status }, { onSuccess: () => this.refreshTimer() }),
+          onClick: () => {
+            if (status === 'Hold') {
+              this.openHoldPrompt()
+              return
+            }
+            this.$resources.task.setValue.submit({ status }, { onSuccess: () => this.refreshTimer() })
+          },
         }
       })
     },

@@ -45,6 +45,10 @@
                 <span class="text-ink-gray-8">“{{ activity.data.old_title }}”</span> to
                 <span class="text-ink-gray-8">“{{ activity.data.new_title }}”</span>
               </span>
+              <span v-else-if="activity.action == 'Status On Hold'">
+                Put on <span class="font-medium text-ink-gray-9">Hold</span> —
+                <span class="text-ink-gray-8">“{{ activity.data.reason }}”</span>
+              </span>
               <span v-else-if="activity.action == 'Timer Paused'">
                 <span class="font-medium text-ink-gray-9">Paused</span> the timer at
                 <span class="text-ink-gray-8">{{ formatDuration(activity.data.total_seconds) }}</span>
