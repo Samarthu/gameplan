@@ -1,5 +1,5 @@
 <template>
-  <div class="relative py-1 pl-10 pr-1 text-sm">
+  <div class="relative py-1 pl-10 pr-1 text-sm group/activity">
     <span
       class="absolute left-[17px] top-3 h-2.5 w-2.5 rounded-full border-2 border-surface-white bg-ink-gray-4 ring-1 ring-outline-gray-3"
       aria-hidden="true"
@@ -124,7 +124,16 @@
             </p>
           </div>
         </div>
-        <span v-if="number" class="absolute right-1 top-2 text-sm text-ink-gray-5">#{{ number }}</span>
+        <button
+          type="button"
+          class="absolute right-1 top-1.5 rounded p-1 text-ink-gray-4 opacity-0 transition group-hover/activity:opacity-100 hover:bg-surface-gray-2 hover:text-ink-gray-7"
+          :class="activity.pinned ? '!text-ink-blue-3 opacity-100' : ''"
+          :title="activity.pinned ? 'Unpin' : 'Pin to top'"
+          @click="$emit('toggle-pin')"
+        >
+          <LucidePin class="h-3.5 w-3.5" :class="activity.pinned ? 'fill-current' : ''" />
+        </button>
+        <span v-if="number && !activity.pinned" class="absolute right-8 top-2 text-sm text-ink-gray-5">#{{ number }}</span>
       </div>
     </UserInfo>
   </div>
@@ -136,6 +145,7 @@ import { projectTitle } from '@/utils/formatters'
 
 export default {
   name: 'Activity',
+  emits: ['toggle-pin'],
   props: {
     activity: {
       type: Object,
