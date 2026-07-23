@@ -595,6 +595,14 @@ def get_duplicate_candidates(
 
 
 @frappe.whitelist()
+def hold_task(task, reason=None):
+	if not task:
+		frappe.throw(_("Task is required"))
+	doc = frappe.get_doc("GP Task", task)
+	doc.hold(reason=reason)
+
+
+@frappe.whitelist()
 def link_task_to_team(task, team, source_project=None, note=None):
 	if not task:
 		frappe.throw(_("Task is required"))

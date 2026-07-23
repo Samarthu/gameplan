@@ -181,6 +181,7 @@
       :canDeleteTask="canDeleteTask"
       :confirmDeleteTask="confirmDeleteTask"
       @request-new-task="$emit('request-new-task', $event)"
+      @request-hold="requestHold"
     />
 
     <TeamView
@@ -252,6 +253,30 @@
       :task-id="selectedTaskId"
       @closed="onTaskDialogClosed"
     />
+
+    <Dialog v-model="holdPromptOpen" :options="{ title: 'Put task on hold' }">
+      <template #body-content>
+        <label class="mb-1 block text-sm text-ink-gray-6">Hold reason (required)</label>
+        <textarea
+          v-model="holdReason"
+          rows="3"
+          placeholder="Why is this task on hold?"
+          class="w-full rounded border border-outline-gray-2 bg-surface-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+          @keydown.enter.prevent="confirmHold"
+        ></textarea>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          class="w-full"
+          :disabled="!holdReason.trim()"
+          :loading="holdSubmitting"
+          @click="confirmHold"
+        >
+          Confirm hold
+        </Button>
+      </template>
+    </Dialog>
 
     <!-- Bulk action bar -->
     <Teleport to="body">
@@ -601,7 +626,7 @@
 </template>
 <script>
 import { h } from 'vue'
-import { Dropdown, Autocomplete, Tooltip, call } from 'frappe-ui'
+import { Dropdown, Autocomplete, Tooltip, Dialog, call } from 'frappe-ui'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import ListView from './ListView.vue'
 import KanbanView from './KanbanView.vue'
@@ -727,6 +752,10 @@ export default {
       },
       showTaskDialog: false,
       selectedTaskId: null,
+      holdPromptOpen: false,
+      holdReason: '',
+      holdTaskName: null,
+      holdSubmitting: false,
     }
   },
   watch: {
@@ -755,6 +784,7 @@ export default {
     KanbanView,
     TeamView,
     TaskDetailDialog,
+    Dialog,
   },
   resources: {
     tasks() {
@@ -831,14 +861,39 @@ export default {
         params: { teamId: task.team, projectId: task.project, taskId: task.name },
       }
     },
-    statusOptions({ onClick }) {
+    statusOptions({ onClick, name }) {
       return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
-          onClick: () => onClick(status),
+          onClick: () => {
+            // Moving to Hold requires a reason — route through the hold prompt instead of a plain field write.
+            if (status === 'Hold' && name) return this.requestHold(name)
+            onClick(status)
+          },
         }
       })
+    },
+    requestHold(name) {
+      this.holdTaskName = name
+      this.holdReason = ''
+      this.holdPromptOpen = true
+    },
+    confirmHold() {
+      const reason = this.holdReason.trim()
+      if (!reason) return
+      this.holdSubmitting = true
+      call('gameplan.gameplan.doctype.gp_task.gp_task.hold_task', {
+        task: this.holdTaskName,
+        reason,
+      })
+        .then(() => {
+          this.holdPromptOpen = false
+          this.tasks.reload()
+        })
+        .finally(() => {
+          this.holdSubmitting = false
+        })
     },
     taskTypeOptions({ onClick }) {
       return TASK_TYPES.map((taskType) => ({
