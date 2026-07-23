@@ -275,6 +275,8 @@ def get_dashboard_data(
 		"by_team": _by_team(tasks),
 		"by_type": _group_count(tasks, "task_type", TASK_TYPES),
 		"by_sprint": _by_sprint(tasks),
+		"due_date_revisions": _due_date_revisions(tasks),
+		"on_hold": _on_hold(tasks),
 		"team_options": _team_options(start, end, tree),
 		"project_options": _project_options(start, end, team, tree),
 		"people_options": _people_in_scope(start, end, team, project, tree),
@@ -441,6 +443,41 @@ def _group_count(tasks, field, known_values) -> dict:
 		"labels": labels,
 		"datasets": [{"name": "Tasks", "values": [counts[k] for k in labels]}],
 	}
+
+
+def _due_date_revisions(tasks, top_n=10) -> dict:
+	"""Top tasks by number of due-date changes logged in GP Activity (data is a JSON string)."""
+	if not tasks:
+		return {"labels": [], "datasets": [{"name": "Revisions", "values": []}]}
+	title_map = {str(t.name): t.title for t in tasks}
+	counts = {}
+	for row in frappe.get_all(
+		"GP Activity",
+		filters={
+			"reference_doctype": "GP Task",
+			"reference_name": ["in", list(title_map.keys())],
+			"action": "Task Value Changed",
+		},
+		fields=["reference_name", "data"],
+		limit_page_length=0,
+	):
+		data = frappe.parse_json(row.data) if row.data else {}
+		if data.get("field") == "due_date":
+			key = str(row.reference_name)
+			counts[key] = counts.get(key, 0) + 1
+	ranked = sorted(counts, key=lambda k: counts[k], reverse=True)[:top_n]
+	return {
+		"labels": [title_map.get(k, k) for k in ranked],
+		"datasets": [{"name": "Revisions", "values": [counts[k] for k in ranked]}],
+	}
+
+
+def _on_hold(tasks) -> list[dict]:
+	return [
+		{"name": t.name, "title": t.title, "project": t.project}
+		for t in tasks
+		if t.status == "Hold"
+	]
 
 
 def _by_team(tasks) -> dict:
