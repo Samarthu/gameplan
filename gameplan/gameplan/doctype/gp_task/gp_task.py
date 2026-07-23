@@ -364,6 +364,28 @@ class GPTask(HasMentions, HasActivity, Document):
 		return summary
 
 	@frappe.whitelist()
+	def get_due_date_history(self):
+		rows = frappe.get_all(
+			"GP Activity",
+			filters={"reference_doctype": "GP Task", "reference_name": self.name, "action": "Task Value Changed"},
+			fields=["user", "data", "creation"],
+			order_by="creation desc",
+		)
+		history = []
+		for row in rows:
+			data = frappe.parse_json(row.data) if row.data else {}
+			if data.get("field") == "due_date":
+				history.append(
+					{
+						"user": row.user,
+						"old_value": data.get("old_value"),
+						"new_value": data.get("new_value"),
+						"creation": str(row.creation),
+					}
+				)
+		return history
+
+	@frappe.whitelist()
 	def hold(self, reason=None):
 		if not (reason or "").strip():
 			frappe.throw(_("Hold reason is required"))

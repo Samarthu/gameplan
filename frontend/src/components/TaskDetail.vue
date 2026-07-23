@@ -97,7 +97,17 @@
                 {{ $resources.task.doc.status || 'Set status' }}
               </Button>
             </Dropdown>
-            <div class="text-ink-gray-6">Due</div>
+            <div class="flex items-center gap-1 text-ink-gray-6">
+              Due
+              <button
+                type="button"
+                class="rounded p-0.5 text-ink-gray-4 hover:bg-surface-gray-2 hover:text-ink-gray-7"
+                title="Due date revision history"
+                @click="openDueHistory"
+              >
+                <LucideHistory class="h-3.5 w-3.5" />
+              </button>
+            </div>
             <DatePicker
               v-model="$resources.task.doc.due_date"
               variant="subtle"
@@ -362,6 +372,25 @@
         </Button>
       </template>
     </Dialog>
+    <Dialog v-model="dueHistoryOpen" :options="{ title: 'Due date revisions' }">
+      <template #body-content>
+        <div v-if="!dueHistory.length" class="text-sm text-ink-gray-5">No revisions yet.</div>
+        <ul v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          <li v-for="(rev, i) in dueHistory" :key="i" class="text-sm">
+            <div class="text-ink-gray-8">
+              <span v-if="rev.old_value">{{ formatDue(rev.old_value) }}</span>
+              <span v-else class="text-ink-gray-5">None</span>
+              →
+              <span v-if="rev.new_value" class="font-medium">{{ formatDue(rev.new_value) }}</span>
+              <span v-else class="text-ink-gray-5">None</span>
+            </div>
+            <div class="text-xs text-ink-gray-5">
+              {{ $user(rev.user).full_name }} · {{ $dayjs(rev.creation).format('DD/MM/YYYY hh:mm A') }}
+            </div>
+          </li>
+        </ul>
+      </template>
+    </Dialog>
     <Dialog v-model="holdPromptOpen" :options="{ title: 'Put task on hold' }">
       <template #body-content>
         <label class="block mb-1 text-sm text-ink-gray-6">Hold reason (required)</label>
@@ -433,6 +462,7 @@ export default {
           linkTeam: 'link_team',
           unlinkTeam: 'unlink_team',
           hold: 'hold',
+          getDueDateHistory: 'get_due_date_history',
           getTimer: 'get_timer',
           startTimer: 'start_timer',
           pauseTimer: 'pause_timer',
@@ -502,6 +532,8 @@ export default {
       pauseReason: '',
       holdPromptOpen: false,
       holdReason: '',
+      dueHistoryOpen: false,
+      dueHistory: [],
     }
   },
   watch: {
@@ -696,6 +728,19 @@ export default {
     },
     startTimer() {
       this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
+    },
+    openDueHistory() {
+      this.dueHistoryOpen = true
+      this.$resources.task.getDueDateHistory.submit(null, {
+        onSuccess: () => {
+          this.dueHistory = this.$resources.task.getDueDateHistory.data || []
+        },
+      })
+    },
+    formatDue(raw) {
+      if (!raw) return ''
+      const d = new Date(String(raw).replace(' ', 'T'))
+      return isNaN(d) ? raw : d.toLocaleDateString()
     },
     openHoldPrompt() {
       this.holdReason = ''
