@@ -754,7 +754,7 @@ export default {
       selectedTaskId: null,
       holdPromptOpen: false,
       holdReason: '',
-      holdTaskName: null,
+      holdTaskNames: [],
       holdSubmitting: false,
     }
   },
@@ -875,25 +875,30 @@ export default {
       })
     },
     requestHold(name) {
-      this.holdTaskName = name
+      this.holdTaskNames = [name]
       this.holdReason = ''
       this.holdPromptOpen = true
     },
-    confirmHold() {
+    requestBulkHold() {
+      this.holdTaskNames = [...this.selectedTasks]
+      this.holdReason = ''
+      this.holdPromptOpen = true
+    },
+    async confirmHold() {
       const reason = this.holdReason.trim()
-      if (!reason) return
+      if (!reason || !this.holdTaskNames.length) return
       this.holdSubmitting = true
-      call('gameplan.gameplan.doctype.gp_task.gp_task.hold_task', {
-        task: this.holdTaskName,
-        reason,
-      })
-        .then(() => {
-          this.holdPromptOpen = false
-          this.tasks.reload()
-        })
-        .finally(() => {
-          this.holdSubmitting = false
-        })
+      try {
+        // Sequential: concurrent doc saves collide and leave some tasks unchanged.
+        for (const task of this.holdTaskNames) {
+          await call('gameplan.gameplan.doctype.gp_task.gp_task.hold_task', { task, reason })
+        }
+        this.holdPromptOpen = false
+        this.clearSelection()
+        this.tasks.reload()
+      } finally {
+        this.holdSubmitting = false
+      }
     },
     taskTypeOptions({ onClick }) {
       return TASK_TYPES.map((taskType) => ({
@@ -1726,7 +1731,12 @@ export default {
       return this.exportColumnDefs.some((col) => this.exportColumnSelection[col.key])
     },
     bulkStatusOptions() {
-      return this.statusOptions({ onClick: (status) => this.bulkUpdate('status', status) })
+      return this.statusOptions({
+        onClick: (status) => {
+          if (status === 'Hold') return this.requestBulkHold()
+          this.bulkUpdate('status', status)
+        },
+      })
     },
     bulkTaskTypeOptions() {
       return this.taskTypeOptions({ onClick: (task_type) => this.bulkUpdate('task_type', task_type) })
