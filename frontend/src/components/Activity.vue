@@ -51,7 +51,11 @@
                 — <span class="text-ink-gray-8">“{{ activity.data.reason }}”</span>
               </span>
               <span v-else-if="activity.action == 'Timer Stopped'">
-                <span class="font-medium text-ink-gray-9">Stopped</span> the timer — total time
+                <span class="font-medium text-ink-gray-9">Stopped</span> the timer
+                <template v-if="activity.data.status">
+                  in <span class="text-ink-gray-8">{{ activity.data.status }}</span>
+                </template>
+                — total time
                 <span class="text-ink-gray-8">{{ formatDuration(activity.data.total_seconds) }}</span>
               </span>
               <span v-else-if="activity.action == 'Task Value Changed'">

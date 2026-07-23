@@ -129,7 +129,8 @@
                   v-if="!timerRunning"
                   @click="startTimer"
                   :loading="$resources.task.startTimer.loading"
-                  title="Start"
+                  :disabled="!timerCanStart"
+                  :title="timerCanStart ? 'Start' : 'Timer already stopped for this status'"
                 >
                   <template #icon><LucidePlay class="w-4 h-4" /></template>
                 </Button>
@@ -469,6 +470,7 @@ export default {
       descriptionLoadedFor: null,
       timerBase: 0,
       timerRunning: false,
+      timerCanStart: true,
       timerAnchorMs: 0,
       nowMs: 0,
       timerInterval: null,
@@ -660,6 +662,7 @@ export default {
           const data = this.$resources.task.getTimer.data || {}
           this.timerBase = data.total_seconds || 0
           this.timerRunning = !!data.running
+          this.timerCanStart = data.can_start !== false
           this.timerAnchorMs = Date.now()
           this.nowMs = Date.now()
         },
@@ -843,7 +846,8 @@ export default {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
-          onClick: () => this.$resources.task.setValue.submit({ status }),
+          onClick: () =>
+            this.$resources.task.setValue.submit({ status }, { onSuccess: () => this.refreshTimer() }),
         }
       })
     },

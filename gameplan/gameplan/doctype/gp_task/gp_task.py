@@ -285,29 +285,47 @@ class GPTask(HasMentions, HasActivity, Document):
 				return row
 		return None
 
-	def _close_open_timer(self, reason):
+	def _close_open_timer(self, reason, is_stop):
 		row = self._open_timer_row()
 		if not row:
 			frappe.throw(_("Timer is not running"))
 		now = frappe.utils.now_datetime()
 		row.end = now
 		row.duration = int(frappe.utils.time_diff_in_seconds(now, row.start))
+		row.is_stop = 1 if is_stop else 0
 		if reason:
 			row.pause_reason = reason
 		self.save()
 
+	def _stopped_for_current_status(self):
+		"""True if the current user already stopped the timer while the task is in this status."""
+		user = frappe.session.user
+		for row in self.timer_sessions or []:
+			if row.is_stop and row.user == user and row.task_status == self.status:
+				return True
+		return False
+
 	def timer_summary(self):
-		"""Server-computed so total time is timezone-correct; client only ticks the live second."""
+		"""Time is scoped to the current user + current status, so it starts fresh for each status.
+		Server-computed so it stays timezone-correct; the client only ticks the live second.
+		ponytail: an open row left behind by a mid-run status change is ignored here, not auto-closed."""
+		user = frappe.session.user
 		total = 0
 		running = False
 		now = frappe.utils.now_datetime()
 		for row in self.timer_sessions or []:
+			if row.user != user or row.task_status != self.status:
+				continue
 			if row.end:
 				total += int(row.duration or 0)
 			elif row.start:
 				running = True
 				total += int(frappe.utils.time_diff_in_seconds(now, row.start))
-		return {"running": running, "total_seconds": total}
+		return {
+			"running": running,
+			"total_seconds": total,
+			"can_start": not running and not self._stopped_for_current_status(),
+		}
 
 	@frappe.whitelist()
 	def get_timer(self):
@@ -317,7 +335,12 @@ class GPTask(HasMentions, HasActivity, Document):
 	def start_timer(self):
 		if self._open_timer_row():
 			return self.timer_summary()  # already running, no-op
-		self.append("timer_sessions", {"user": frappe.session.user, "start": frappe.utils.now_datetime()})
+		if self._stopped_for_current_status():
+			frappe.throw(_("Timer already stopped for this status. Change the status to track more time."))
+		self.append(
+			"timer_sessions",
+			{"user": frappe.session.user, "start": frappe.utils.now_datetime(), "task_status": self.status},
+		)
 		self.save()
 		return self.timer_summary()
 
@@ -325,16 +348,19 @@ class GPTask(HasMentions, HasActivity, Document):
 	def pause_timer(self, reason=None):
 		if not (reason or "").strip():
 			frappe.throw(_("Pause reason is required"))
-		self._close_open_timer(reason.strip())
+		self._close_open_timer(reason.strip(), is_stop=False)
 		summary = self.timer_summary()
 		self.log_activity("Timer Paused", data={"reason": reason.strip(), "total_seconds": summary["total_seconds"]})
 		return summary
 
 	@frappe.whitelist()
 	def stop_timer(self):
-		self._close_open_timer(None)
+		self._close_open_timer(None, is_stop=True)
 		summary = self.timer_summary()
-		self.log_activity("Timer Stopped", data={"total_seconds": summary["total_seconds"]})
+		self.log_activity(
+			"Timer Stopped",
+			data={"total_seconds": summary["total_seconds"], "status": self.status},
+		)
 		return summary
 
 	@frappe.whitelist()

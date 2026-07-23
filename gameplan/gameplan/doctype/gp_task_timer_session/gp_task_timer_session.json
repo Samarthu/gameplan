@@ -7,9 +7,11 @@
  "engine": "InnoDB",
  "field_order": [
   "user",
+  "task_status",
   "start",
   "end",
   "duration",
+  "is_stop",
   "pause_reason"
  ],
  "fields": [
@@ -19,6 +21,17 @@
    "in_list_view": 1,
    "label": "User",
    "options": "User"
+  },
+  {
+   "fieldname": "task_status",
+   "fieldtype": "Data",
+   "label": "Task Status"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_stop",
+   "fieldtype": "Check",
+   "label": "Stopped"
   },
   {
    "fieldname": "start",
