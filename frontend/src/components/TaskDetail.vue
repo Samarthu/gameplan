@@ -329,6 +329,13 @@
               <LucideChevronDown class="h-3.5 w-3.5 text-ink-gray-6" />
             </button>
           </Dropdown>
+          <button
+            class="inline-flex items-center rounded-lg p-1.5 text-ink-gray-8 hover:bg-surface-gray-1"
+            title="Export activity as CSV"
+            @click="exportActivity"
+          >
+            <LucideDownload class="h-4 w-4 text-ink-gray-6" />
+          </button>
         </div>
       </div>
       <div class="flex flex-col flex-1 min-h-0">
@@ -728,6 +735,44 @@ export default {
     },
     startTimer() {
       this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
+    },
+    async exportActivity() {
+      const rows = await call('frappe.client.get_list', {
+        doctype: 'GP Activity',
+        filters: { reference_doctype: 'GP Task', reference_name: this.taskId },
+        fields: ['user', 'action', 'data', 'creation', 'pinned'],
+        order_by: `creation ${this.activitySort === 'asc' ? 'asc' : 'desc'}`,
+        limit_page_length: 0,
+      })
+      const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+      const describe = (action, data) => {
+        const d = data ? (typeof data === 'string' ? JSON.parse(data) : data) : {}
+        if (d.reason) return d.reason
+        if (d.field_label) return `${d.field_label}: ${d.old_value ?? '—'} → ${d.new_value ?? '—'}`
+        return ''
+      }
+      const header = ['Time', 'User', 'Action', 'Details', 'Pinned']
+      const lines = [header.map(csvCell).join(',')]
+      for (const r of rows) {
+        lines.push(
+          [
+            this.$dayjs(r.creation).format('YYYY-MM-DD HH:mm:ss'),
+            this.$user(r.user).full_name || r.user,
+            r.action,
+            describe(r.action, r.data),
+            r.pinned ? 'Yes' : 'No',
+          ]
+            .map(csvCell)
+            .join(','),
+        )
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `task-${this.taskId}-activity.csv`
+      a.click()
+      URL.revokeObjectURL(url)
     },
     openDueHistory() {
       this.dueHistoryOpen = true
