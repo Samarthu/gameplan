@@ -101,7 +101,6 @@ declare module 'vue' {
     LucideSlidersHorizontal: typeof import('~icons/lucide/sliders-horizontal')['default']
     LucideSquare: typeof import('~icons/lucide/square')['default']
     LucideTag: typeof import('~icons/lucide/tag')['default']
-    LucideTimer: typeof import('~icons/lucide/timer')['default']
     LucideTrash2: typeof import('~icons/lucide/trash2')['default']
     LucideUnfoldVertical: typeof import('~icons/lucide/unfold-vertical')['default']
     LucideUserPlus: typeof import('~icons/lucide/user-plus')['default']

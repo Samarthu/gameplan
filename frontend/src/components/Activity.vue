@@ -45,6 +45,15 @@
                 <span class="text-ink-gray-8">“{{ activity.data.old_title }}”</span> to
                 <span class="text-ink-gray-8">“{{ activity.data.new_title }}”</span>
               </span>
+              <span v-else-if="activity.action == 'Timer Paused'">
+                <span class="font-medium text-ink-gray-9">Paused</span> the timer at
+                <span class="text-ink-gray-8">{{ formatDuration(activity.data.total_seconds) }}</span>
+                — <span class="text-ink-gray-8">“{{ activity.data.reason }}”</span>
+              </span>
+              <span v-else-if="activity.action == 'Timer Stopped'">
+                <span class="font-medium text-ink-gray-9">Stopped</span> the timer — total time
+                <span class="text-ink-gray-8">{{ formatDuration(activity.data.total_seconds) }}</span>
+              </span>
               <span v-else-if="activity.action == 'Task Value Changed'">
                 <template v-if="activity.data.field === 'assigned_to'">
                   <span class="font-medium text-ink-gray-9">Assignee</span> set to
@@ -132,6 +141,13 @@ export default {
   components: { UserProfileLink, UserAvatar },
   methods: {
     projectTitle,
+    formatDuration(totalSeconds) {
+      const s = Math.max(0, Math.floor(totalSeconds || 0))
+      const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+      const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+      const ss = String(s % 60).padStart(2, '0')
+      return `${hh}:${mm}:${ss}`
+    },
     assigneeIdList(val) {
       if (val == null || val === '') return []
       if (Array.isArray(val)) return val.filter(Boolean)

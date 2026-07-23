@@ -120,6 +120,37 @@
               <div class="text-ink-gray-6">Completed</div>
               <div class="px-1.5 py-1 text-sm text-ink-gray-8">{{ completedDate }}</div>
             </template>
+            <div class="text-ink-gray-6">Timer</div>
+            <div class="space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-mono text-base tabular-nums text-ink-gray-9">{{ timerDisplay }}</span>
+                <span v-if="timerRunning" class="text-xs font-medium text-ink-green-3">Running</span>
+                <Button
+                  v-if="!timerRunning"
+                  @click="startTimer"
+                  :loading="$resources.task.startTimer.loading"
+                  title="Start"
+                >
+                  <template #icon><LucidePlay class="w-4 h-4" /></template>
+                </Button>
+                <Button
+                  v-if="timerRunning"
+                  @click="openPausePrompt"
+                  title="Pause"
+                >
+                  <template #icon><LucidePause class="w-4 h-4" /></template>
+                </Button>
+                <Button
+                  v-if="timerRunning"
+                  theme="red"
+                  @click="stopTimer"
+                  :loading="$resources.task.stopTimer.loading"
+                  title="Stop"
+                >
+                  <template #icon><LucideSquare class="w-4 h-4" /></template>
+                </Button>
+              </div>
+            </div>
           </div>
           <div class="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5 content-start">
             <div class="text-ink-gray-6">Assignees</div>
@@ -207,56 +238,6 @@
                 @update:modelValue="linkTeam"
               />
             </div>
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-3 pb-4 mb-4 border-b border-outline-gray-2">
-          <div class="flex items-center gap-2">
-            <LucideTimer class="w-4 h-4 text-ink-gray-5" />
-            <span class="font-mono text-lg tabular-nums text-ink-gray-9">{{ timerDisplay }}</span>
-            <span v-if="timerRunning" class="text-xs font-medium text-ink-green-3">Running</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <Button
-              v-if="!timerRunning"
-              @click="startTimer"
-              :loading="$resources.task.startTimer.loading"
-            >
-              <template #prefix><LucidePlay class="w-4 h-4" /></template>
-              Start
-            </Button>
-            <Button
-              v-if="timerRunning"
-              @click="pausePromptOpen = !pausePromptOpen"
-            >
-              <template #prefix><LucidePause class="w-4 h-4" /></template>
-              Pause
-            </Button>
-            <Button
-              v-if="timerRunning"
-              theme="red"
-              @click="stopTimer"
-              :loading="$resources.task.stopTimer.loading"
-            >
-              <template #prefix><LucideSquare class="w-4 h-4" /></template>
-              Stop
-            </Button>
-          </div>
-          <div v-if="pausePromptOpen && timerRunning" class="flex items-center w-full gap-2">
-            <input
-              v-model="pauseReason"
-              type="text"
-              placeholder="Pause reason (required)"
-              class="flex-1 px-2 py-1 text-sm border rounded bg-surface-white border-outline-gray-2 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
-              @keydown.enter.prevent="confirmPause"
-            />
-            <Button
-              variant="solid"
-              :disabled="!pauseReason.trim()"
-              :loading="$resources.task.pauseTimer.loading"
-              @click="confirmPause"
-            >
-              Confirm pause
-            </Button>
           </div>
         </div>
         <TextEditor
@@ -354,6 +335,32 @@
         />
       </div>
     </div>
+    <Dialog
+      v-model="pausePromptOpen"
+      :options="{ title: 'Pause timer' }"
+    >
+      <template #body-content>
+        <label class="block mb-1 text-sm text-ink-gray-6">Pause reason (required)</label>
+        <textarea
+          v-model="pauseReason"
+          rows="3"
+          placeholder="Why are you pausing?"
+          class="w-full px-2 py-1.5 text-sm border rounded bg-surface-white border-outline-gray-2 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+          @keydown.enter.prevent="confirmPause"
+        ></textarea>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          class="w-full"
+          :disabled="!pauseReason.trim()"
+          :loading="$resources.task.pauseTimer.loading"
+          @click="confirmPause"
+        >
+          Confirm pause
+        </Button>
+      </template>
+    </Dialog>
   </div>
 </template>
 <script>
@@ -362,7 +369,7 @@ import TextEditor from '@/components/TextEditor.vue'
 import ReadmeEditor from '@/components/ReadmeEditor.vue'
 import CommentsArea from '@/components/CommentsArea.vue'
 import { focus } from '@/directives'
-import { Autocomplete, Dropdown, LoadingText, DatePicker, call } from 'frappe-ui'
+import { Autocomplete, Dropdown, LoadingText, DatePicker, Dialog, call } from 'frappe-ui'
 import CommentsList from '@/components/CommentsList.vue'
 import TaskStatusIcon from '@/components/icons/TaskStatusIcon.vue'
 import TaskPriorityIcon from '@/components/icons/TaskPriorityIcon.vue'
@@ -661,6 +668,10 @@ export default {
     startTimer() {
       this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
     },
+    openPausePrompt() {
+      this.pauseReason = ''
+      this.pausePromptOpen = true
+    },
     confirmPause() {
       const reason = this.pauseReason.trim()
       if (!reason) return
@@ -937,6 +948,7 @@ export default {
     CommentsArea,
     Autocomplete,
     Dropdown,
+    Dialog,
     CommentsList,
     TaskStatusIcon,
     LoadingText,

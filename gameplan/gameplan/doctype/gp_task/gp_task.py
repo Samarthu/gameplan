@@ -109,7 +109,7 @@ def append_descendant_task_rows(rows: list, fields):
 class GPTask(HasMentions, HasActivity, Document):
 	on_delete_cascade = ["GP Comment", "GP Activity", "GP Task Team Link"]
 	on_delete_set_null = ["GP Notification"]
-	activities = ["Task Value Changed"]
+	activities = ["Task Value Changed", "Timer Paused", "Timer Stopped"]
 	mentions_field = "description"
 
 	def before_validate(self):
@@ -326,12 +326,16 @@ class GPTask(HasMentions, HasActivity, Document):
 		if not (reason or "").strip():
 			frappe.throw(_("Pause reason is required"))
 		self._close_open_timer(reason.strip())
-		return self.timer_summary()
+		summary = self.timer_summary()
+		self.log_activity("Timer Paused", data={"reason": reason.strip(), "total_seconds": summary["total_seconds"]})
+		return summary
 
 	@frappe.whitelist()
 	def stop_timer(self):
 		self._close_open_timer(None)
-		return self.timer_summary()
+		summary = self.timer_summary()
+		self.log_activity("Timer Stopped", data={"total_seconds": summary["total_seconds"]})
+		return summary
 
 	@frappe.whitelist()
 	def get_linked_teams(self):
