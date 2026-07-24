@@ -585,6 +585,7 @@ export default {
     taskId() {
       this.docTags = []
       this.loadDocTags()
+      this.refreshTimer()
     },
     duePromptOpen(open) {
       // Dismissed without confirming → revert the picker to the saved date.
@@ -624,6 +625,7 @@ export default {
     this.loadDocTags()
     this.fetchTagSuggestions('')
     this.resizeTitle()
+    this.refreshTimer()
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
     window.addEventListener('resize', this.onWindowResize)
@@ -767,6 +769,7 @@ export default {
       )
     },
     refreshTimer() {
+      if (!this.taskId || !this.$resources?.task?.getTimer) return
       this.$resources.task.getTimer.submit(null, {
         onSuccess: () => {
           const data = this.$resources.task.getTimer.data || {}
