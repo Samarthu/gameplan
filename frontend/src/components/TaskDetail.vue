@@ -122,10 +122,22 @@
               v-model="selectedProject"
               @update:modelValue="changeProject"
             />
-            <template v-if="$resources.task.doc.completed_at">
-              <div class="text-ink-gray-6">Completed</div>
-              <div class="px-1.5 py-1 text-sm text-ink-gray-8">{{ completedDate }}</div>
-            </template>
+            <div class="text-ink-gray-6">Completed</div>
+            <div
+              v-if="isAutoCompletion"
+              class="px-1.5 py-1 text-sm text-ink-gray-8"
+              title="Set automatically for Done and Live"
+            >
+              {{ completedDate || '—' }}
+            </div>
+            <DatePicker
+              v-else
+              v-model="$resources.task.doc.completed_at"
+              variant="subtle"
+              placeholder="Set completion date"
+              :disabled="false"
+              @update:modelValue="$resources.task.setValue.submit({ completed_at: $event })"
+            />
             <div class="text-ink-gray-6">Timer</div>
             <div class="space-y-1.5">
               <div class="flex flex-wrap items-center gap-2">
@@ -573,6 +585,7 @@ export default {
     taskId() {
       this.docTags = []
       this.loadDocTags()
+      this.refreshTimer()
     },
     duePromptOpen(open) {
       // Dismissed without confirming → revert the picker to the saved date.
@@ -612,6 +625,7 @@ export default {
     this.loadDocTags()
     this.fetchTagSuggestions('')
     this.resizeTitle()
+    this.refreshTimer()
     window.addEventListener('mousemove', this.onActivityResize)
     window.addEventListener('mouseup', this.stopActivityResize)
     window.addEventListener('resize', this.onWindowResize)
@@ -755,6 +769,7 @@ export default {
       )
     },
     refreshTimer() {
+      if (!this.taskId || !this.$resources?.task?.getTimer) return
       this.$resources.task.getTimer.submit(null, {
         onSuccess: () => {
           const data = this.$resources.task.getTimer.data || {}
@@ -968,6 +983,9 @@ export default {
     },
   },
   computed: {
+    isAutoCompletion() {
+      return ['Done', 'Live'].includes(this.$resources.task.doc?.status)
+    },
     completedDate() {
       const raw = this.$resources.task.doc?.completed_at
       if (!raw) return ''

@@ -16,6 +16,8 @@ from gameplan.search import GameplanSearch
 
 # Statuses that should never receive due/overdue reminders.
 CLOSED_TASK_STATUSES = frozenset({"Done", "Cancelled", "Not a Bug"})
+# Statuses whose completion date is filled in automatically; others are entered manually.
+AUTO_COMPLETION_STATUSES = frozenset({"Done", "Live"})
 
 
 def assignee_users_from_doc(doc) -> set:
@@ -128,10 +130,40 @@ class GPTask(HasMentions, HasActivity, Document):
 			self.append("assignees", {"user": u})
 
 		self.assigned_to = users[0] if users else None
+		self.pause_timer_on_status_change()
 		self.sync_completion_from_status()
+
+	def pause_timer_on_status_change(self):
+		"""If the timer is running when the status changes, pause it and note the transition."""
+		if self.is_new() or not self.has_value_changed("status"):
+			return
+		row = self._open_timer_row()
+		if not row:
+			return
+		prev = self.get_doc_before_save()
+		old = (prev.status if prev else None) or "—"
+		reason = _("Status changed from {0} to {1}").format(old, self.status or "—")
+		now = frappe.utils.now_datetime()
+		row.end = now
+		row.duration = int(frappe.utils.time_diff_in_seconds(now, row.start))
+		row.is_stop = 0
+		row.pause_reason = reason
+		# Log after save (in on_update); total is scoped to the session's own status.
+		self._auto_pause_reason = reason
+		self._auto_pause_total = sum(
+			int(r.duration or 0)
+			for r in self.timer_sessions
+			if r.end and r.user == row.user and r.task_status == row.task_status
+		)
 
 	def sync_completion_from_status(self):
 		"""Keep is_completed aligned with terminal statuses so schedulers skip closed work."""
+		# Done & Live auto-fill the completion date; every other status is set manually.
+		if self.status in AUTO_COMPLETION_STATUSES and not self.completed_at:
+			self.completed_at = frappe.utils.now_datetime()
+			if not self.completed_by and frappe.session.user not in (None, "Guest"):
+				self.completed_by = frappe.session.user
+
 		if self.status in CLOSED_TASK_STATUSES:
 			if not self.is_completed:
 				self.is_completed = 1
@@ -171,8 +203,19 @@ class GPTask(HasMentions, HasActivity, Document):
 		self.update_project_progress()
 		self.notify_mentions()
 		self.log_value_updates()
+		self.log_auto_timer_pause()
 		self.update_search_index()
 		self.clear_schedule_notifications_if_closed()
+
+	def log_auto_timer_pause(self):
+		reason = getattr(self, "_auto_pause_reason", None)
+		if not reason:
+			return
+		self.log_activity(
+			"Timer Paused",
+			data={"reason": reason, "total_seconds": getattr(self, "_auto_pause_total", 0)},
+		)
+		self._auto_pause_reason = None
 
 	def clear_schedule_notifications_if_closed(self):
 		is_closed = self.status in CLOSED_TASK_STATUSES or self.is_completed
