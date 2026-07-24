@@ -16,6 +16,8 @@ from gameplan.search import GameplanSearch
 
 # Statuses that should never receive due/overdue reminders.
 CLOSED_TASK_STATUSES = frozenset({"Done", "Cancelled", "Not a Bug"})
+# Statuses whose completion date is filled in automatically; others are entered manually.
+AUTO_COMPLETION_STATUSES = frozenset({"Done", "Live"})
 
 
 def assignee_users_from_doc(doc) -> set:
@@ -132,6 +134,12 @@ class GPTask(HasMentions, HasActivity, Document):
 
 	def sync_completion_from_status(self):
 		"""Keep is_completed aligned with terminal statuses so schedulers skip closed work."""
+		# Done & Live auto-fill the completion date; every other status is set manually.
+		if self.status in AUTO_COMPLETION_STATUSES and not self.completed_at:
+			self.completed_at = frappe.utils.now_datetime()
+			if not self.completed_by and frappe.session.user not in (None, "Guest"):
+				self.completed_by = frappe.session.user
+
 		if self.status in CLOSED_TASK_STATUSES:
 			if not self.is_completed:
 				self.is_completed = 1
