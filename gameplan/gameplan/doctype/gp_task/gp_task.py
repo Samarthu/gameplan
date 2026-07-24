@@ -194,15 +194,15 @@ class GPTask(HasMentions, HasActivity, Document):
 		prev_doc = self.get_doc_before_save()
 		for field in fields:
 			if prev_doc and str(self.get(field)) != str(prev_doc.get(field)):
-				self.log_activity(
-					"Task Value Changed",
-					data={
-						"field": field,
-						"field_label": self.meta.get_label(field),
-						"old_value": prev_doc.get(field),
-						"new_value": self.get(field),
-					},
-				)
+				data = {
+					"field": field,
+					"field_label": self.meta.get_label(field),
+					"old_value": prev_doc.get(field),
+					"new_value": self.get(field),
+				}
+				if field == "due_date" and getattr(self, "_due_date_reason", None):
+					data["reason"] = self._due_date_reason
+				self.log_activity("Task Value Changed", data=data)
 		old_assignees = sorted(assignee_users_from_doc(prev_doc)) if prev_doc else []
 		new_assignees = sorted(assignee_users_from_doc(self))
 		if old_assignees != new_assignees:
@@ -364,6 +364,12 @@ class GPTask(HasMentions, HasActivity, Document):
 		return summary
 
 	@frappe.whitelist()
+	def change_due_date(self, due_date, reason=None):
+		self._due_date_reason = (reason or "").strip() or None
+		self.due_date = due_date
+		self.save()
+
+	@frappe.whitelist()
 	def get_due_date_history(self):
 		rows = frappe.get_all(
 			"GP Activity",
@@ -380,6 +386,7 @@ class GPTask(HasMentions, HasActivity, Document):
 						"user": row.user,
 						"old_value": data.get("old_value"),
 						"new_value": data.get("new_value"),
+						"reason": data.get("reason"),
 						"creation": str(row.creation),
 					}
 				)

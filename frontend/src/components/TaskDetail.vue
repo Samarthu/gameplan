@@ -113,11 +113,7 @@
               variant="subtle"
               placeholder="Due date"
               :disabled="false"
-              @update:modelValue="
-                $resources.task.setValue.submit({
-                  due_date: $event,
-                })
-              "
+              @update:modelValue="onDueDateChange"
             />
             <div class="text-ink-gray-6">Project</div>
             <Autocomplete
@@ -391,11 +387,35 @@
               <span v-if="rev.new_value" class="font-medium">{{ formatDue(rev.new_value) }}</span>
               <span v-else class="text-ink-gray-5">None</span>
             </div>
+            <div v-if="rev.reason" class="text-ink-gray-7">“{{ rev.reason }}”</div>
             <div class="text-xs text-ink-gray-5">
               {{ $user(rev.user).full_name }} · {{ $dayjs(rev.creation).format('DD/MM/YYYY hh:mm A') }}
             </div>
           </li>
         </ul>
+      </template>
+    </Dialog>
+    <Dialog v-model="duePromptOpen" :options="{ title: 'Change due date' }">
+      <template #body-content>
+        <label class="block mb-1 text-sm text-ink-gray-6">Reason for changing due date (required)</label>
+        <textarea
+          v-model="dueReason"
+          rows="3"
+          placeholder="Why is the due date changing?"
+          class="w-full px-2 py-1.5 text-sm border rounded bg-surface-white border-outline-gray-2 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+          @keydown.enter.prevent="confirmDueChange"
+        ></textarea>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          class="w-full"
+          :disabled="!dueReason.trim()"
+          :loading="$resources.task.changeDueDate.loading"
+          @click="confirmDueChange"
+        >
+          Save due date
+        </Button>
       </template>
     </Dialog>
     <Dialog v-model="holdPromptOpen" :options="{ title: 'Put task on hold' }">
@@ -469,6 +489,7 @@ export default {
           linkTeam: 'link_team',
           unlinkTeam: 'unlink_team',
           hold: 'hold',
+          changeDueDate: 'change_due_date',
           getDueDateHistory: 'get_due_date_history',
           getTimer: 'get_timer',
           startTimer: 'start_timer',
@@ -504,6 +525,7 @@ export default {
           ) {
             this.$resources.task.trackVisit.submit()
           }
+          this.dueDateBaseline = doc.due_date || null
           this.$resources.task.getLinkedTeams.submit()
           this.refreshTimer()
           this.loadDocTags()
@@ -541,12 +563,23 @@ export default {
       holdReason: '',
       dueHistoryOpen: false,
       dueHistory: [],
+      dueDateBaseline: null,
+      duePromptOpen: false,
+      dueReason: '',
+      pendingDueDate: null,
     }
   },
   watch: {
     taskId() {
       this.docTags = []
       this.loadDocTags()
+    },
+    duePromptOpen(open) {
+      // Dismissed without confirming → revert the picker to the saved date.
+      if (!open && this.pendingDueDate) {
+        this.$resources.task.doc.due_date = this.dueDateBaseline
+        this.pendingDueDate = null
+      }
     },
   },
   created() {
@@ -735,6 +768,34 @@ export default {
     },
     startTimer() {
       this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
+    },
+    onDueDateChange(newDate) {
+      const old = this.dueDateBaseline
+      // Only ask for a reason when an existing due date is being changed to a different one.
+      if (old && newDate && old !== newDate) {
+        this.pendingDueDate = newDate
+        this.dueReason = ''
+        this.duePromptOpen = true
+        return
+      }
+      this.saveDueDate(newDate, null)
+    },
+    saveDueDate(dueDate, reason) {
+      const onSuccess = () => {
+        this.dueDateBaseline = dueDate || null
+      }
+      if (reason) {
+        this.$resources.task.changeDueDate.submit({ due_date: dueDate, reason }, { onSuccess })
+      } else {
+        this.$resources.task.setValue.submit({ due_date: dueDate }, { onSuccess })
+      }
+    },
+    confirmDueChange() {
+      const reason = this.dueReason.trim()
+      if (!reason) return
+      this.saveDueDate(this.pendingDueDate, reason)
+      this.pendingDueDate = null
+      this.duePromptOpen = false
     },
     async exportActivity() {
       const rows = await call('frappe.client.get_list', {
