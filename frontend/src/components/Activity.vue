@@ -119,6 +119,9 @@
                   </template>
                   <template v-else> to </template>
                   <span class="text-ink-gray-8">{{ activity.data.new_value }}</span>
+                  <template v-if="activity.data.reason">
+                    — <span class="text-ink-gray-8">“{{ activity.data.reason }}”</span>
+                  </template>
                 </template>
               </span>
             </p>
