@@ -120,11 +120,34 @@
     >
       No sub tasks yet. Click Add to create one.
     </div>
+    <Dialog v-model="holdPromptOpen" :options="{ title: 'Put task on hold' }">
+      <template #body-content>
+        <label class="mb-1 block text-sm text-ink-gray-6">Hold reason (required)</label>
+        <textarea
+          v-model="holdReason"
+          rows="3"
+          placeholder="Why is this task on hold?"
+          class="w-full rounded border border-outline-gray-2 bg-surface-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+          @keydown.enter.prevent="confirmHold"
+        ></textarea>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          class="w-full"
+          :disabled="!holdReason.trim()"
+          :loading="holdSubmitting"
+          @click="confirmHold"
+        >
+          Confirm hold
+        </Button>
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <script>
-import { createResource, Dropdown, Tooltip } from 'frappe-ui'
+import { createResource, Dropdown, Tooltip, Dialog, Button, call } from 'frappe-ui'
 import { h } from 'vue'
 import TaskStatusIcon from './icons/TaskStatusIcon.vue'
 import UserAvatar from './UserAvatar.vue'
@@ -151,12 +174,16 @@ export default {
     parentTaskId: { type: [String, Number], required: true },
     parentTask: { type: Object, default: null },
   },
-  components: { Dropdown, Tooltip, TaskStatusIcon, UserAvatar },
+  components: { Dropdown, Tooltip, Dialog, Button, TaskStatusIcon, UserAvatar },
   data() {
     return {
       showAddForm: false,
       newTitle: '',
       creating: false,
+      holdPromptOpen: false,
+      holdReason: '',
+      holdTaskName: null,
+      holdSubmitting: false,
     }
   },
   resources: {
@@ -242,10 +269,32 @@ export default {
       )
     },
     changeStatus(task, status) {
+      if (status === 'Hold') {
+        this.holdTaskName = task.name
+        this.holdReason = ''
+        this.holdPromptOpen = true
+        return
+      }
       this.$resources.updateTask.submit(
         { doctype: 'GP Task', name: task.name, fieldname: 'status', value: status },
         { onSuccess: () => this.childTasks.reload() },
       )
+    },
+    confirmHold() {
+      const reason = this.holdReason.trim()
+      if (!reason) return
+      this.holdSubmitting = true
+      call('gameplan.gameplan.doctype.gp_task.gp_task.hold_task', {
+        task: this.holdTaskName,
+        reason,
+      })
+        .then(() => {
+          this.holdPromptOpen = false
+          this.childTasks.reload()
+        })
+        .finally(() => {
+          this.holdSubmitting = false
+        })
     },
     statusOptionsFor(task) {
       return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map(
