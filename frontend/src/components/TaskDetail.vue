@@ -387,6 +387,22 @@
         </Button>
       </template>
     </Dialog>
+    <Dialog v-model="stopPromptOpen" :options="{ title: 'Stop timer' }">
+      <template #body-content>
+        <p class="text-sm text-ink-gray-6">Stop the timer? This ends the current session.</p>
+      </template>
+      <template #actions>
+        <Button
+          variant="solid"
+          theme="red"
+          class="w-full"
+          :loading="$resources.task.stopTimer.loading"
+          @click="confirmStop"
+        >
+          Stop timer
+        </Button>
+      </template>
+    </Dialog>
     <Dialog v-model="dueHistoryOpen" :options="{ title: 'Due date revisions' }">
       <template #body-content>
         <div v-if="!dueHistory.length" class="text-sm text-ink-gray-5">No revisions yet.</div>
@@ -571,6 +587,7 @@ export default {
       timerInterval: null,
       pausePromptOpen: false,
       pauseReason: '',
+      stopPromptOpen: false,
       holdPromptOpen: false,
       holdReason: '',
       dueHistoryOpen: false,
@@ -899,8 +916,12 @@ export default {
       )
     },
     stopTimer() {
+      this.stopPromptOpen = true
+    },
+    confirmStop() {
       this.$resources.task.stopTimer.submit(null, {
         onSuccess: () => {
+          this.stopPromptOpen = false
           this.pausePromptOpen = false
           this.pauseReason = ''
           this.refreshTimer()
