@@ -115,6 +115,16 @@
               :disabled="false"
               @update:modelValue="onDueDateChange"
             />
+            <div class="text-ink-gray-6">Estimated</div>
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              class="form-input w-full"
+              placeholder="Hours"
+              :value="estimatedHours"
+              @change="setEstimatedTime($event.target.value)"
+            />
             <div class="text-ink-gray-6">Project</div>
             <Autocomplete
               placeholder="Select project"
@@ -798,6 +808,10 @@ export default {
         },
       })
     },
+    setEstimatedTime(hours) {
+      const secs = Math.max(0, Math.round(parseFloat(hours) * 3600)) || 0
+      this.$resources.task.setValue.submit({ estimated_time: secs })
+    },
     startTimer() {
       this.$resources.task.startTimer.submit(null, { onSuccess: () => this.refreshTimer() })
     },
@@ -1004,6 +1018,11 @@ export default {
     },
   },
   computed: {
+    // estimated_time is a Duration field (seconds); the input takes hours.
+    estimatedHours() {
+      const secs = this.$resources.task.doc?.estimated_time
+      return secs ? +(secs / 3600).toFixed(2) : ''
+    },
     isAutoCompletion() {
       return ['Done', 'Live'].includes(this.$resources.task.doc?.status)
     },

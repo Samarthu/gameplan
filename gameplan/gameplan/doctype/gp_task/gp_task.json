@@ -11,6 +11,7 @@
   "description",
   "start_date",
   "due_date",
+  "estimated_time",
   "parent_task",
   "task_type",
   "status",
@@ -50,6 +51,11 @@
    "fieldname": "due_date",
    "fieldtype": "Date",
    "label": "Due Date"
+  },
+  {
+   "fieldname": "estimated_time",
+   "fieldtype": "Duration",
+   "label": "Estimated Time"
   },
   {
    "fieldname": "parent_task",
