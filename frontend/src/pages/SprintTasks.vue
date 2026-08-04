@@ -32,24 +32,36 @@
       </div>
       <div class="flex items-center gap-2">
         <TaskSearchInput v-if="taskListRef" v-model="taskListRef.searchQuery" />
-        <Tooltip
-          :text="taskListRef?.activeFilterCount ? `${taskListRef.activeFilterCount} active filters` : 'Filters'"
-        >
-          <button
-            type="button"
-            class="relative grid h-8 w-8 place-items-center rounded-lg border border-outline-gray-2 bg-surface-white text-ink-gray-6 shadow-sm transition hover:bg-surface-gray-2 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
-            aria-label="Open filters"
-            @click.stop="taskListRef?.toggleFiltersPanel($event)"
+        <div class="relative">
+          <Tooltip
+            :text="taskListRef?.activeFilterCount ? taskListRef.activeFilterLabels.join(', ') : 'Filters'"
           >
-            <LucideListFilter class="h-4 w-4" />
-            <span
-              v-if="taskListRef?.activeFilterCount"
-              class="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-ink-gray-9 px-1 text-[10px] font-semibold leading-none text-white"
+            <button
+              type="button"
+              class="relative grid h-8 w-8 place-items-center rounded-lg border border-outline-gray-2 bg-surface-white text-ink-gray-6 shadow-sm transition hover:bg-surface-gray-2 hover:text-ink-gray-8 focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
+              aria-label="Open filters"
+              @click.stop="taskListRef?.toggleFiltersPanel($event)"
             >
-              {{ taskListRef.activeFilterCount }}
-            </span>
-          </button>
-        </Tooltip>
+              <LucideListFilter class="h-4 w-4" />
+            </button>
+          </Tooltip>
+          <span
+            v-if="taskListRef?.activeFilterCount"
+            class="pointer-events-none absolute -left-1.5 -top-1.5 z-10 grid h-4 min-w-4 place-items-center rounded-full bg-gray-900 px-1 text-[10px] font-semibold leading-none text-white"
+          >
+            {{ taskListRef.activeFilterCount }}
+          </span>
+          <Tooltip v-if="taskListRef?.activeFilterCount" text="Clear filters">
+            <button
+              type="button"
+              class="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full border border-outline-gray-2 bg-surface-white text-ink-gray-6 shadow-sm hover:bg-surface-red-1 hover:text-red-500"
+              aria-label="Clear filters"
+              @click.stop="taskListRef?.clearAllFilters()"
+            >
+              <LucideX class="h-3 w-3" />
+            </button>
+          </Tooltip>
+        </div>
         <TabButtons
           :buttons="[
             { label: 'List', value: 'list' },
@@ -128,6 +140,7 @@ import { sprints, getSprint } from '@/data/sprints'
 import { getProject } from '@/data/projects'
 import { getUser } from '@/data/users'
 import LucideListFilter from '~icons/lucide/list-filter'
+import LucideX from '~icons/lucide/x'
 import LucidePencil from '~icons/lucide/pencil'
 
 const props = defineProps({

@@ -1645,6 +1645,19 @@ export default {
         return !this.filterNeedsValue(filter) || this.expectedValuesForFilter(filter).length
       }).length + (this.selectedTag ? 1 : 0)
     },
+    activeFilterLabels() {
+      const labels = this.taskFilters
+        .filter((filter) => !this.filterNeedsValue(filter) || this.expectedValuesForFilter(filter).length)
+        .map((filter) => {
+          const field = this.filterFields.find((f) => f.value === filter.field)?.label || filter.field
+          const operator = this.filterOperators.find((o) => o.value === filter.operator)?.label || filter.operator
+          if (!this.filterNeedsValue(filter)) return `${field} ${operator}`
+          const value = this.isMultiValueFilter(filter) ? this.selectedFilterValueLabel(filter) : filter.value
+          return `${field} ${operator} ${value}`
+        })
+      if (this.selectedTag) labels.push(`Tags Equals ${this.selectedTag}`)
+      return labels
+    },
     filteredTasks() {
       const query = this.searchQuery.toLowerCase()
       return (this.tasks.data || []).filter((task) => {
