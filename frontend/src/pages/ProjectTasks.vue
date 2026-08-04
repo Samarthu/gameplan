@@ -4,6 +4,15 @@
       <h2 class="text-xl font-semibold text-ink-gray-9">Tasks</h2>
       <div class="flex items-center gap-2">
         <TaskSearchInput v-if="taskListRef" v-model="taskListRef.searchQuery" />
+        <button
+          v-if="taskListRef"
+          type="button"
+          class="h-8 rounded-lg border px-2.5 text-sm font-medium shadow-sm transition"
+          :class="taskListRef.assignedToMeActive ? 'border-gray-900 bg-gray-900 text-white' : 'border-outline-gray-2 bg-surface-white text-ink-gray-7 hover:bg-surface-gray-2'"
+          @click="taskListRef.toggleAssignedToMe()"
+        >
+          Assigned to me
+        </button>
         <div class="relative">
           <Tooltip :text="taskListRef?.activeFilterCount ? taskListRef.activeFilterLabels.join(', ') : 'Filters'">
             <button

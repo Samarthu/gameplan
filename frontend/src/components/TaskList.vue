@@ -1034,6 +1034,17 @@ export default {
       })
       this.showAddFilterMenu = false
     },
+    toggleAssignedToMe() {
+      const me = this.$user('sessionUser').name
+      const existing = this.taskFilters.find(
+        (filter) => filter.field === 'assignee' && filter.operator === 'equals' && filter.value === me,
+      )
+      if (existing) {
+        this.removeTaskFilter(existing.id)
+        return
+      }
+      this.taskFilters.push({ id: this.nextFilterId++, field: 'assignee', operator: 'equals', value: me, values: [] })
+    },
     removeTaskFilter(id) {
       this.taskFilters = this.taskFilters.filter((filter) => filter.id !== id)
       if (this.openFilterValueMenu === id) {
@@ -1644,6 +1655,12 @@ export default {
       return this.taskFilters.filter((filter) => {
         return !this.filterNeedsValue(filter) || this.expectedValuesForFilter(filter).length
       }).length + (this.selectedTag ? 1 : 0)
+    },
+    assignedToMeActive() {
+      const me = this.$user('sessionUser').name
+      return this.taskFilters.some(
+        (filter) => filter.field === 'assignee' && filter.operator === 'equals' && filter.value === me,
+      )
     },
     activeFilterLabels() {
       const labels = this.taskFilters
