@@ -1034,6 +1034,17 @@ export default {
       })
       this.showAddFilterMenu = false
     },
+    toggleAssignedToMe() {
+      const me = this.$user('sessionUser').name
+      const existing = this.taskFilters.find(
+        (filter) => filter.field === 'assignee' && filter.operator === 'equals' && filter.value === me,
+      )
+      if (existing) {
+        this.removeTaskFilter(existing.id)
+        return
+      }
+      this.taskFilters.push({ id: this.nextFilterId++, field: 'assignee', operator: 'equals', value: me, values: [] })
+    },
     removeTaskFilter(id) {
       this.taskFilters = this.taskFilters.filter((filter) => filter.id !== id)
       if (this.openFilterValueMenu === id) {
@@ -1644,6 +1655,25 @@ export default {
       return this.taskFilters.filter((filter) => {
         return !this.filterNeedsValue(filter) || this.expectedValuesForFilter(filter).length
       }).length + (this.selectedTag ? 1 : 0)
+    },
+    assignedToMeActive() {
+      const me = this.$user('sessionUser').name
+      return this.taskFilters.some(
+        (filter) => filter.field === 'assignee' && filter.operator === 'equals' && filter.value === me,
+      )
+    },
+    activeFilterLabels() {
+      const labels = this.taskFilters
+        .filter((filter) => !this.filterNeedsValue(filter) || this.expectedValuesForFilter(filter).length)
+        .map((filter) => {
+          const field = this.filterFields.find((f) => f.value === filter.field)?.label || filter.field
+          const operator = this.filterOperators.find((o) => o.value === filter.operator)?.label || filter.operator
+          if (!this.filterNeedsValue(filter)) return `${field} ${operator}`
+          const value = this.isMultiValueFilter(filter) ? this.selectedFilterValueLabel(filter) : filter.value
+          return `${field} ${operator} ${value}`
+        })
+      if (this.selectedTag) labels.push(`Tags Equals ${this.selectedTag}`)
+      return labels
     },
     filteredTasks() {
       const query = this.searchQuery.toLowerCase()
