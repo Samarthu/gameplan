@@ -51,89 +51,15 @@
           @update:modelValue="(o) => (filters.project = o?.value || null)"
         />
       </div>
-      <div class="relative w-52 shrink-0">
+      <div class="w-64">
         <span class="mb-1.5 block text-xs text-ink-gray-5">People</span>
-        <div
-          class="relative flex items-center gap-1"
-          @mouseleave="peopleSummaryOpen = false"
-        >
-          <div class="relative min-w-0 flex-1">
-            <button
-              type="button"
-              class="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-outline-gray-2 bg-surface-white px-2 text-left text-sm text-ink-gray-8 focus:outline-none focus:ring-1 focus:ring-outline-gray-4"
-              @click.stop="peopleMenuOpen = !peopleMenuOpen"
-            >
-              <span class="min-w-0 truncate">{{ peopleFilterLabel }}</span>
-              <svg class="h-4 w-4 shrink-0 text-ink-gray-5" viewBox="0 0 16 16" fill="none">
-                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </button>
-            <div
-              v-if="peopleMenuOpen"
-              class="absolute z-20 mt-1 max-h-60 w-full min-w-[13rem] overflow-y-auto rounded-lg border border-outline-gray-2 bg-surface-white py-1 shadow-lg"
-            >
-              <button
-                v-for="option in peopleOptions"
-                :key="option.value"
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-surface-gray-1"
-                @click="togglePerson(option.value)"
-              >
-                <span
-                  class="grid h-4 w-4 shrink-0 place-items-center rounded border"
-                  :class="filters.people.includes(option.value) ? 'border-ink-gray-9 bg-ink-gray-9 text-white' : 'border-outline-gray-3'"
-                >
-                  <svg v-if="filters.people.includes(option.value)" class="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </span>
-                <span class="truncate">{{ option.label }}</span>
-              </button>
-            </div>
-          </div>
-          <button
-            v-if="filters.people.length"
-            type="button"
-            class="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg border border-outline-gray-2 bg-surface-gray-1 text-xs font-medium text-ink-gray-7 hover:bg-surface-gray-2"
-            :title="`${filters.people.length} selected — hover to view`"
-            @mouseenter="peopleSummaryOpen = true"
-            @click.stop="peopleSummaryOpen = !peopleSummaryOpen"
-          >
-            {{ filters.people.length }}
-          </button>
-          <div
-            v-if="peopleSummaryOpen && filters.people.length"
-            class="absolute left-full top-0 z-30 ml-2 w-72 rounded-lg border border-outline-gray-2 bg-surface-white py-2 shadow-lg"
-            @mouseenter="peopleSummaryOpen = true"
-          >
-            <div class="flex items-center justify-between gap-2 border-b border-outline-gray-2 px-3 pb-2">
-              <span class="text-xs font-medium text-ink-gray-6">Selected people</span>
-              <button
-                type="button"
-                class="text-xs text-ink-gray-5 hover:text-ink-gray-8"
-                @click="clearPeople"
-              >
-                Clear all
-              </button>
-            </div>
-            <ul class="max-h-48 overflow-y-auto py-1">
-              <li
-                v-for="userId in filters.people"
-                :key="userId"
-                class="flex items-center justify-between gap-2 px-3 py-1.5 text-sm hover:bg-surface-gray-1"
-              >
-                <span class="min-w-0 truncate text-ink-gray-8">{{ peopleLabel(userId) }}</span>
-                <button
-                  type="button"
-                  class="shrink-0 text-ink-gray-4 hover:text-ink-gray-7"
-                  @click="togglePerson(userId)"
-                >
-                  ×
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
+        <Autocomplete
+          multiple
+          :options="peopleOptions"
+          :modelValue="filters.people"
+          placeholder="All people"
+          @update:modelValue="(selected) => (filters.people = (selected || []).map((o) => o.value))"
+        />
       </div>
     </div>
 
@@ -351,7 +277,7 @@
 </template>
 
 <script setup>
-import { computed, h, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { Autocomplete, Breadcrumbs, Button, FormControl, usePageMeta } from 'frappe-ui'
 import dayjs from '@/utils/dayjs'
 import FrappeChart from '@/components/charts/FrappeChart.vue'
@@ -388,8 +314,6 @@ const STATUS_ORDER = [
 
 const groupByStatus = ref(false)
 const statusGroupOpen = ref({})
-const peopleMenuOpen = ref(false)
-const peopleSummaryOpen = ref(false)
 const showTaskDialog = ref(false)
 const selectedTaskId = ref(null)
 
@@ -438,47 +362,10 @@ watch(
   },
 )
 
-function togglePerson(userId) {
-  const current = filters.value.people
-  if (current.includes(userId)) {
-    filters.value.people = current.filter((id) => id !== userId)
-  } else {
-    filters.value.people = [...current, userId]
-  }
-  if (!filters.value.people.length) {
-    peopleSummaryOpen.value = false
-  }
-}
-
-function clearPeople() {
-  filters.value.people = []
-  peopleSummaryOpen.value = false
-}
-
-function peopleLabel(userId) {
-  return peopleOptions.value.find((o) => o.value === userId)?.label || userId
-}
-
-const peopleFilterLabel = computed(() => {
-  const count = filters.value.people.length
-  if (!count) return 'All people'
-  if (count === 1) return peopleLabel(filters.value.people[0])
-  return `${count} people selected`
-})
-
-function onDocumentClick() {
-  peopleMenuOpen.value = false
-  peopleSummaryOpen.value = false
-}
 
 onMounted(() => {
-  document.addEventListener('click', onDocumentClick)
   if (!filters.value.from_date) applyPreset(7)
   dashboardData.fetch()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', onDocumentClick)
 })
 
 function toggleStatusGroup(title) {
