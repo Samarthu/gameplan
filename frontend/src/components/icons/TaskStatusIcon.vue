@@ -106,6 +106,8 @@ export default {
           return 'text-indigo-500'
         case 'Under Testing':
           return 'text-purple-500'
+        case 'Under Code Review':
+          return 'text-cyan-500'
         case 'Ready to Merge':
           return 'text-teal-500'
         case 'Todo':

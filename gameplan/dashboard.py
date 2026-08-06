@@ -6,7 +6,7 @@ from __future__ import annotations
 import frappe
 from frappe.utils import add_days, getdate, today
 
-OPEN_TASK_STATUSES = ("Backlog", "Todo", "In Progress", "Reopen", "Ready for Testing", "Hold", "QA Accepted", "Live", "Under Testing", "Ready to Merge")
+OPEN_TASK_STATUSES = ("Backlog", "Todo", "In Progress", "Reopen", "Ready for Testing", "Hold", "QA Accepted", "Live", "Under Testing", "Under Code Review", "Ready to Merge")
 
 TASK_STATUSES = (
 	"Backlog",
@@ -18,6 +18,7 @@ TASK_STATUSES = (
 	"QA Accepted",
 	"Live",
 	"Under Testing",
+	"Under Code Review",
 	"Ready to Merge",
 	"Done",
 	"Cancelled",
