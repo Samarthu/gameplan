@@ -76,7 +76,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "\nBacklog\nTodo\nIn Progress\nReopen\nReady for Testing\nHold\nQA Accepted\nLive\nUnder Testing\nReady to Merge\nDone\nCancelled\nNot a Bug\nBrief Received\nIdeation\nDesigning\nInternal Review\nStakeholder Review\nRevisions\nFinalized\nDesign In Review\nDesign Confirmed"
+   "options": "\nBacklog\nTodo\nIn Progress\nReopen\nReady for Testing\nHold\nQA Accepted\nLive\nUnder Testing\nUnder Code Review\nReady to Merge\nDone\nCancelled\nNot a Bug\nBrief Received\nIdeation\nDesigning\nInternal Review\nStakeholder Review\nRevisions\nFinalized\nDesign In Review\nDesign Confirmed"
   },
   {
    "fieldname": "priority",

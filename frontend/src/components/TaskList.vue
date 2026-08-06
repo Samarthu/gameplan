@@ -692,6 +692,7 @@ export default {
         'In Progress': true,
         'Ready for Testing': true,
         'Under Testing': true,
+        'Under Code Review': true,
         'Ready to Merge': true,
         Reopen: true,
         Cancelled: true,
@@ -862,7 +863,7 @@ export default {
       }
     },
     statusOptions({ onClick, name }) {
-      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Under Code Review', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           icon: () => h(TaskStatusIcon, { status }),
           label: status,
@@ -1104,7 +1105,7 @@ export default {
     },
     valueOptionsForFilter(filter) {
       const options = {
-        status: ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((value) => ({ label: value, value })),
+        status: ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Under Code Review', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((value) => ({ label: value, value })),
         priority: ['Urgent', 'High', 'Medium', 'Low'].map((value) => ({ label: value, value })),
         task_type: TASK_TYPES.map((value) => ({ label: value, value })),
         tag: this.allTags.map((value) => ({ label: value, value })),
@@ -1225,6 +1226,7 @@ export default {
         'In Progress': 'bg-pink-50',
         'Ready for Testing': 'bg-indigo-50',
         'Under Testing': 'bg-surface-blue-1',
+        'Under Code Review': 'bg-cyan-50',
         'Ready to Merge': 'bg-green-50',
         Done: 'bg-green-50',
         Cancelled: 'bg-surface-red-1',
@@ -1803,7 +1805,7 @@ export default {
       if (!this.groupByStatus) {
         return [{ id: 'all', title: '', tasks: this.topLevelTasks }]
       }
-      return ['Backlog', 'Todo', 'In Progress', 'Ready to Merge', 'Ready for Testing', 'Under Testing', 'QA Accepted', 'Done', 'Live', 'Reopen', 'Hold', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Under Code Review', 'Ready to Merge', 'Ready for Testing', 'Under Testing', 'QA Accepted', 'Done', 'Live', 'Reopen', 'Hold', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,
@@ -1812,7 +1814,7 @@ export default {
       })
     },
     kanbanGroups() {
-      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
+      return ['Backlog', 'Todo', 'In Progress', 'Reopen', 'Ready for Testing', 'Hold', 'QA Accepted', 'Live', 'Under Testing', 'Under Code Review', 'Ready to Merge', 'Done', 'Cancelled', 'Not a Bug', 'Brief Received', 'Ideation', 'Designing', 'Internal Review', 'Stakeholder Review', 'Revisions', 'Finalized', 'Design In Review', 'Design Confirmed'].map((status) => {
         return {
           id: status,
           title: status,
